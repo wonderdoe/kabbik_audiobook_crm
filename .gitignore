@@ -1,0 +1,36 @@
+# Dependencies
+node_modules/
+
+# Next.js build output
+.next/
+/out/
+/build/
+
+# Generated Partytown library
+/public/~partytown/
+
+# Storybook and test output
+/storybook-static/
+/coverage/
+
+# Local deployment/build tooling
+.vercel/
+*.tsbuildinfo
+.eslintcache
+
+# Local environment and secrets
+.env*
+!.env.example
+!.env.*.example
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+pnpm-debug.log*
+
+# Operating system files
+.DS_Store
+kkkkkkkkkkkkkkk.zip
+graphify-out/
+

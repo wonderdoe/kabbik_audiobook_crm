@@ -1,0 +1,54 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+.mantine-modal-title {
+	font-weight: bolder;
+	text-align: center;
+	width: 100%;
+	font-size: 24px;
+}
+
+.mantine-modal-close {
+	position: absolute;
+	right: 15px;
+}
+
+.text-ellipsis {
+	display: -webkit-box;
+	line-clamp: 4;
+	-webkit-line-clamp: 4;
+	-webkit-box-orient: vertical;
+	overflow: hidden;
+}
+
+.single-line-ellipsis {
+	line-clamp: 1;
+	-webkit-line-clamp: 1;
+	-webkit-box-orient: vertical;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+.three-line-ellipsis {
+	line-clamp: 3;
+	-webkit-line-clamp: 3;
+	-webkit-box-orient: vertical;
+	overflow: hidden;
+	display: -webkit-box;
+}
+
+.mantine-search-text-input {
+	border-top-right-radius: 0;
+	border-bottom-right-radius: 0;
+}
+
+.mantine-search-right-button {
+	border-top-left-radius: 0;
+	border-bottom-left-radius: 0;
+}
+
+.RichEditor-root {
+	border-radius: 10px;
+}

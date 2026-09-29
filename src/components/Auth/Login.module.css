@@ -1,0 +1,10 @@
+@media (max-width: 600px) {
+    .container{
+        display: flex;
+        justify-content: center;
+        align-items: center;
+    }
+    .demo {       
+        width: 300px;
+    }
+}

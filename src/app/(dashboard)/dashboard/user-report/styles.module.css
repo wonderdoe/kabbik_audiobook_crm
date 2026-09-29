@@ -1,0 +1,23 @@
+.totalUsers h2{
+    margin-bottom: 0px;
+}
+.totalUsers p{
+    text-align: center;
+    margin: 0px;
+}
+
+.showUniqueRentCount {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.unique_rent_button {
+    background-color: #15803C;
+    border-radius: 6px;
+    padding: 4px 16px;
+    border: none;
+    color: white;
+    cursor: pointer;
+    font-size: 16px;
+}

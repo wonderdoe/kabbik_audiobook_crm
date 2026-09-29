@@ -1,0 +1,37 @@
+{
+	"appenders": {
+			"debug": {
+					"type": "dateFile",
+					"filename": "./logs/debug/debug.log",
+					"compress": true,
+					"daysToKeep": 60,
+					"keepFileExt": true,
+					"layout": {
+							"type": "pattern",
+							"pattern": "[%d] [%z] [%p] [%c] - %m"
+					}
+			},
+			"error": {
+					"type": "file",
+					"filename": "./logs/error/errors.log",
+					"level": "ERROR",
+					"compress": true,
+					"daysToKeep": 60,
+					"keepFileExt": true
+			}
+	},
+	"categories": {
+			"default": {
+					"appenders": [
+							"debug"
+					],
+					"level": "DEBUG"
+			},
+			"error": {
+					"appenders": [
+							"error"
+					],
+					"level": "ERROR"
+			}
+	}
+}

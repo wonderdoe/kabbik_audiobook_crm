@@ -1,0 +1,93 @@
+.wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  font-family: sans-serif;
+}
+
+.parent {
+  /* background-color: #e64a7c; */
+  /* color: white; */
+  padding: 6px 18px;
+  border-radius: 20px;
+  font-weight: bold;
+  font-size: 16px;
+  z-index: 2;
+}
+
+.treeLines {
+  position: relative;
+  width: 100%;
+  max-width: 100%;
+  height: 10px;
+}
+
+.verticalLine {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  width: 2px;
+  height: 20px;
+  background-color: #333;
+  transform: translateX(-50%);
+}
+
+.horizontalLine {
+  position: absolute;
+  top: 20px;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background-color: #333;
+}
+
+.childConnectors {
+  position: absolute;
+  top: 20px;
+
+  left: 0;
+  right: 0;
+  display: flex;
+  justify-content: space-between;
+  padding: 0 12px;
+}
+.childBoxFirst{
+    height: 50px;
+    width: 49%;
+    background-color: white;
+    left: 0%;
+    top:0;
+    position: absolute;
+}
+.childBoxLast{
+    height: 50px;
+    width: 49%;
+    background-color: white;
+    right: 0%;
+    top:0;
+    position: absolute;
+}
+
+.childLine {
+  width: 2px;
+  height: 30px;
+  background-color: #333;
+}
+
+.children {
+  display: flex;
+  justify-content: space-between;
+  width: 100%;
+  max-width: 100%;
+  margin-top: 10px;
+}
+
+.child {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex: 1;
+  position: relative;
+  font-size: 14px;
+  color: #6e7a87;
+}
