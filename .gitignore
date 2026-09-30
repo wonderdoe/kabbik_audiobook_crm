@@ -33,4 +33,5 @@ pnpm-debug.log*
 .DS_Store
 kkkkkkkkkkkkkkk.zip
 graphify-out/
+package-lock.json
 
