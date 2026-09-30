@@ -1,4 +1,4 @@
-import DB from '../../../server/config/db';
+import DB from '../../../server/config/db.js';
 
 class PromoModel {
 	allPromoList = async (type, offset, limit, startDate, endDate) => {
@@ -430,9 +430,10 @@ class PromoModel {
 					AND CAST(created_at AS DATE) = ?
 				)
 
-				SELECT all_payments.*, packages.name, COUNT(*) AS promo_count FROM all_payments
+				SELECT all_payments.promo_code, all_payments.packageId, packages.name, COUNT(*) AS promo_count
+				FROM all_payments
 				JOIN packages ON packages.id = packageId
-				GROUP BY promo_code, packageId
+				GROUP BY all_payments.promo_code, all_payments.packageId, packages.name
 				ORDER BY promo_count DESC
 				LIMIT 5
 			`;

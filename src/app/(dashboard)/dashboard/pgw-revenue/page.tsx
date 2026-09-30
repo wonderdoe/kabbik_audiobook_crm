@@ -1,13 +1,15 @@
 'use client';
 
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Button, Card, Grid, Image, Table, Text, Title } from '@mantine/core';
+import { Button, Card, Grid, Group, Image, Table, Text, Title } from '@mantine/core';
+import { IconRefresh } from '@tabler/icons-react';
 import moment from 'moment';
 import { useCallback, useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { CustomDatePicker } from '@/components/Form/CustomDatePicker';
 import Loader from '@/components/Loader';
+import { checkgetPermission } from '@/helper/Commonfunction';
 
 const formSchema = z.object({
 	startDate: z.date({ required_error: 'Start date must be selected' }),
@@ -20,6 +22,8 @@ export default function PaymentGateWiseRevenue() {
 
 	const [data, setData] = useState([]);
 	const [isLoading, setIsLoading] = useState(false);
+	const [refreshing, setRefreshing] = useState(false);
+	const [updatedAt, setUpdatedAt] = useState<string | null>(null);
 	const [date, setDate] = useState({
 		startDate: moment().format('YYYY-MM-DD'),
 		endDate: moment().format('YYYY-MM-DD'),
@@ -32,23 +36,39 @@ export default function PaymentGateWiseRevenue() {
 		},
 	});
 
-	const getData = useCallback(async () => {
+	const getData = useCallback(async (refresh = false) => {
 		try {
 			setIsLoading(true);
+			const refreshParam = refresh ? '&refresh=1' : '';
 			const response = await fetch(
-				`/api/routes/pgw-revenue?startDate=${date.startDate}&endDate=${date.endDate}`,
+				`/api/routes/pgw-revenue?startDate=${date.startDate}&endDate=${date.endDate}${refreshParam}`,
+				{ cache: 'no-store' },
 			);
 			if (!response.ok) {
 				throw new Error('Failed to fetch data');
 			}
 			const apidata = await response.json();
-			setData(apidata);
+			setUpdatedAt(apidata.updatedAt ?? null);
+			const rows = Array.isArray(apidata) ? apidata : (apidata.data ?? []);
+			setData(rows);
 		} catch (error) {
 			console.error('Error fetching data:', error);
 		} finally {
 			setIsLoading(false);
 		}
 	}, [date]);
+
+	const handleRefresh = async () => {
+		if (!checkgetPermission('see_payment_gateway_wise_report')) return;
+		setRefreshing(true);
+		try {
+			await getData(true);
+		} finally {
+			setRefreshing(false);
+		}
+	};
+
+	const updatedLabel = updatedAt ? `Updated ${moment(updatedAt).fromNow()}` : null;
 
 	useEffect(() => {
 		getData();
@@ -62,9 +82,27 @@ export default function PaymentGateWiseRevenue() {
 	};
 	return (
 		<>
-			<Title order={1} mb="md">
-				Payment Gateway Wise Report.
-			</Title>
+			<Group justify="space-between" mb="md" align="flex-end">
+				<Title order={1}>Payment Gateway Wise Report.</Title>
+				<Group gap="sm">
+					{updatedLabel ? (
+						<Text size="sm" c="dimmed">
+							{updatedLabel}
+						</Text>
+					) : null}
+					{checkgetPermission('see_payment_gateway_wise_report') ? (
+						<Button
+							variant="light"
+							size="xs"
+							leftSection={<IconRefresh size={14} />}
+							loading={refreshing}
+							onClick={handleRefresh}
+						>
+							Refresh
+						</Button>
+					) : null}
+				</Group>
+			</Group>
 			<Card withBorder p="md" radius="md" mb="md">
 				<form
 					onSubmit={form.handleSubmit(handleSubmit, err => console.error(err))}

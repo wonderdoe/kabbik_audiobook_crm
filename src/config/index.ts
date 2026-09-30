@@ -5,6 +5,8 @@ import {
 	IconComponents,
 	IconDashboard,
 	IconDiscount,
+	IconGift,
+	IconBolt,
 	IconMicrophone,
 	IconRecordMail,
 	IconReport,
@@ -156,6 +158,18 @@ export const navLinks: NavItem[] = [
 				link: '/dashboard/authors',
 			},
 		],
+	},
+	{
+		permissions: '',
+		label: 'Rewards',
+		icon: IconGift,
+		link: '/dashboard/rewards',
+	},
+	{
+		permissions: '',
+		label: 'Quick Access',
+		icon: IconBolt,
+		link: '/dashboard/quick-access',
 	},
 	{
 		permissions:"",

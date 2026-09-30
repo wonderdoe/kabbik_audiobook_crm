@@ -41,6 +41,10 @@ class RevenueController {
 		return data;
 	}
 
+	async getPaymentsWeek(anchorDay) {
+		return RevenueModel.getPaymentsWeek(anchorDay);
+	}
+
 	async getPackageWiseRevenue(startDate, endDate) {
 		try {
 			const data = await RevenueModel.getPackageWiseRevenue(startDate, endDate);

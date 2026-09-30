@@ -1,4 +1,5 @@
-const mysql = require('mysql2');
+import mysql from 'mysql2';
+
 class DB {
 	constructor() {
 		this.db = mysql.createPool({
@@ -42,10 +43,3 @@ class DB {
 }
 
 export default new DB();
-
-
-
-
-
-
-

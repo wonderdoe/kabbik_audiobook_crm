@@ -1,5 +1,5 @@
 import moment from 'moment';
-import DB from '../../../server/config/db';
+import DB from '../../../server/config/db.js';
 
 class Activity_log_mdel {
 	tableName = 'activity_log';

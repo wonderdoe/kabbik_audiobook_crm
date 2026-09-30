@@ -437,6 +437,24 @@ See below the file tree to understand the project structure.
 
 <!-- License Section -->
 
+## Kabbik CRM — environment (cache & Redis)
+
+Copy `.env.example` to `.env` and set values. Do not commit secrets.
+
+| Variable | Purpose |
+|---|---|
+| `REDIS_ENV` | `staging` or `production` — selects which Redis host block to use |
+| `REDIS_STAGING_*` | Local/staging Redis (no TLS) |
+| `REDIS_HOST`, `REDIS_PORT`, `REDIS_PASSWORD`, `REDIS_USERNAME`, `REDIS_DB` | Production managed Redis (TLS on port 25061) |
+| `CACHE_ENABLED` | Set `false` to skip Redis and read MySQL only (fail-safe rollback) |
+| `CRON_SECRET` | Bearer token for `/api/cron/*` routes (Phase 4 worker) |
+
+**Redis server recommendations:** `maxmemory 256mb`, `maxmemory-policy allkeys-lru`, bind to private network, require password in production.
+
+Performance notes: [`docs/perf/`](docs/perf/).
+
+**Background worker (cron):** run beside Next.js — `pnpm run worker` (loads `.env` via [`scripts/load-env.js`](scripts/load-env.js) from repo root; PM2 `--cwd` should still point at the app directory). On start it **warms Redis** with the home dashboard and default revenue report payloads; keep this process running in production. Backfills: `pnpm run backfill:daily-payments`, `pnpm run backfill:subscription-revenue`, `pnpm run backfill:pgw-revenue` (optional `[daysBack]`; subscription backfill also warms revenue Redis keys). Apply SQL in `db/migrations/2026-09-30-daily-*-revenue-stats.sql` before backfill.
+
 ## 📜 License
 
 Although you don't have to, if you reuse this template for your projects I would appreciate it if you would **credit me and provide a link to my GitHub profile in the footer of your project**. Thanks!

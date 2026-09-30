@@ -60,7 +60,7 @@ const TopListners = () => {
         const getTopListners=async(startDate:string,endDate:string)=>{
             setIsLoading(true)
              try {
-                const response = await fetch(`api/routes/top-listners?startDate=${startDate}&endDate=${endDate}&limit=${10}${value?'&promo_code='+value:''}`);
+                const response = await fetch(`/api/routes/top-listners?startDate=${startDate}&endDate=${endDate}&limit=${10}${value?'&promo_code='+value:''}`);
                 if (!response.ok) {
                 throw new Error(`HTTP error! Status: ${response.status}`);
                 }

@@ -1,5 +1,5 @@
 import { title } from 'process';
-import DB from '../../../server/config/db';
+import DB from '../../../server/config/db.js';
 
 class SubscriptionUserModel {
 	tableName = 'users';

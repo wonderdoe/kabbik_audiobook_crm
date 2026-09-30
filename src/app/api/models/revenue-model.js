@@ -1,249 +1,21 @@
 import moment from 'moment';
-import DB from '../../../server/config/db';
-import {addDays} from "../helpers/commonFunction"
-import { calculatePercentage } from '@/helper/Commonfunction';
+import DB from '../../../server/config/db.js';
+import {
+	assemblePgwRevenueReport,
+	assembleSubscriptionRevenueReport,
+} from '../../../server/jobs/revenue-daily-facts.js';
 
 export const dynamic = 'force-dynamic';
 class RevenueModel {
 	getReport = async (startDate, endDate) => {
 		try {
-			const query = `
-				SELECT
-					IFNULL(SUM(total), 0) AS total_amount,
-					payment_source,
-					image,
-					new_subscribers
-				FROM (
-					SELECT
-						COALESCE(ROUND(SUM(amount)), 0) AS total,
-						'Bkash Onetime Payment' AS payment_source,
-						'https://kabbik-space.sgp1.digitaloceanspaces.com/1713779372202.png' AS image,
-						COALESCE(SUM(CASE
-							WHEN (SELECT COUNT(*) FROM bkash_onetime b2 WHERE b2.userId = b1.userId) = 1
-							THEN 1 ELSE 0
-						END), 0) AS new_subscribers
-					FROM bkash_onetime b1
-					WHERE DATE(CONVERT_TZ(created_at, 'UTC', '+06:00')) BETWEEN '${startDate}' AND '${endDate}'
-						AND executeStatusMessage = 'Successful'
-						AND amount IS NOT NULL
-
-					UNION ALL
-
-					SELECT
-						COALESCE(ROUND(SUM(amount)), 0) AS total,
-						'Bkash Recurring Payment' AS payment_source,
-						'https://kabbik-space.sgp1.digitaloceanspaces.com/1713779372202.png' AS image,
-						COALESCE(SUM(CASE
-							WHEN firstPayment = 1 THEN 1
-							ELSE 0
-						END), 0) AS new_subscribers
-					FROM bkash_webhook
-					WHERE DATE(CONVERT_TZ(trxDate, 'UTC', '+06:00')) BETWEEN '${startDate}' AND '${endDate}'
-						AND paymentStatus = 'SUCCEEDED_PAYMENT'
-
-					UNION ALL
-
-					SELECT
-						COALESCE(ROUND(SUM(amount)), 0) AS total,
-						'Robi Payment' AS payment_source,
-						'https://kabbik-space.sgp1.digitaloceanspaces.com/1713779411161.png' AS image,
-						COALESCE(SUM(CASE
-							WHEN (SELECT COUNT(*) FROM robi_payment r2 WHERE r1.userId = r2.userId) = 1
-							THEN 1 ELSE 0
-						END), 0) AS new_subscribers
-					FROM robi_payment r1
-					WHERE DATE(CONVERT_TZ(created_at, 'UTC', '+06:00')) BETWEEN '${startDate}' AND '${endDate}'
-						AND status = 'SUCCEEDED'
-						AND amount <> ''
-						AND amount IS NOT NULL
-
-					UNION ALL
-
-					SELECT
-						COALESCE(ROUND(SUM(amount)), 0) AS total,
-						'Nagad Payment' AS payment_source,
-						'https://kabbik-space.sgp1.digitaloceanspaces.com/1713779396431.png' AS image,
-						COALESCE(SUM(CASE
-							WHEN (SELECT COUNT(*) FROM nagad_payment n2 WHERE n1.userId = n2.userId) = 1
-							THEN 1 ELSE 0
-						END), 0) AS new_subscribers
-					FROM nagad_payment n1
-					WHERE DATE(CONVERT_TZ(created_at, 'UTC', '+06:00')) BETWEEN '${startDate}' AND '${endDate}'
-						AND status = 'Success'
-						AND amount IS NOT NULL
-						AND amount >= 0
-
-					UNION ALL
-
-					SELECT
-						COALESCE(ROUND(SUM(amount)), 0) AS total,
-						'Upay Payment' AS payment_source,
-						'https://kabbik-space.sgp1.digitaloceanspaces.com/1713779447112.png' AS image,
-						COALESCE(SUM(CASE
-							WHEN (SELECT COUNT(*) FROM upay_payment u2 WHERE u1.userId = u2.userId) = 1
-							THEN 1 ELSE 0
-						END), 0) AS new_subscribers
-					FROM upay_payment u1
-					WHERE DATE(CONVERT_TZ(created_at, 'UTC', '+06:00')) BETWEEN '${startDate}' AND '${endDate}'
-						AND status = 'success'
-						AND amount <> ''
-						AND amount IS NOT NULL
-
-					UNION ALL
-
-					SELECT
-						COALESCE(ROUND(SUM(amount)), 0) AS total,
-						'Aamarpay Payment' AS payment_source,
-						'https://kabbik-ab-bucket.s3.ap-south-1.amazonaws.com/1685361594336.png' AS image,
-						COALESCE(SUM(CASE
-							WHEN (SELECT COUNT(*) FROM aamarPay a2 WHERE a1.user_id = a2.user_id) = 1
-							THEN 1 ELSE 0
-						END), 0) AS new_subscribers
-					FROM aamarPay a1
-					WHERE DATE(CONVERT_TZ(created_at, 'UTC', '+06:00')) BETWEEN '${startDate}' AND '${endDate}'
-						AND payment_type = 'subscription'
-						AND ststus = 'Successful'
-
-					UNION ALL
-
-					SELECT
-						SUM(total) AS total,
-						'Stripe Payment' AS payment_source,
-						'https://kabbik-space.sgp1.cdn.digitaloceanspaces.com/strip.png' AS image,
-						SUM(new_subscribers) AS new_subscribers
-					FROM (
-						SELECT
-							COALESCE(ROUND(SUM((CASE
-								WHEN product_id = 1 THEN 0.99
-								WHEN product_id = 2 THEN 4.99
-								WHEN product_id = 3 THEN 9.99
-							END) * 121.14)), 0) AS total,
-							COALESCE(SUM(CASE
-								WHEN (SELECT COUNT(*) FROM stripe_payment s2 WHERE s1.user_id = s2.user_id) = 1
-								THEN 1 ELSE 0
-							END), 0) AS new_subscribers
-						FROM stripe_payment s1
-						WHERE DATE(CONVERT_TZ(created_at, 'UTC', '+06:00')) BETWEEN '${startDate}' AND '${endDate}'
-							AND is_succeed = 1
-
-						UNION ALL
-
-						SELECT ROUND(SUM(CASE sp.product_id
-								WHEN 1 THEN 0.99
-								WHEN 2 THEN 4.99
-								WHEN 3 THEN 9.99
-							END * 121.14)) AS total,
-							COALESCE(SUM(CASE
-								WHEN (SELECT COUNT(*) FROM stripe_payment s2 WHERE sp.user_id = s2.user_id) = 1
-								THEN 1 ELSE 0
-							END), 0) AS new_subscribers
-						FROM stripe_webhook sw
-						JOIN stripe_payment sp ON sw.customer_id = sp.customer_id
-						WHERE DATE(CONVERT_TZ(sw.created_at, 'UTC', '+06:00')) BETWEEN '${startDate}' AND '${endDate}'
-							AND sw.cancel_at IS NULL
-					) stripe_combined
-
-					UNION ALL
-
-					SELECT
-						COALESCE(ROUND(SUM((CASE
-							WHEN gp.packageId = 1 THEN 0.99
-							WHEN gp.packageId = 2 THEN 4.99
-							WHEN gp.packageId = 3 THEN 9.99
-						END) * 121.14)), 0) AS total,
-						'Googlepay Payment' AS payment_source,
-						'https://kabbik-space.sgp1.cdn.digitaloceanspaces.com/googlepay.png' AS image,
-						COALESCE(SUM(CASE
-							WHEN rw.event_type = 'INITIAL_PURCHASE' THEN 1
-							ELSE 0
-						END), 0) AS new_subscribers
-					FROM googlepay_invoice gp
-					JOIN revenuecat_webhook rw ON gp.userId = rw.app_user_id
-					WHERE DATE(CONVERT_TZ(gp.created_at, 'UTC', '+06:00')) BETWEEN '${startDate}' AND '${endDate}'
-						AND gp.status = 'Success'
-
-					UNION ALL
-
-					SELECT
-						COALESCE(ROUND(SUM((CASE
-							WHEN ap.packageId = 1 OR ap.packageId = 'kabbik_99' THEN 0.99
-							WHEN ap.packageId = 2 OR ap.packageId = 'kabbik_499_6m' THEN 4.99
-							WHEN ap.packageId = 3 OR ap.packageId = 'kabbik_999_1y' THEN 9.99
-						END) * 121.14)), 0) AS total,
-						'Applepay Payment' AS payment_source,
-						'https://kabbik-space.sgp1.cdn.digitaloceanspaces.com/applepay.png' AS image,
-						COALESCE(SUM(CASE
-							WHEN rw.event_type = 'INITIAL_PURCHASE' THEN 1
-							ELSE 0
-						END), 0) AS new_subscribers
-					FROM apple_pay ap
-					LEFT JOIN revenuecat_webhook rw ON ap.userId = rw.app_user_id
-					WHERE DATE(CONVERT_TZ(ap.created_at, 'UTC', '+06:00')) BETWEEN '${startDate}' AND '${endDate}'
-						AND ap.status = 'Success'
-				) AS merged_data
-				GROUP BY payment_source;
-			`;
-			let newDate=addDays(endDate,0)
-			// a comment
-			const newQuery=` 
-					select 
-					round(sum(spl.amount)) as total_amount, 
-					spl.is_recurring,
-					spl.payment_method AS payment_source, DATE(CONVERT_TZ(spl.created_at, 'UTC', '+06:00')) AS created_at,
-					SUM(CASE WHEN spl.is_first_payment = 1 AND spl.rent_payment = 0 THEN 1 ELSE 0 END) AS new_subscribers,
-					SUM(CASE WHEN spl.is_first_payment = 0 AND spl.rent_payment = 0 THEN 1 ELSE 0 END) AS old_subscribers
-					from user_subscription_payment_log as spl
-					WHERE 
-					payment_status = 'SUCCEEDED_PAYMENT'
-					and spl.isCancelled=0
-					and DATE(CONVERT_TZ(spl.created_at, 'UTC', '+06:00'))
-						BETWEEN '${startDate}' AND '${newDate}'
-					GROUP BY  
-					spl.payment_method, 
-					spl.is_recurring
-			;`
-			// testing comment
-			const result = await DB.query(query);
-			let newResult = await DB.query(newQuery)
-			let getData=(item)=>{
-				if(item?.payment_source==="Bkash")
-					return {...item,
-								image:"https://kabbik-space.sgp1.digitaloceanspaces.com/1713779372202.png",
-								payment_source:item.is_recurring? "Bkash Recurring Payment" :"Bkash Onetime Payment"
-							}
-				if(item?.payment_source==="NAGAD")
-					return {...item, payment_source:"Nagad Payment",
-								image:"https://kabbik-space.sgp1.digitaloceanspaces.com/1713779396431.png"
-							}
-				if(item?.payment_source==="AAMARPAY")
-					return {...item,image:"https://kabbik-ab-bucket.s3.ap-south-1.amazonaws.com/1685361594336.png",payment_source:"Aamarpay Payment"}
-				if(item?.payment_source==="ROBI")
-					return {...item,total_amount:calculatePercentage(item.total_amount,49),image:"https://kabbik-space.sgp1.digitaloceanspaces.com/1713779411161.png",payment_source:item.is_recurring?"Robi Payment Recurring":"Robi Onetime Payment"}
-				if(item?.payment_source==="BL")
-					return {...item,total_amount:calculatePercentage(item.total_amount,50),image:"/images/BLlogopng.png",payment_source:item.is_recurring?"BL Payment Recurring":"BL Onetime Payment"}
-				// if(item?.payment_source==="ROBI")
-				// 	return {...item,image:"https://kabbik-space.sgp1.digitaloceanspaces.com/1713779411161.png",payment_source:"Robi Payment"}
-				if(item?.payment_source==="GP")
-					return {...item,total_amount:calculatePercentage(item.total_amount,70),image:"https://kabbik-space.sgp1.cdn.digitaloceanspaces.com/grameen%20.png",payment_source:item.is_recurring?"GP Recurring Payment": "GP Onetime Payment"}
-				if(item?.payment_source==="APP_STORE")
-					return {...item,image:"https://kabbik-space.sgp1.cdn.digitaloceanspaces.com/applepay.png",
-						payment_source:item.is_recurring?"Apple Pay Recurring Payment":"Apple Pay Onetime Payment"		
-					}
-				if(item?.payment_source==="PLAY_STORE")
-					return {...item,image:"https://kabbik-space.sgp1.cdn.digitaloceanspaces.com/googlepay.png",
-						payment_source:item.is_recurring?"Google Pay Recurring Payment":"Google Pay Onetime Payment"
-					}
-				if(item?.payment_source==="STRIPE")
-					return {...item,image:"https://kabbik-space.sgp1.cdn.digitaloceanspaces.com/strip.png",
-						payment_source:item.is_recurring?"Stripe Recurring Payment":"Stripe Onetime Payment"
-					}
-			}
-			let newData=newResult.map((item)=>getData(item))
-			return newData;
+			return await assemblePgwRevenueReport(startDate, endDate);
 		} catch (error) {
 			console.log(error);
+			throw error;
 		}
 	};
+
 
 	getRentReport = async (startDate, endDate, day, limit, offset) => {
 		const processDate = new Date(endDate);
@@ -373,286 +145,13 @@ class RevenueModel {
 
 	getRevenueReport = async (startDate, endDate) => {
 		try {
-			const myblQuery = `
-				SELECT payment_type, dt AS payment_date, total
-				FROM (
-					SELECT SUM(amount) AS total, DATE(CONVERT_TZ(created_at, 'UTC', '+06:00')) AS dt, 'onetime' AS payment_type
-					FROM bkash_onetime
-					WHERE DATE(CONVERT_TZ(created_at, 'UTC', '+06:00')) BETWEEN '${startDate}' AND '${endDate}'
-						AND executeStatusMessage = 'Successful'
-						AND amount IS NOT NULL
-						AND trafficSource = 'Banglalink'
-					GROUP BY dt
-
-					UNION ALL
-
-					SELECT SUM(wbh.amount) AS total, DATE(CONVERT_TZ(trxDate, 'UTC', '+06:00')) AS dt, 'recurring' AS payment_type
-					FROM bkash_webhook wbh
-					LEFT JOIN bkash_invoice bi ON wbh.subscriptionRequestId = bi.subscriptionRequestId
-					WHERE DATE(CONVERT_TZ(trxDate, 'UTC', '+06:00')) BETWEEN '${startDate}' AND '${endDate}'
-						AND paymentStatus = "SUCCEEDED_PAYMENT"
-						AND bi.source = 'Banglalink'
-					GROUP BY dt
-
-					UNION ALL
-
-					SELECT SUM(amount) AS total, DATE(CONVERT_TZ(created_at, 'UTC', '+06:00')) AS dt, 'nagad' AS payment_type
-					FROM nagad_payment
-					WHERE DATE(CONVERT_TZ(created_at, 'UTC', '+06:00')) BETWEEN '${startDate}' AND '${endDate}'
-						AND (amount IS NOT NULL OR amount != 0)
-						AND status = 'Success'
-						AND trafficSource = 'Banglalink'
-					GROUP BY dt
-
-					UNION ALL
-
-					SELECT SUM(amount) AS total, DATE(CONVERT_TZ(created_at, 'UTC', '+06:00')) AS dt, 'upay' AS payment_type
-					FROM upay_payment
-					WHERE DATE(CONVERT_TZ(created_at, 'UTC', '+06:00')) BETWEEN '${startDate}' AND '${endDate}'
-						AND (amount IS NOT NULL OR amount != 0)
-						AND status = 'success'
-						AND trafficSource = 'Banglalink'
-					GROUP BY dt
-
-					UNION ALL
-
-					SELECT SUM(amount) AS total, DATE(CONVERT_TZ(created_at, 'UTC', '+06:00')) AS dt, 'aamarpay' AS payment_type
-					FROM aamarPay
-					WHERE DATE(CONVERT_TZ(created_at, 'UTC', '+06:00')) BETWEEN '${startDate}' AND '${endDate}'
-						AND (amount IS NOT NULL OR amount != 0)
-						AND payment_type = 'subscription'
-						AND ststus = 'Successful'
-						AND trafficSource = 'Banglalink'
-					GROUP BY dt
-				) AS all_amounts
-				ORDER BY payment_date DESC
-			`;
-
-			let newEndDate= addDays(endDate,1);
-
-			const newMyBlQuery=`  SELECT round(SUM(spl.amount)) AS total, spl.payment_method as payment_type,rent_payment,
-				spl.is_recurring,date(convert_tz(spl.created_at,'+00:00','+06:00')) AS payment_date
-				FROM user_subscription_payment_log AS spl 
-			WHERE payment_status='SUCCEEDED_PAYMENT' 
-				AND from_banglalink=1 AND 
-				convert_tz(spl.created_at,'+00:00','+06:00') BETWEEN '${startDate}' AND '${newEndDate}'
-			GROUP BY DATE(convert_tz(created_at,'+00:00','+06:00')),payment_method,is_recurring,rent_payment;`;
-
-			const kabbikQuery = `
-				SELECT payment_type, dt AS payment_date, total
-				FROM (
-					SELECT SUM(amount) AS total, DATE(CONVERT_TZ(created_at, 'UTC', '+06:00')) AS dt, 'onetime' AS payment_type
-					FROM bkash_onetime
-					WHERE DATE(CONVERT_TZ(created_at, 'UTC', '+06:00')) BETWEEN '${startDate}' AND '${endDate}'
-						AND executeStatusMessage = 'Successful'
-						AND amount IS NOT NULL
-						AND (trafficSource = '' OR trafficSource IS NULL)
-					GROUP BY dt
-
-					UNION ALL
-
-					SELECT SUM(wbh.amount) AS total, DATE(CONVERT_TZ(trxDate, 'UTC', '+06:00')) AS dt, 'recurring' AS payment_type
-					FROM bkash_webhook wbh
-					LEFT JOIN bkash_invoice bi ON wbh.subscriptionRequestId = bi.subscriptionRequestId
-					WHERE DATE(CONVERT_TZ(trxDate, 'UTC', '+06:00')) BETWEEN '${startDate}' AND '${endDate}'
-						AND paymentStatus = "SUCCEEDED_PAYMENT"
-						AND (bi.source IS NULL OR bi.source = '')
-					GROUP BY dt
-
-					UNION ALL
-
-					SELECT SUM(amount) AS total, DATE(CONVERT_TZ(created_at, 'UTC', '+06:00')) AS dt, 'robi' AS payment_type
-					FROM robi_payment
-					WHERE DATE(CONVERT_TZ(created_at, 'UTC', '+06:00')) BETWEEN '${startDate}' AND '${endDate}'
-						AND status = 'SUCCEEDED'
-						AND amount <> ''
-						AND amount IS NOT NULL
-						AND from_channel <> 'MyBL'
-					GROUP BY dt
-
-					UNION ALL
-
-					SELECT SUM(amount) AS total, DATE(CONVERT_TZ(created_at, 'UTC', '+06:00')) AS dt, 'nagad' AS payment_type
-					FROM nagad_payment
-					WHERE DATE(CONVERT_TZ(created_at, 'UTC', '+06:00')) BETWEEN '${startDate}' AND '${endDate}'
-						AND status = 'Success'
-						AND amount IS NOT NULL
-						AND (trafficSource IS NULL OR trafficSource = '')
-					GROUP BY dt
-
-					UNION ALL
-
-					SELECT SUM(amount) AS total, DATE(CONVERT_TZ(created_at, 'UTC', '+06:00')) AS dt, 'upay' AS payment_type
-					FROM upay_payment
-					WHERE DATE(CONVERT_TZ(created_at, 'UTC', '+06:00')) BETWEEN '${startDate}' AND '${endDate}'
-						AND status = 'success'
-						AND amount IS NOT NULL
-						AND (trafficSource IS NULL OR trafficSource = '')
-					GROUP BY dt
-
-					UNION ALL
-
-					SELECT ROUND(SUM(amount)) AS total, DATE(CONVERT_TZ(created_at, 'UTC', '+06:00')) AS dt, 'aamarpay' AS payment_type
-					FROM aamarPay
-					WHERE DATE(CONVERT_TZ(created_at, 'UTC', '+06:00')) BETWEEN '${startDate}' AND '${endDate}'
-						AND ststus = 'Successful'
-						AND payment_type = 'subscription'
-						AND (trafficSource = 'Kabbik' OR trafficSource = '' OR platform = 'Kabbik')
-					GROUP BY dt
-
-					UNION ALL
-
-					SELECT
-						SUM(total) AS total, DATE(CONVERT_TZ(created_at, 'UTC', '+06:00')) AS dt, 'stripe' AS payment_type
-					FROM (
-						SELECT ROUND(CASE product_id
-								WHEN 1 THEN 0.99
-								WHEN 2 THEN 4.99
-								WHEN 3 THEN 9.99
-							END * 121.14) AS total,
-							created_at
-						FROM stripe_payment
-						WHERE DATE(CONVERT_TZ(created_at, 'UTC', '+06:00')) BETWEEN '${startDate}' AND '${endDate}'
-							AND is_succeed = 1
-
-						UNION ALL
-
-						SELECT ROUND(CASE sp.product_id
-								WHEN 1 THEN 0.99
-								WHEN 2 THEN 4.99
-								WHEN 3 THEN 9.99
-							END * 121.14) AS total,
-							sw.created_at
-						FROM stripe_webhook sw
-						JOIN stripe_payment sp ON sw.customer_id = sp.customer_id
-						WHERE DATE(CONVERT_TZ(sw.created_at, 'UTC', '+06:00')) BETWEEN '${startDate}' AND '${endDate}'
-							AND sw.cancel_at IS NULL
-					) AS combined_stripe_payment
-					GROUP BY dt
-
-					UNION ALL
-
-					SELECT
-						ROUND(SUM((CASE
-							WHEN gp.packageId = 1 THEN 0.99
-							WHEN gp.packageId = 2 THEN 4.99
-							WHEN gp.packageId = 3 THEN 9.99
-						END) * 121.14)) AS total,
-						DATE(CONVERT_TZ(created_at, 'UTC', '+06:00')) AS dt,
-						'googlepay' AS payment_type
-					FROM googlepay_invoice gp
-					WHERE DATE(CONVERT_TZ(gp.created_at, 'UTC', '+06:00')) BETWEEN '${startDate}' AND '${endDate}'
-						AND gp.status = 'Success'
-					GROUP BY dt
-
-					UNION ALL
-
-					SELECT
-						ROUND(SUM((CASE
-							WHEN ap.packageId = 1 OR ap.packageId = 'kabbik_99' THEN 0.99
-							WHEN ap.packageId = 2 OR ap.packageId = 'kabbik_499_6m' THEN 4.99
-							WHEN ap.packageId = 3 OR ap.packageId = 'kabbik_999_1y' THEN 9.99
-						END) * 121.14)) AS total,
-						DATE(CONVERT_TZ(ap.created_at, 'UTC', '+06:00')) AS dt,
-						'applepay' AS payment_type
-					FROM apple_pay ap
-					WHERE DATE(CONVERT_TZ(ap.created_at, 'UTC', '+06:00')) BETWEEN '${startDate}' AND '${endDate}'
-						AND ap.status = 'Success'
-					GROUP BY dt
-				) AS all_amounts
-				WHERE total IS NOT NULL AND dt IS NOT NULL
-				ORDER BY payment_date DESC
-			`;
-			
-			
-
-			const newKabbikQuery=`
-			SELECT round(SUM(spl.amount)) AS total, spl.payment_method as payment_type,rent_payment,
-				spl.is_recurring,DATE(CONVERT_TZ(spl.created_at, 'UTC', '+06:00')) AS payment_date
-				FROM user_subscription_payment_log AS spl 
-			WHERE payment_status='SUCCEEDED_PAYMENT' and spl.isCancelled=0 and
-				DATE(CONVERT_TZ(spl.created_at, 'UTC', '+06:00')) BETWEEN '${startDate}' AND '${newEndDate}'
-			GROUP BY DATE(CONVERT_TZ(spl.created_at, 'UTC', '+06:00')),payment_method,is_recurring,rent_payment;`
-
-			const courseQuery = `
-				SELECT SUM(amount) AS total,
-					DATE(CONVERT_TZ(created_at, 'UTC', + '+06:00')) AS payment_date,
-					LOWER(payment_method) AS payment_type
-				FROM store_log
-				WHERE DATE(CONVERT_TZ(created_at, 'UTC', '+06:00')) BETWEEN '${startDate}' AND '${endDate}'
-					AND purchase_type = 'course'
-					AND is_succeed
-				GROUP BY payment_date, payment_type
-				ORDER BY payment_date DESC
-			`;
-			const myblResult = await DB.query(myblQuery);
-			let newMyblResult = await DB.query(newMyBlQuery);
-			
-			// const kabbikResult = await DB.query(kabbikQuery);
-			let newkabbikResult = await DB.query(newKabbikQuery);
-			
-			const courseResult = await DB.query(courseQuery);
-			let myblRevenue = {},
-				kabbikRevenue = {},
-				courseRevenue = {};
-			// for (const row of myblResult) {
-			// 	const date = moment(row.payment_date).format('YYYY-MM-DD');
-			// 	if (!(date in myblRevenue)) {
-			// 		myblRevenue[date] = {};
-			// 	}
-			newMyblResult = newMyblResult.sort((a,b)=>b.payment_date-a.payment_date)
-			for (const row of newMyblResult) {
-				const date = moment(row.payment_date).format('YYYY-MM-DD');
-				if (!(date in myblRevenue)) {
-					myblRevenue[date] = {};
-				}
-				myblRevenue[date][row.payment_type+"-"+`${row.is_recurring?"recurring":"onetime"}${row.rent_payment}`] = row.total;
-			}
-			// 	myblRevenue[date][row.payment_type] = row.total;
-			// }
-			// for (const row of kabbikResult) {
-			// 	const date = moment(row.payment_date).format('YYYY-MM-DD');
-			// 	if (!(date in kabbikRevenue)) {
-			// 		kabbikRevenue[date] = {};
-			// 	}
-			// 	kabbikRevenue[date][row.payment_type] = row.total;
-			// }
-			newkabbikResult = newkabbikResult.sort((a,b)=>b.payment_date-a.payment_date)
-			for (const row of newkabbikResult) {
-				const date = moment(row.payment_date).format('YYYY-MM-DD');
-				if (!(date in kabbikRevenue)) {
-					kabbikRevenue[date] = {};
-				}
-				if(row.payment_type?.toLowerCase()==='bl'){
-					kabbikRevenue[date][row.payment_type+"-"+`${row.is_recurring?"recurring":"onetime"}${row.rent_payment}`] = calculatePercentage(row.total,50);
-				}
-				else if(row.payment_type.toLowerCase()==='robi'){
-					kabbikRevenue[date][row.payment_type+"-"+`${row.is_recurring?"recurring":"onetime"}${row.rent_payment}`] = calculatePercentage(row.total,49);
-				}
-				else if(row.payment_type.toLowerCase()==='gp'){
-					kabbikRevenue[date][row.payment_type+"-"+`${row.is_recurring?"recurring":"onetime"}${row.rent_payment}`] = calculatePercentage(row.total,70);
-				}else{
-					kabbikRevenue[date][row.payment_type+"-"+`${row.is_recurring?"recurring":"onetime"}${row.rent_payment}`] = row.total;
-				}
-			}
-			for (const row of courseResult) {
-				const date = moment(row.payment_date).format('YYYY-MM-DD');
-				if (!(date in courseRevenue)) {
-					courseRevenue[date] = {};
-				}
-				courseRevenue[date][row.payment_type] = row.total;
-			}
-			return {
-				mybl: myblRevenue,
-				kabbik: kabbikRevenue,
-				course: courseRevenue,
-			};
+			return await assembleSubscriptionRevenueReport(startDate, endDate);
 		} catch (error) {
 			console.log(error);
-			// Rethrow error to handle it at a higher level
 			throw error;
 		}
 	};
+
 
 	individualPaymentGateway = async item => {
 		try {
@@ -835,6 +334,20 @@ class RevenueModel {
 			console.log(error);
 			throw error;
 		}
+	};
+
+	getPaymentsWeek = async (anchorDay = moment().format('YYYY-MM-DD')) => {
+		const dayStrings = [];
+		for (let i = 0; i < 7; i++) {
+			dayStrings.push(moment(anchorDay, 'YYYY-MM-DD').subtract(i, 'days').format('YYYY-MM-DD'));
+		}
+		const rows = await Promise.all(dayStrings.map(day => this.getSingleDayTotalPayment(day)));
+		return dayStrings.map((day, index) => {
+			const result = rows[index];
+			const total =
+				Array.isArray(result) && result[0]?.total != null ? Number(result[0].total) : 0;
+			return { day, total, count: 0 };
+		});
 	};
 
 	getSingleDayTotalPayment = async day => {
