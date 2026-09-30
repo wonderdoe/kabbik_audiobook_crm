@@ -1,4 +1,4 @@
-import DB from '../../../server/config/db';
+import DB from '../../../server/config/db.js';
 
 class RoleModel {
 	tableName = 'user_role';

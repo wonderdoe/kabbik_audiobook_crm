@@ -1,4 +1,4 @@
-import DB from '../../../server/config/db';
+import DB from '../../../server/config/db.js';
 
 class PromoModel {
 	allPromoList = async (type, offset, limit, startDate, endDate) => {

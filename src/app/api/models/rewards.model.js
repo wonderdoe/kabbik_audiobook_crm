@@ -1,4 +1,4 @@
-import DB from '../../../server/config/db';
+import DB from '../../../server/config/db.js';
 import {
 	ALLOWED_CLAIM_STATUSES,
 	claimStatusToNumericStatus,
