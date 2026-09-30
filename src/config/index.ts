@@ -6,6 +6,7 @@ import {
 	IconDashboard,
 	IconDiscount,
 	IconGift,
+	IconBolt,
 	IconMicrophone,
 	IconRecordMail,
 	IconReport,
@@ -163,6 +164,12 @@ export const navLinks: NavItem[] = [
 		label: 'Rewards',
 		icon: IconGift,
 		link: '/dashboard/rewards',
+	},
+	{
+		permissions: '',
+		label: 'Quick Access',
+		icon: IconBolt,
+		link: '/dashboard/quick-access',
 	},
 	{
 		permissions:"",
