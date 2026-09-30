@@ -1,72 +1,114 @@
 'use client';
 
 import moment from 'moment';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
+import { Button, Group, Text } from '@mantine/core';
+import { IconRefresh } from '@tabler/icons-react';
 import { DashboardContent } from '@/components/Dashboard/DashboardContent';
 import Loader from '@/components/Loader';
 import { PageContainer } from '@/components/PageContainer/PageContainer';
-import { getTopMostUsedPromoList, getTotalReceivedPayment } from '@/services/services';
-import TopListners from '@/components/Dashboard/TopListners';
 import { checkgetPermission } from '@/helper/Commonfunction';
+import { dashboardSummaryUrl } from '@/utils/constant';
+
+type DashboardSummaryResponse = {
+	updatedAt: string;
+	dashboardData: unknown[];
+	recentTotalPayments: { date: string; Amount: number }[];
+	topMostUsedPromos: { today: unknown[]; yesterday: unknown[] };
+};
 
 export default function Dashboard() {
 	const [loading, setLoading] = useState(true);
-	const [res, setRes] = useState([]);
-	const [recentTotalPayments, setRecentTotalPayments] = useState<any>([]);
-	const [topMostUsedPromos, setTopMostUsedPromos] = useState({
+	const [refreshing, setRefreshing] = useState(false);
+	const [updatedAt, setUpdatedAt] = useState<string | null>(null);
+	const [res, setRes] = useState<unknown[]>([]);
+	const [recentTotalPayments, setRecentTotalPayments] = useState<
+		{ date: string; Amount: number }[]
+	>([]);
+	const [topMostUsedPromos, setTopMostUsedPromos] = useState<{
+		yesterday: unknown[];
+		today: unknown[];
+	}>({
 		yesterday: [],
 		today: [],
 	});
-	useEffect(() => {
-		const getData = async () => {
-			const date = moment().format('YYYY-MM-DD');
-			const response = await fetch(`api/routes/total-user?date=${date}`, { cache: 'no-store' });
-			if (!response.ok) {
-				throw new Error(`Fetch failed. Status: ${response.status}`);
-			}
-			const result = await response.json();
-			setRes(result);
 
-			let recentTotalPayments = [];
-			for (let i = 0; i < 7; i++) {
-				const date = moment().subtract(i, 'days').format('YYYY-MM-DD');
-				const totalPayment = await getTotalReceivedPayment(date);
-				recentTotalPayments.push({
-					date: moment(date).format('Do MMM, YYYY'),
-					Amount: totalPayment[0].total,
-				});
-			}
-			setRecentTotalPayments(recentTotalPayments);
+	const applySnapshot = (data: DashboardSummaryResponse) => {
+		setUpdatedAt(data.updatedAt);
+		setRes(data.dashboardData ?? []);
+		setRecentTotalPayments(data.recentTotalPayments ?? []);
+		setTopMostUsedPromos(
+			data.topMostUsedPromos ?? { today: [], yesterday: [] },
+		);
+	};
 
-			const todayMostUsedPromos = await getTopMostUsedPromoList(moment().format('YYYY-MM-DD'));
-			const yesterdayMostUsedPromos = await getTopMostUsedPromoList(
-				moment().subtract(1, 'days').format('YYYY-MM-DD'),
-			);
-
-			setTopMostUsedPromos({
-				today: todayMostUsedPromos,
-				yesterday: yesterdayMostUsedPromos,
-			});
-			setLoading(false);
-		};
-		getData();
+	const loadSummary = useCallback(async (refresh = false) => {
+		const date = moment().format('YYYY-MM-DD');
+		const url = refresh
+			? `${dashboardSummaryUrl}?date=${date}&refresh=1`
+			: `${dashboardSummaryUrl}?date=${date}`;
+		const response = await fetch(url, { cache: 'no-store' });
+		if (!response.ok) {
+			throw new Error(`Fetch failed. Status: ${response.status}`);
+		}
+		const data: DashboardSummaryResponse = await response.json();
+		applySnapshot(data);
 	}, []);
+
+	useEffect(() => {
+		loadSummary()
+			.catch(console.error)
+			.finally(() => setLoading(false));
+	}, [loadSummary]);
+
+	const handleRefresh = async () => {
+		if (!checkgetPermission('dashboard')) return;
+		setRefreshing(true);
+		try {
+			await loadSummary(true);
+		} catch (e) {
+			console.error(e);
+		} finally {
+			setRefreshing(false);
+		}
+	};
+
+	const updatedLabel = updatedAt
+		? `Updated ${moment(updatedAt).fromNow()}`
+		: null;
 
 	return (
 		<>
 			<PageContainer title="Dashboard">
 				{!loading ? (
 					<>
-					{console.log("wwwwwwwwwwwwwwwwwwwwwwwwwwww")}
-
+						<Group justify="space-between" mb="sm">
+							{updatedLabel ? (
+								<Text size="sm" c="dimmed">
+									{updatedLabel}
+								</Text>
+							) : (
+								<span />
+							)}
+							{checkgetPermission('dashboard') ? (
+								<Button
+									variant="light"
+									size="xs"
+									leftSection={<IconRefresh size={14} />}
+									loading={refreshing}
+									onClick={handleRefresh}
+								>
+									Refresh
+								</Button>
+							) : null}
+						</Group>
 						{checkgetPermission('dashboard') && (
 							<DashboardContent
-							dashboardData={res}
-							recentTotalPayments={recentTotalPayments}
-							topMostUsedPromos={topMostUsedPromos}
-						/>
+								dashboardData={res}
+								recentTotalPayments={recentTotalPayments}
+								topMostUsedPromos={topMostUsedPromos}
+							/>
 						)}
-						{/* {checkgetPermission('top_listners') && <TopListners />} */}
 					</>
 				) : (
 					<Loader />

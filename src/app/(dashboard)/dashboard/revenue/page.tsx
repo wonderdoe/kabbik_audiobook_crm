@@ -8,12 +8,14 @@ import {
 	Card,
 	Flex,
 	Grid,
+	Group,
 	Image,
 	Modal,
 	Paper,
 	Text,
 	Title,
 } from '@mantine/core';
+import { IconRefresh } from '@tabler/icons-react';
 import { useDisclosure } from '@mantine/hooks';
 import moment from 'moment';
 import { useCallback, useEffect, useState } from 'react';
@@ -21,6 +23,7 @@ import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { CustomDatePicker } from '@/components/Form/CustomDatePicker';
 import Loader from '@/components/Loader';
+import { checkgetPermission } from '@/helper/Commonfunction';
 // import arrowTree from '/public/images/arrowTree.png'
 
 const CustomDisplay = ({
@@ -208,6 +211,8 @@ export default function Revenue() {
 	const [data, setData] = useState({ kabbik: [], mybl: [], course: [] });
 	const [individual, setIndividual] = useState([]);
 	const [isLoading, setIsLoading] = useState(true);
+	const [refreshing, setRefreshing] = useState(false);
+	const [updatedAt, setUpdatedAt] = useState<string | null>(null);
 	const [detailsOpened, { open: openDetails, close: closeDetails }] = useDisclosure(false);
 	const [detailsOpenedMyBl, { open: openDetailsMyBl, close: closeDetailsMyBl }] =
 		useDisclosure(false);
@@ -225,21 +230,23 @@ export default function Revenue() {
 		},
 	});
 
-	const getData = useCallback(async () => {
+	const getData = useCallback(async (refresh = false) => {
 		try {
 			setIsLoading(true);
+			const refreshParam = refresh ? '&refresh=1' : '';
 			const response = await fetch(
-				`/api/routes/revenue?startDate=${date.startDate}&endDate=${date.endDate}`,
+				`/api/routes/revenue?startDate=${date.startDate}&endDate=${date.endDate}${refreshParam}`,
+				{ cache: 'no-store' },
 			);
 			if (!response.ok) {
 				throw new Error('Failed to fetch data');
 			}
 			const apidata = await response.json();
-			setIsLoading(false);
+			setUpdatedAt(apidata.updatedAt ?? null);
 			setData({
-				kabbik: Object.entries(apidata.kabbik) as [],
-				mybl: Object.entries(apidata.mybl) as [],
-				course: Object.entries(apidata.course) as [],
+				kabbik: Object.entries(apidata.kabbik ?? {}) as [],
+				mybl: Object.entries(apidata.mybl ?? {}) as [],
+				course: Object.entries(apidata.course ?? {}) as [],
 			});
 		} catch (error) {
 			console.error('Error fetching data:', error);
@@ -247,6 +254,18 @@ export default function Revenue() {
 			setIsLoading(false);
 		}
 	}, [date]);
+
+	const handleRefresh = async () => {
+		if (!checkgetPermission('see_subscription_revenue_report')) return;
+		setRefreshing(true);
+		try {
+			await getData(true);
+		} finally {
+			setRefreshing(false);
+		}
+	};
+
+	const updatedLabel = updatedAt ? `Updated ${moment(updatedAt).fromNow()}` : null;
 
 	useEffect(() => {
 		getData();
@@ -306,9 +325,27 @@ export default function Revenue() {
 
 	return (
 		<>
-			<Title order={1} mb="md">
-				Subscription Revenue Report
-			</Title>
+			<Group justify="space-between" mb="md" align="flex-end">
+				<Title order={1}>Subscription Revenue Report</Title>
+				<Group gap="sm">
+					{updatedLabel ? (
+						<Text size="sm" c="dimmed">
+							{updatedLabel}
+						</Text>
+					) : null}
+					{checkgetPermission('see_subscription_revenue_report') ? (
+						<Button
+							variant="light"
+							size="xs"
+							leftSection={<IconRefresh size={14} />}
+							loading={refreshing}
+							onClick={handleRefresh}
+						>
+							Refresh
+						</Button>
+					) : null}
+				</Group>
+			</Group>
 			<Card withBorder p="md" radius="md" mb="md">
 				<form
 					onSubmit={form.handleSubmit(handleSubmit, err => console.error(err))}
