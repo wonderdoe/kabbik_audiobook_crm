@@ -1,6 +1,6 @@
 /**
  * Load .env before any module reads process.env (db, redis).
- * Import this as the first line in scripts/worker.js and backfill scripts.
+ * Import first in worker.mjs and backfill *.mjs scripts.
  */
 import dotenv from 'dotenv';
 import path from 'path';

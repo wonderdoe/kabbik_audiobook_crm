@@ -1,8 +1,8 @@
 /**
  * Backfill daily_subscription_revenue_stats (+ pgw facts via shared builder).
- * Usage: node scripts/backfill-daily-subscription-revenue.js [daysBack=90]
+ * Usage: node scripts/backfill-daily-subscription-revenue.mjs [daysBack=90]
  */
-import './load-env.js';
+import './load-env.mjs';
 import moment from 'moment';
 
 const daysBack = Math.max(1, Number(process.argv[2]) || 90);

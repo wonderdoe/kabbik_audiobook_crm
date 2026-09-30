@@ -13,7 +13,7 @@
 | Redis job | `src/server/jobs/subscription-revenue.js` |
 | Route | `GET /api/routes/revenue` — key `revenue:sub:v1:{start}:{end}`, TTL 600s |
 | Refresh | `?refresh=1` + JWT permission `see_subscription_revenue_report` |
-| Cron | `scripts/worker.js` — daily rollup 00:10 + warm, revenue refresh every 5 min; see `cache-warm.js` |
+| Cron | `scripts/worker.mjs` — daily rollup 00:10 + warm, revenue refresh every 5 min; see `cache-warm.js` |
 | Backfill | `pnpm run backfill:subscription-revenue [daysBack]` |
 
 ## UI

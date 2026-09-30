@@ -1,8 +1,8 @@
 /**
  * Backfill daily_payment_stats for the last N days (default 90).
- * Usage: node scripts/backfill-daily-payments.js [days]
+ * Usage: node scripts/backfill-daily-payments.mjs [days]
  */
-import './load-env.js';
+import './load-env.mjs';
 import moment from 'moment';
 
 const daysBack = Math.max(1, Number(process.argv[2]) || 90);
