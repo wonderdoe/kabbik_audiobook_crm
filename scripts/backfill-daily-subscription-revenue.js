@@ -2,16 +2,15 @@
  * Backfill daily_subscription_revenue_stats (+ pgw facts via shared builder).
  * Usage: node scripts/backfill-daily-subscription-revenue.js [daysBack=90]
  */
-import dotenv from 'dotenv';
+import './load-env.js';
 import moment from 'moment';
-import { buildDailyRevenueFacts } from '../src/server/jobs/revenue-daily-facts.js';
-import { warmDefaultRevenueReports } from '../src/server/jobs/cache-warm.js';
-
-dotenv.config({ path: '.env' });
 
 const daysBack = Math.max(1, Number(process.argv[2]) || 90);
 
 async function main() {
+	const { buildDailyRevenueFacts } = await import('../src/server/jobs/revenue-daily-facts.js');
+	const { warmDefaultRevenueReports } = await import('../src/server/jobs/cache-warm.js');
+
 	for (let i = 1; i <= daysBack; i++) {
 		const day = moment().subtract(i, 'days').format('YYYY-MM-DD');
 		await buildDailyRevenueFacts(day);

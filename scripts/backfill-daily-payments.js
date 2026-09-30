@@ -2,10 +2,8 @@
  * Backfill daily_payment_stats for the last N days (default 90).
  * Usage: node scripts/backfill-daily-payments.js [days]
  */
-import dotenv from 'dotenv';
+import './load-env.js';
 import moment from 'moment';
-
-dotenv.config({ path: '.env' });
 
 const daysBack = Math.max(1, Number(process.argv[2]) || 90);
 

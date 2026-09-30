@@ -453,7 +453,7 @@ Copy `.env.example` to `.env` and set values. Do not commit secrets.
 
 Performance notes: [`docs/perf/`](docs/perf/).
 
-**Background worker (cron):** run beside Next.js — `pnpm run worker` (Asia/Dhaka schedules in `scripts/worker.js`). On start it **warms Redis** with the home dashboard and default revenue report payloads; keep this process running in production. Backfills: `pnpm run backfill:daily-payments`, `pnpm run backfill:subscription-revenue`, `pnpm run backfill:pgw-revenue` (optional `[daysBack]`; subscription backfill also warms revenue Redis keys). Apply SQL in `db/migrations/2026-09-30-daily-*-revenue-stats.sql` before backfill.
+**Background worker (cron):** run beside Next.js — `pnpm run worker` (loads `.env` via [`scripts/load-env.js`](scripts/load-env.js) from repo root; PM2 `--cwd` should still point at the app directory). On start it **warms Redis** with the home dashboard and default revenue report payloads; keep this process running in production. Backfills: `pnpm run backfill:daily-payments`, `pnpm run backfill:subscription-revenue`, `pnpm run backfill:pgw-revenue` (optional `[daysBack]`; subscription backfill also warms revenue Redis keys). Apply SQL in `db/migrations/2026-09-30-daily-*-revenue-stats.sql` before backfill.
 
 ## 📜 License
 

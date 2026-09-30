@@ -1,8 +1,8 @@
 /**
  * Background cron worker — run separately from Next.js (pm2/systemd).
- * Usage: node scripts/worker.js
+ * Usage: node scripts/worker.js  (from repo root, or set cwd in pm2)
  */
-import dotenv from 'dotenv';
+import './load-env.js';
 import cron from 'node-cron';
 import { redis, ensureRedisReady } from '../src/server/config/redis.js';
 import { buildDailyPaymentRollup } from '../src/server/jobs/dashboard.js';
@@ -12,8 +12,6 @@ import {
 	warmDashboardHome,
 	warmDefaultRevenueReports,
 } from '../src/server/jobs/cache-warm.js';
-
-dotenv.config({ path: '.env' });
 
 const TZ = { timezone: 'Asia/Dhaka' };
 
