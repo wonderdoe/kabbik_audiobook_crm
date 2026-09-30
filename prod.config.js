@@ -2,7 +2,7 @@ module.exports = {
   apps: [
     {
       name: 'crm-admin-panel',
-      cwd: '/opt/kabbik-services/kabbik-crm',
+      cwd: __dirname,
       "instances" : "1",
       script: 'npm',
       args: 'start',
