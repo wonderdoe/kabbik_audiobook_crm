@@ -109,7 +109,7 @@ GROUP BY user_id HAVING c > 1 LIMIT 20;
 
 | Item | Value |
 |---|---|
-| Deployment target | **VPS/Docker** — use `node-cron` worker (`scripts/worker.js`) in Phase 4 |
+| Deployment target | **VPS/Docker** — use `node-cron` worker (`scripts/worker.mjs`) in Phase 4 |
 | Redis staging | `REDIS_ENV=staging` → `192.168.7.173:6379`, no TLS |
 | Redis production | DigitalOcean managed Redis, TLS on port **25061** |
 | Redis available | **yes** (credentials in `.env`) |

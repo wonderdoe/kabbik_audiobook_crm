@@ -10,13 +10,13 @@
 | Rollup model | `src/app/api/models/daily-payment-stats.model.js` |
 | Snapshot builder | `src/server/jobs/dashboard.js` — `buildHomeSnapshot`, `buildDailyPaymentRollup` |
 | Combined API | `GET /api/routes/dashboard-summary` (Redis `dash:home`, TTL 600s) |
-| Backfill script | `scripts/backfill-daily-payments.js` |
+| Backfill script | `scripts/backfill-daily-payments.mjs` |
 | Home UI | Single fetch; “Updated … ago” + Refresh (`?refresh=1`, requires `dashboard` permission) |
 
 ## Backfill (optional)
 
 ```bash
-node scripts/backfill-daily-payments.js 90
+node scripts/backfill-daily-payments.mjs 90
 ```
 
 ## Timings

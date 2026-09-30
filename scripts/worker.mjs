@@ -1,8 +1,9 @@
 /**
  * Background cron worker — run separately from Next.js (pm2/systemd).
- * Usage: node scripts/worker.js  (from repo root, or set cwd in pm2)
+ * Usage: node scripts/worker.mjs
+ * PM2: pm2 start scripts/worker.mjs --name crm-worker --cwd /path/to/kabbik_audiobook_crm
  */
-import './load-env.js';
+import './load-env.mjs';
 import cron from 'node-cron';
 import { redis, ensureRedisReady } from '../src/server/config/redis.js';
 import { buildDailyPaymentRollup } from '../src/server/jobs/dashboard.js';

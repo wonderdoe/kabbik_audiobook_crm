@@ -1,8 +1,8 @@
 /**
  * PGW facts are populated by the same builder as subscription backfill.
- * Usage: node scripts/backfill-daily-pgw-revenue.js [daysBack=90]
+ * Usage: node scripts/backfill-daily-pgw-revenue.mjs [daysBack=90]
  */
-import './load-env.js';
+import './load-env.mjs';
 import moment from 'moment';
 
 const daysBack = Math.max(1, Number(process.argv[2]) || 90);

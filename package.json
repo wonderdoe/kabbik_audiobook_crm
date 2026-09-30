@@ -36,10 +36,10 @@
     "prepare": "husky install",
     "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build",
-    "worker": "node scripts/worker.js",
-    "backfill:daily-payments": "node scripts/backfill-daily-payments.js",
-    "backfill:subscription-revenue": "node scripts/backfill-daily-subscription-revenue.js",
-    "backfill:pgw-revenue": "node scripts/backfill-daily-pgw-revenue.js"
+    "worker": "node scripts/worker.mjs",
+    "backfill:daily-payments": "node scripts/backfill-daily-payments.mjs",
+    "backfill:subscription-revenue": "node scripts/backfill-daily-subscription-revenue.mjs",
+    "backfill:pgw-revenue": "node scripts/backfill-daily-pgw-revenue.mjs"
   },
   "dependencies": {
     "@builder.io/partytown": "0.9.1",
