@@ -6,7 +6,7 @@ Two admin reports that used to scan large payment tables on every page load now 
 
 - **Page:** Dashboard → Subscription Revenue (default: last 7 days)
 - **What you see:** Kabbik, MyBl, and Course revenue by day and payment method
-- **Freshness:** Cached ~10 minutes in Redis (full API JSON); **Refresh** forces a new read (permission required)
+- **Freshness:** Cached up to **60 minutes** in Redis (full API JSON); worker refreshes defaults every **30 minutes**; **Refresh** forces a new read (permission required)
 - **Today:** Always calculated live so intraday numbers stay current
 - **Past days:** Stored in `daily_subscription_revenue_stats` overnight
 
@@ -23,8 +23,8 @@ Two admin reports that used to scan large payment tables on every page load now 
 |------|------|
 | Worker startup | Warm home + default revenue reports into Redis |
 | 00:10 daily | Payment + subscription/PGW rollups for yesterday, then warm all default Redis keys |
-| Every 30 min | Refresh home snapshot in Redis |
-| Every 30 min | Refresh default subscription (7 days) + PGW (today) in Redis |
+| Every 30 min | Refresh home snapshot in Redis (keys TTL 3600s) |
+| Every 30 min | Refresh default subscription (7 days) + PGW (today) in Redis (keys TTL 3600s) |
 
 Redis stores **assembled API responses** (`dash:home`, `revenue:sub:v1:…`, `revenue:pgw:v1:…`), not raw rollup rows. Run the worker with `pnpm run worker` on the server (separate from the website process). Without the worker, first visitors pay the full MySQL cost until something fills the cache.
 

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getOrSetLocked, cacheSet } from '../../../../server/cache/index.js';
 import { buildHomeSnapshot } from '../../../../server/jobs/dashboard.js';
+import { DASH_HOME_TTL } from '../../../../server/jobs/cache-warm.js';
 import { decodeJwtAccessToken } from '../../utils/jwt.js';
 
 export const dynamic = 'force-dynamic';
@@ -33,13 +34,13 @@ export async function GET(req) {
 				return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
 			}
 			const snap = await buildHomeSnapshot(date ?? undefined);
-			await cacheSet('dash:home', snap, 600);
+			await cacheSet('dash:home', snap, DASH_HOME_TTL);
 			return NextResponse.json(snap, {
 				headers: { 'Cache-Control': 'no-store' },
 			});
 		}
 
-		const snap = await getOrSetLocked('dash:home', 600, () =>
+		const snap = await getOrSetLocked('dash:home', DASH_HOME_TTL, () =>
 			buildHomeSnapshot(date ?? undefined),
 		);
 		return NextResponse.json(snap, {

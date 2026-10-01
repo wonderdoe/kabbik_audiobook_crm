@@ -13,15 +13,15 @@
 
 | Purpose | Key | TTL |
 |---|---|---|
-| Home snapshot | `dash:home` | 600 s |
+| Home snapshot | `dash:home` | 3600 s (60 min) |
 | Past-day payments | `dash:payments:YYYY-MM-DD` | 86400 s |
 | Rewards filters | `rewards:filters` | 1200 s |
 | Rewards summary | `rewards:summary:v{version}:{filterHash}` | 60 s |
 | Rewards count | `rewards:count:v{version}:{filterHash}` | 60 s |
 | Rewards list | `rewards:list:v{version}:{filterHash}:{page}:{pageSize}` | 15–30 s |
 | Rewards version | `rewards:version` | no TTL |
-| Subscription revenue | `revenue:sub:v1:{startDate}:{endDate}` | 600 s |
-| PGW revenue | `revenue:pgw:v1:{startDate}:{endDate}` | 600 s |
+| Subscription revenue | `revenue:sub:v1:{startDate}:{endDate}` | 3600 s (60 min) |
+| PGW revenue | `revenue:pgw:v1:{startDate}:{endDate}` | 3600 s (60 min) |
 | Cron locks | `cron:lock:{jobName}` | job-specific TTL |
 
 ## Redis server (ops)
