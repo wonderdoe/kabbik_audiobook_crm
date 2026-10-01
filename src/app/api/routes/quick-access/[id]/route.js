@@ -31,7 +31,7 @@ export async function PUT(req, { params }) {
 	}
 }
 
-export async function DELETE(_req, { params }) {
+export async function DELETE(req, { params }) {
 	const admin = getAdminFromRequest(req);
 	if (!admin) return unauthorizedResponse();
 

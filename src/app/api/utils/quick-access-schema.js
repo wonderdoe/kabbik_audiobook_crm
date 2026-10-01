@@ -90,7 +90,6 @@ export function validateQuickAccessBody(body, options = {}) {
 	if (has('isActive')) data.isActive = parseBoolean(body.isActive, true);
 	else if (!partial) data.isActive = parseBoolean(body.isActive, true);
 	if (has('sortOrder')) data.sortOrder = parseSortOrder(body.sortOrder, 0);
-	else if (!partial) data.sortOrder = parseSortOrder(body.sortOrder, 0);
 
 	return { ok: true, data };
 }
