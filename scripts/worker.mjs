@@ -87,7 +87,7 @@ async function withLock(name, ttlSeconds, fn, { retries = 2 } = {}) {
 
 cron.schedule(
 	'*/15 * * * *',
-	() => withLock('home', 90, () => warmDashboardHome()),
+	() => withLock('home', 240, () => warmDashboardHome()),
 	TZ,
 );
 
