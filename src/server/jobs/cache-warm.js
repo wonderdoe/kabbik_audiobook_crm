@@ -4,7 +4,7 @@ import { buildHomeSnapshot } from './dashboard.js';
 import { buildSubscriptionRevenueReport } from './subscription-revenue.js';
 import { buildPgwRevenueReport } from './pgw-revenue.js';
 
-/** Redis TTL 60 min; worker refreshes home/revenue every 30 min (*/30 * * * *, Asia/Dhaka). */
+// Redis TTL 60 min; worker warms home/revenue every 30 min (cron: every 30 minutes, Asia/Dhaka).
 export const DASH_HOME_TTL = 3600;
 export const REVENUE_CACHE_TTL = 3600;
 
