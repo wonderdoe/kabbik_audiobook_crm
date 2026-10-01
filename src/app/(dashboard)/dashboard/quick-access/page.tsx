@@ -4,8 +4,6 @@ import Loader from '@/components/Loader';
 import { createActivityLog } from '@/helper/Commonfunction';
 import {
 	QUICK_ACCESS_AUDIENCE_OPTIONS,
-	QUICK_ACCESS_GOTO_CUSTOM,
-	QUICK_ACCESS_GOTO_PRESETS,
 	type QuickAccessAudience,
 } from '@/constants/quickAccess';
 import {
@@ -44,21 +42,17 @@ type QuickAccessRow = {
 type FormState = {
 	enName: string;
 	bnName: string;
-	gotoPreset: string;
-	customGotoPage: string;
+	gotoPage: string;
 	audience: QuickAccessAudience;
 	isActive: boolean;
-	sortOrder: string;
 };
 
 const emptyForm: FormState = {
 	enName: '',
 	bnName: '',
-	gotoPreset: QUICK_ACCESS_GOTO_PRESETS[0].value,
-	customGotoPage: '',
+	gotoPage: '',
 	audience: 'all',
 	isActive: true,
-	sortOrder: '0',
 };
 
 const audienceBadgeColor: Record<QuickAccessAudience, string> = {
@@ -66,24 +60,6 @@ const audienceBadgeColor: Record<QuickAccessAudience, string> = {
 	free: 'gray',
 	premium: 'yellow',
 };
-
-function presetForGotoPage(gotoPage: string): { gotoPreset: string; customGotoPage: string } {
-	const match = QUICK_ACCESS_GOTO_PRESETS.find(p => p.value === gotoPage);
-	if (match) return { gotoPreset: match.value, customGotoPage: '' };
-	return { gotoPreset: QUICK_ACCESS_GOTO_CUSTOM, customGotoPage: gotoPage };
-}
-
-function resolveGotoPage(form: FormState): string {
-	if (form.gotoPreset === QUICK_ACCESS_GOTO_CUSTOM) {
-		return form.customGotoPage.trim();
-	}
-	return form.gotoPreset;
-}
-
-const gotoSelectOptions = [
-	...QUICK_ACCESS_GOTO_PRESETS.map(p => ({ value: p.value, label: p.label })),
-	{ value: QUICK_ACCESS_GOTO_CUSTOM, label: 'Custom' },
-];
 
 export default function QuickAccessPage() {
 	const [rows, setRows] = useState<QuickAccessRow[]>([]);
@@ -104,12 +80,6 @@ export default function QuickAccessPage() {
 		const t = setTimeout(() => setDebouncedSearch(search), 400);
 		return () => clearTimeout(t);
 	}, [search]);
-
-	const filtersActive = Boolean(
-		(audienceFilter && audienceFilter !== '') ||
-			(activeFilter && activeFilter !== '') ||
-			debouncedSearch.trim(),
-	);
 
 	const loadList = useCallback(async () => {
 		setLoading(true);
@@ -155,15 +125,12 @@ export default function QuickAccessPage() {
 	};
 
 	const openEdit = (row: QuickAccessRow) => {
-		const preset = presetForGotoPage(row.gotoPage);
 		setForm({
 			enName: row.enName,
 			bnName: row.bnName,
-			gotoPreset: preset.gotoPreset,
-			customGotoPage: preset.customGotoPage,
+			gotoPage: row.gotoPage,
 			audience: row.audience,
 			isActive: row.isActive,
-			sortOrder: String(row.sortOrder),
 		});
 		setFieldErrors({});
 		setEditingId(row.id);
@@ -174,7 +141,7 @@ export default function QuickAccessPage() {
 		const errors: Record<string, string> = {};
 		if (!form.enName.trim()) errors.enName = 'English name is required';
 		if (!form.bnName.trim()) errors.bnName = 'Bangla name is required';
-		const gotoPage = resolveGotoPage(form);
+		const gotoPage = form.gotoPage.trim();
 		if (!gotoPage) errors.gotoPage = 'Go to page is required';
 		else if (!gotoPage.startsWith('/')) errors.gotoPage = 'Go to page must start with /';
 		return errors;
@@ -188,14 +155,13 @@ export default function QuickAccessPage() {
 			return;
 		}
 
-		const gotoPage = resolveGotoPage(form);
+		const gotoPage = form.gotoPage.trim();
 		const payload = {
 			enName: form.enName.trim(),
 			bnName: form.bnName.trim(),
 			gotoPage,
 			audience: form.audience,
 			isActive: form.isActive,
-			sortOrder: parseInt(form.sortOrder, 10) || 0,
 		};
 
 		try {
@@ -290,19 +256,19 @@ export default function QuickAccessPage() {
 		}
 	};
 
-	const reorderVisible = !filtersActive && rows.length > 0;
+	const reorderVisible = rows.length > 0;
 
 	const moveRow = async (index: number, direction: 'up' | 'down') => {
 		const swapIndex = direction === 'up' ? index - 1 : index + 1;
 		if (swapIndex < 0 || swapIndex >= rows.length) return;
 
 		const next = [...rows];
-		const a = next[index];
-		const b = next[swapIndex];
-		const items = [
-			{ id: a.id, sortOrder: b.sortOrder },
-			{ id: b.id, sortOrder: a.sortOrder },
-		];
+		[next[index], next[swapIndex]] = [next[swapIndex], next[index]];
+
+		const reordered = next.map((row, i) => ({ ...row, sortOrder: i + 1 }));
+		const items = reordered.map(row => ({ id: row.id, sortOrder: row.sortOrder }));
+
+		setRows(reordered);
 
 		try {
 			const response = await fetch('/api/routes/quick-access/reorder', {
@@ -317,11 +283,12 @@ export default function QuickAccessPage() {
 					message: result.message || 'Reorder failed',
 					color: 'red',
 				});
+				loadList();
 				return;
 			}
-			loadList();
 		} catch {
 			notifications.show({ title: 'Error', message: 'Reorder failed', color: 'red' });
+			loadList();
 		}
 	};
 
@@ -406,8 +373,7 @@ export default function QuickAccessPage() {
 						rows.map((row, index) => (
 							<Table.Tr key={row.id}>
 								<Table.Td>
-									<Group gap={4}>
-										<Text size="sm">{row.sortOrder}</Text>
+									<Group gap={4} wrap="nowrap">
 										{reorderVisible && (
 											<>
 												<ActionIcon
@@ -492,7 +458,10 @@ export default function QuickAccessPage() {
 							required
 							value={form.enName}
 							error={fieldErrors.enName}
-							onChange={e => setForm(f => ({ ...f, enName: e.currentTarget.value }))}
+							onChange={e => {
+								const enName = e.currentTarget.value;
+								setForm(f => ({ ...f, enName }));
+							}}
 						/>
 						<TextInput
 							label="Bangla name"
@@ -500,33 +469,22 @@ export default function QuickAccessPage() {
 							lang="bn"
 							value={form.bnName}
 							error={fieldErrors.bnName}
-							onChange={e => setForm(f => ({ ...f, bnName: e.currentTarget.value }))}
+							onChange={e => {
+								const bnName = e.currentTarget.value;
+								setForm(f => ({ ...f, bnName }));
+							}}
 						/>
-						<Select
+						<TextInput
 							label="Go to page"
-							data={gotoSelectOptions}
-							value={form.gotoPreset}
-							onChange={v =>
-								setForm(f => ({
-									...f,
-									gotoPreset: v || QUICK_ACCESS_GOTO_PRESETS[0].value,
-								}))
-							}
+							required
+							placeholder="/your-route"
+							value={form.gotoPage}
+							error={fieldErrors.gotoPage}
+							onChange={e => {
+								const gotoPage = e.currentTarget.value;
+								setForm(f => ({ ...f, gotoPage }));
+							}}
 						/>
-						{form.gotoPreset === QUICK_ACCESS_GOTO_CUSTOM && (
-							<TextInput
-								label="Custom path"
-								placeholder="/your-route"
-								value={form.customGotoPage}
-								error={fieldErrors.gotoPage}
-								onChange={e =>
-									setForm(f => ({ ...f, customGotoPage: e.currentTarget.value }))
-								}
-							/>
-						)}
-						{form.gotoPreset !== QUICK_ACCESS_GOTO_CUSTOM && fieldErrors.gotoPage && (
-							<Text size="sm" c="red">{fieldErrors.gotoPage}</Text>
-						)}
 						<Radio.Group
 							label="Audience"
 							value={form.audience}
@@ -546,16 +504,10 @@ export default function QuickAccessPage() {
 						<Switch
 							label="Active"
 							checked={form.isActive}
-							onChange={e =>
-								setForm(f => ({ ...f, isActive: e.currentTarget.checked }))
-							}
-						/>
-						<TextInput
-							label="Sort order"
-							type="number"
-							value={form.sortOrder}
-							error={fieldErrors.sortOrder}
-							onChange={e => setForm(f => ({ ...f, sortOrder: e.currentTarget.value }))}
+							onChange={e => {
+								const isActive = e.currentTarget.checked;
+								setForm(f => ({ ...f, isActive }));
+							}}
 						/>
 						<Group justify="flex-end" mt="md">
 							<Button variant="default" onClick={closeModal} type="button">

@@ -42,7 +42,7 @@ async function withLock(name, ttlSeconds, fn) {
 }
 
 cron.schedule(
-	'*/2 * * * *',
+	'*/30 * * * *',
 	() => withLock('home', 90, () => warmDashboardHome()),
 	TZ,
 );
@@ -59,7 +59,7 @@ cron.schedule(
 );
 
 cron.schedule(
-	'*/5 * * * *',
+	'*/30 * * * *',
 	() => withLock('revenue-warm', 240, () => warmDefaultRevenueReports()),
 	TZ,
 );

@@ -26,6 +26,12 @@ class QuickAccessModel {
 		return rows[0] ? this.rowToDto(rows[0]) : null;
 	};
 
+	getNextSortOrder = async () => {
+		const sql = `SELECT COALESCE(MAX(sort_order), 0) + 1 AS nextOrder FROM ${this.tableName}`;
+		const rows = await DB.query(sql);
+		return rows[0]?.nextOrder ?? 1;
+	};
+
 	list = async ({ audience, isActive, search, limit, offset }) => {
 		const conditions = ['1=1'];
 		const values = [];

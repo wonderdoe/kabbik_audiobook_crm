@@ -25,13 +25,15 @@ class QuickAccessController {
 		}
 
 		const { enName, bnName, gotoPage, audience, isActive, sortOrder } = validated.data;
+		const resolvedSortOrder =
+			sortOrder !== undefined ? sortOrder : await QuickAccessModel.getNextSortOrder();
 		const data = await QuickAccessModel.create({
 			enName,
 			bnName,
 			gotoPage,
 			audience,
 			isActive: isActive ?? true,
-			sortOrder: sortOrder ?? 0,
+			sortOrder: resolvedSortOrder,
 			createdBy: adminId,
 		});
 

@@ -13,7 +13,7 @@
 | Redis job | `src/server/jobs/pgw-revenue.js` |
 | Route | `GET /api/routes/pgw-revenue` — key `revenue:pgw:v1:{start}:{end}`, TTL 600s |
 | Refresh | `?refresh=1` + JWT permission `see_payment_gateway_wise_report` |
-| Cron | `scripts/worker.mjs` — shared nightly rollup/warm; PGW default range warmed every 5 min |
+| Cron | `scripts/worker.mjs` — shared nightly rollup/warm; PGW default range warmed every 30 min |
 | Backfill | `pnpm run backfill:pgw-revenue [daysBack]` |
 
 ## UI

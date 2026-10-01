@@ -23,8 +23,8 @@ Two admin reports that used to scan large payment tables on every page load now 
 |------|------|
 | Worker startup | Warm home + default revenue reports into Redis |
 | 00:10 daily | Payment + subscription/PGW rollups for yesterday, then warm all default Redis keys |
-| Every 2 min | Refresh home snapshot in Redis |
-| Every 5 min | Refresh default subscription (7 days) + PGW (today) in Redis |
+| Every 30 min | Refresh home snapshot in Redis |
+| Every 30 min | Refresh default subscription (7 days) + PGW (today) in Redis |
 
 Redis stores **assembled API responses** (`dash:home`, `revenue:sub:v1:…`, `revenue:pgw:v1:…`), not raw rollup rows. Run the worker with `pnpm run worker` on the server (separate from the website process). Without the worker, first visitors pay the full MySQL cost until something fills the cache.
 
