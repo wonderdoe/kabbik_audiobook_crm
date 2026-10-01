@@ -2,53 +2,156 @@ import { ensureRedisReady, redis } from '../config/redis.js';
 
 const enabled = () => process.env.CACHE_ENABLED !== 'false';
 
-export async function cacheGet(key) {
+/** Redis key retention; logical freshness uses `freshUntil` inside the envelope. */
+export const CACHE_HARD_TTL_SECONDS = 86400;
+
+const LOG_HITS = () => process.env.CACHE_LOG_HITS === '1';
+
+function sleep(ms) {
+	return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+function wrapPayload(payload, freshTtlSeconds) {
+	return {
+		payload,
+		freshUntil: Date.now() + freshTtlSeconds * 1000,
+	};
+}
+
+function normalizeEntry(parsed) {
+	if (
+		parsed &&
+		typeof parsed === 'object' &&
+		'payload' in parsed &&
+		typeof parsed.freshUntil === 'number'
+	) {
+		return parsed;
+	}
+	return { payload: parsed, freshUntil: 0 };
+}
+
+export async function cacheGetEntry(key) {
 	if (!enabled()) return null;
 	try {
-		if (!(await ensureRedisReady())) return null;
-		const v = await redis.get(key);
-		return v ? JSON.parse(v) : null;
-	} catch {
+		if (!(await ensureRedisReady())) {
+			console.warn('[cache] get skipped (redis not ready)', key);
+			return null;
+		}
+		const raw = await redis.get(key);
+		if (!raw) {
+			if (LOG_HITS()) console.log('[cache] MISS', key);
+			return null;
+		}
+		const entry = normalizeEntry(JSON.parse(raw));
+		const isFresh = entry.freshUntil > Date.now();
+		if (LOG_HITS()) console.log('[cache]', isFresh ? 'HIT' : 'STALE', key);
+		return { ...entry, isFresh };
+	} catch (e) {
+		console.warn('[cache] get failed', key, e?.message || e);
 		return null;
 	}
 }
 
-export async function cacheSet(key, value, ttlSeconds) {
+export async function cacheGet(key) {
+	const entry = await cacheGetEntry(key);
+	return entry ? entry.payload : null;
+}
+
+export async function cacheSet(key, value, freshTtlSeconds) {
 	if (!enabled()) return;
 	try {
-		if (!(await ensureRedisReady())) return;
-		await redis.set(key, JSON.stringify(value), 'EX', ttlSeconds);
-	} catch {
-		/* fail open */
+		if (!(await ensureRedisReady())) {
+			console.warn('[cache] set skipped (redis not ready)', key);
+			return;
+		}
+		const envelope = wrapPayload(value, freshTtlSeconds);
+		await redis.set(key, JSON.stringify(envelope), 'EX', CACHE_HARD_TTL_SECONDS);
+	} catch (e) {
+		console.warn('[cache] set failed', key, e?.message || e);
 	}
 }
 
-export async function getOrSet(key, ttlSeconds, loader) {
-	const hit = await cacheGet(key);
-	if (hit !== null) return hit;
+export async function getOrSet(key, freshTtlSeconds, loader) {
+	const entry = await cacheGetEntry(key);
+	if (entry?.isFresh) return entry.payload;
+
 	const fresh = await loader();
-	await cacheSet(key, fresh, ttlSeconds);
+	await cacheSet(key, fresh, freshTtlSeconds);
 	return fresh;
 }
 
-/** Prevents cache stampede on hot keys */
-export async function getOrSetLocked(key, ttlSeconds, loader) {
-	const hit = await cacheGet(key);
-	if (hit !== null) return hit;
+async function refreshUnderLock(key, freshTtlSeconds, loader) {
 	let locked = false;
 	try {
 		if (await ensureRedisReady()) {
-			locked = (await redis.set(`lock:${key}`, '1', 'EX', 10, 'NX')) === 'OK';
+			locked = (await redis.set(`lock:${key}`, '1', 'EX', 120, 'NX')) === 'OK';
 		}
-	} catch {
-		/* fail open */
+	} catch (e) {
+		console.warn('[cache] refresh lock failed', key, e?.message || e);
 	}
+	if (!locked) return;
+	try {
+		const fresh = await loader();
+		await cacheSet(key, fresh, freshTtlSeconds);
+	} catch (e) {
+		console.warn('[cache] background refresh failed', key, e?.message || e);
+	} finally {
+		if (locked) {
+			try {
+				await redis.del(`lock:${key}`);
+			} catch {
+				/* ignore */
+			}
+		}
+	}
+}
+
+function triggerStaleRefresh(key, freshTtlSeconds, loader) {
+	void refreshUnderLock(key, freshTtlSeconds, loader);
+}
+
+/** Prevents cache stampede; serves stale payload while revalidating in background. */
+export async function getOrSetLocked(key, freshTtlSeconds, loader) {
+	const entry = await cacheGetEntry(key);
+	if (entry?.isFresh) return entry.payload;
+	if (entry && !entry.isFresh) {
+		triggerStaleRefresh(key, freshTtlSeconds, loader);
+		return entry.payload;
+	}
+
+	let locked = false;
+	try {
+		if (await ensureRedisReady()) {
+			locked = (await redis.set(`lock:${key}`, '1', 'EX', 120, 'NX')) === 'OK';
+		}
+	} catch (e) {
+		console.warn('[cache] lock failed', key, e?.message || e);
+	}
+
 	if (!locked) {
-		await new Promise(r => setTimeout(r, 150));
-		const retry = await cacheGet(key);
-		if (retry !== null) return retry;
+		for (let i = 0; i < 10; i += 1) {
+			await sleep(500);
+			const retry = await cacheGetEntry(key);
+			if (retry?.isFresh) return retry.payload;
+			if (retry && !retry.isFresh) {
+				triggerStaleRefresh(key, freshTtlSeconds, loader);
+				return retry.payload;
+			}
+		}
+		console.warn('[cache] stampede fallback (loader)', key);
 	}
-	const fresh = await loader();
-	await cacheSet(key, fresh, ttlSeconds);
-	return fresh;
+
+	try {
+		const fresh = await loader();
+		await cacheSet(key, fresh, freshTtlSeconds);
+		return fresh;
+	} finally {
+		if (locked) {
+			try {
+				await redis.del(`lock:${key}`);
+			} catch {
+				/* ignore */
+			}
+		}
+	}
 }

@@ -1,4 +1,5 @@
 import moment from 'moment';
+import { dhakaTodayYmd } from '../utils/dhaka-date.js';
 import TotalUserModel from '../../app/api/models/total-user-model.js';
 import RevenueModel from '../../app/api/models/revenue-model.js';
 import PromoModel from '../../app/api/models/promocode-model.js';
@@ -39,7 +40,7 @@ export async function buildDailyPaymentRollup(statDate) {
 }
 
 export async function buildHomeSnapshot(anchorDate) {
-	const date = anchorDate || moment().format('YYYY-MM-DD');
+	const date = anchorDate || dhakaTodayYmd();
 	const yesterday = moment(date, 'YYYY-MM-DD').subtract(1, 'day').format('YYYY-MM-DD');
 	const dayStrings = Array.from({ length: 7 }, (_, i) =>
 		moment(date, 'YYYY-MM-DD').subtract(i, 'days').format('YYYY-MM-DD'),

@@ -1,0 +1,56 @@
+import { NextResponse } from 'next/server';
+import { ensureRedisReady, redis } from '../../../../server/config/redis.js';
+
+export const dynamic = 'force-dynamic';
+
+async function readTs(key) {
+	const v = await redis.get(key);
+	return v ? Number(v) : null;
+}
+
+export async function GET() {
+	try {
+		if (!(await ensureRedisReady())) {
+			return NextResponse.json(
+				{ ok: false, redis: 'unavailable' },
+				{ status: 503 },
+			);
+		}
+
+		const [heartbeat, homeOk, revenueOk, dashTtl, redisStatus] = await Promise.all([
+			readTs('worker:heartbeat'),
+			readTs('warm:home:last_ok'),
+			readTs('warm:revenue-warm:last_ok'),
+			redis.ttl('dash:home'),
+			Promise.resolve(redis.status),
+		]);
+
+		const now = Date.now();
+		const heartbeatAgeMs = heartbeat ? now - heartbeat : null;
+		const workerAlive = heartbeatAgeMs !== null && heartbeatAgeMs < 180_000;
+
+		return NextResponse.json({
+			ok: workerAlive,
+			redis: redisStatus,
+			worker: {
+				heartbeat,
+				heartbeatAgeMs,
+				alive: workerAlive,
+			},
+			warm: {
+				homeLastOk: homeOk,
+				revenueLastOk: revenueOk,
+			},
+			keys: {
+				dashHomeTtlSeconds: dashTtl,
+			},
+			env: {
+				redisEnv: process.env.REDIS_ENV === 'production' ? 'production' : 'staging',
+				cacheEnabled: process.env.CACHE_ENABLED !== 'false',
+			},
+		});
+	} catch (error) {
+		console.error('[cache-health GET]', error);
+		return NextResponse.json({ ok: false, message: 'Internal server error' }, { status: 500 });
+	}
+}

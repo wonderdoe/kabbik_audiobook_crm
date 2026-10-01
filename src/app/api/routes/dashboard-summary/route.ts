@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getOrSetLocked, cacheSet } from '../../../../server/cache/index.js';
 import { buildHomeSnapshot } from '../../../../server/jobs/dashboard.js';
-import { DASH_HOME_TTL } from '../../../../server/jobs/cache-warm.js';
+import { DASH_HOME_TTL, dashHomeCacheKey } from '../../../../server/jobs/cache-warm.js';
 import { decodeJwtAccessToken } from '../../utils/jwt.js';
 
 export const dynamic = 'force-dynamic';
@@ -28,19 +28,20 @@ export async function GET(req) {
 	try {
 		const date = req.nextUrl.searchParams.get('date') ?? undefined;
 		const refresh = req.nextUrl.searchParams.get('refresh') === '1';
+		const cacheKey = dashHomeCacheKey(date ?? undefined);
 
 		if (refresh) {
 			if (!canRefreshDashboard(req)) {
 				return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
 			}
 			const snap = await buildHomeSnapshot(date ?? undefined);
-			await cacheSet('dash:home', snap, DASH_HOME_TTL);
+			await cacheSet(cacheKey, snap, DASH_HOME_TTL);
 			return NextResponse.json(snap, {
 				headers: { 'Cache-Control': 'no-store' },
 			});
 		}
 
-		const snap = await getOrSetLocked('dash:home', DASH_HOME_TTL, () =>
+		const snap = await getOrSetLocked(cacheKey, DASH_HOME_TTL, () =>
 			buildHomeSnapshot(date ?? undefined),
 		);
 		return NextResponse.json(snap, {

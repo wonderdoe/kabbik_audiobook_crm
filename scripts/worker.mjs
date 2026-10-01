@@ -13,20 +13,44 @@ import {
 	warmDashboardHome,
 	warmDefaultRevenueReports,
 } from '../src/server/jobs/cache-warm.js';
+import { dhakaClock } from '../src/server/utils/dhaka-date.js';
 
 const TZ = { timezone: 'Asia/Dhaka' };
+const HEARTBEAT_TTL = 120;
 
 function cronTimestamp() {
 	return new Date().toLocaleString('en-BD', { timeZone: 'Asia/Dhaka' });
 }
 
-async function withLock(name, ttlSeconds, fn) {
+function sleep(ms) {
+	return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+async function touchHeartbeat() {
+	if (!(await ensureRedisReady())) return;
+	await redis.set('worker:heartbeat', String(Date.now()), 'EX', HEARTBEAT_TTL);
+}
+
+async function recordJobOk(name) {
+	if (!(await ensureRedisReady())) return;
+	await redis.set(`warm:${name}:last_ok`, String(Date.now()), 'EX', 86400);
+}
+
+/** Skip 00:00 revenue warm; rollup-and-warm at 00:10 repopulates after daily facts. */
+function shouldSkipMidnightRevenueWarm() {
+	const { hour, minute } = dhakaClock();
+	return hour === 0 && minute === 0;
+}
+
+async function withLock(name, ttlSeconds, fn, { retries = 2 } = {}) {
 	console.log(`[cron:${name}] tick ${cronTimestamp()}`);
+	await touchHeartbeat();
 	if (!(await ensureRedisReady())) {
 		console.warn(`[cron:${name}] redis unavailable, skipping`);
 		return;
 	}
-	const ok = await redis.set(`cron:lock:${name}`, '1', 'EX', ttlSeconds, 'NX');
+	const lockKey = `cron:lock:${name}`;
+	const ok = await redis.set(lockKey, '1', 'EX', ttlSeconds, 'NX');
 	if (ok !== 'OK') {
 		console.log(`[cron:${name}] skipped (lock held by another run)`);
 		return;
@@ -34,15 +58,35 @@ async function withLock(name, ttlSeconds, fn) {
 	const started = Date.now();
 	console.log(`[cron:${name}] start`);
 	try {
-		await fn();
-		console.log(`[cron:${name}] ok ${Date.now() - started}ms`);
-	} catch (e) {
-		console.error(`[cron:${name}] failed after ${Date.now() - started}ms`, e);
+		let lastErr;
+		for (let attempt = 0; attempt <= retries; attempt += 1) {
+			try {
+				if (attempt > 0) {
+					const backoff = 1000 * attempt;
+					console.log(`[cron:${name}] retry ${attempt}/${retries} after ${backoff}ms`);
+					await sleep(backoff);
+				}
+				await fn();
+				await recordJobOk(name);
+				console.log(`[cron:${name}] ok ${Date.now() - started}ms`);
+				return;
+			} catch (e) {
+				lastErr = e;
+				console.error(`[cron:${name}] attempt ${attempt} failed`, e);
+			}
+		}
+		console.error(`[cron:${name}] failed after ${Date.now() - started}ms`, lastErr);
+	} finally {
+		try {
+			await redis.del(lockKey);
+		} catch {
+			/* ignore */
+		}
 	}
 }
 
 cron.schedule(
-	'*/30 * * * *',
+	'*/15 * * * *',
 	() => withLock('home', 90, () => warmDashboardHome()),
 	TZ,
 );
@@ -59,16 +103,23 @@ cron.schedule(
 );
 
 cron.schedule(
-	'*/30 * * * *',
-	() => withLock('revenue-warm', 240, () => warmDefaultRevenueReports()),
+	'*/15 * * * *',
+	() => {
+		if (shouldSkipMidnightRevenueWarm()) {
+			console.log('[cron:revenue-warm] skipped (midnight; rollup-and-warm handles warm)');
+			return;
+		}
+		return withLock('revenue-warm', 240, () => warmDefaultRevenueReports());
+	},
 	TZ,
 );
 
 console.log('[worker] started (Asia/Dhaka)');
 
-console.log('[worker] startup warm begin');
-warmAllDefaultCaches()
-	.then(() => console.log('[worker] startup warm ok'))
-	.catch(err => {
-		console.error('[worker] startup warm failed', err);
-	});
+withLock('startup-warm', 600, () => warmAllDefaultCaches()).catch(err => {
+	console.error('[worker] startup warm failed', err);
+});
+
+setInterval(() => {
+	void touchHeartbeat();
+}, 60_000);
