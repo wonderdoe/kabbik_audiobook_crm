@@ -9,7 +9,7 @@
 | Rollup table migration | `db/migrations/2026-09-30-daily-payment-stats.sql` (applied on staging) |
 | Rollup model | `src/app/api/models/daily-payment-stats.model.js` |
 | Snapshot builder | `src/server/jobs/dashboard.js` — `buildHomeSnapshot`, `buildDailyPaymentRollup` |
-| Combined API | `GET /api/routes/dashboard-summary` (Redis `dash:home`, TTL 600s) |
+| Combined API | `GET /api/routes/dashboard-summary` (Redis `dash:home`, TTL 3600s) |
 | Backfill script | `scripts/backfill-daily-payments.mjs` |
 | Home UI | Single fetch; “Updated … ago” + Refresh (`?refresh=1`, requires `dashboard` permission) |
 

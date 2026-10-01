@@ -100,6 +100,13 @@ export function parseAudiobookListParams(raw, options = {}) {
 		return { error: 'invalid_date_range' };
 	}
 
+	const approvalStatusParsed = parseOptionalInt(params.approval_status);
+	if (approvalStatusParsed?.error) return { error: 'invalid_approval_status' };
+	const approvalStatus = approvalStatusParsed?.value ?? null;
+	if (approvalStatus !== null && ![0, 1, 2].includes(approvalStatus)) {
+		return { error: 'invalid_approval_status' };
+	}
+
 	const filters = {
 		tab,
 		limit,
@@ -114,6 +121,7 @@ export function parseAudiobookListParams(raw, options = {}) {
 		dateFrom,
 		dateTo,
 		search: emptyToNull(params.search),
+		approvalStatus,
 	};
 
 	return { filters };
@@ -143,6 +151,11 @@ export function buildAudiobookWhereClause(filters) {
 	if (filters.forRent !== null) {
 		conditions.push('a.for_rent = ?');
 		queryParams.push(filters.forRent);
+	}
+
+	if (filters.approvalStatus !== null && filters.approvalStatus !== undefined) {
+		conditions.push('a.approval_status = ?');
+		queryParams.push(filters.approvalStatus);
 	}
 
 	if (filters.priceMin !== null && filters.priceMax !== null) {

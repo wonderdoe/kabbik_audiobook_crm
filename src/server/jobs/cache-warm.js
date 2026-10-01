@@ -4,8 +4,9 @@ import { buildHomeSnapshot } from './dashboard.js';
 import { buildSubscriptionRevenueReport } from './subscription-revenue.js';
 import { buildPgwRevenueReport } from './pgw-revenue.js';
 
-export const DASH_HOME_TTL = 600;
-export const REVENUE_CACHE_TTL = 600;
+/** Redis TTL 60 min; worker refreshes home/revenue every 30 min (*/30 * * * *, Asia/Dhaka). */
+export const DASH_HOME_TTL = 3600;
+export const REVENUE_CACHE_TTL = 3600;
 
 export function defaultRevenueDateRange(anchor = moment()) {
 	const m = moment.isMoment(anchor) ? anchor : moment(anchor);

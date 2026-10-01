@@ -80,6 +80,7 @@ type AudiobookFilterState = {
 	premium: string;
 	for_rent: string;
 	has_bgm: string;
+	approval_status: string;
 	author: string;
 	price_min: string;
 	price_max: string;
@@ -92,6 +93,7 @@ const emptyFilters: AudiobookFilterState = {
 	premium: '',
 	for_rent: '',
 	has_bgm: '',
+	approval_status: '',
 	author: '',
 	price_min: '',
 	price_max: '',
@@ -109,6 +111,12 @@ const bgmFilterSelectData = [
 	{ value: '0', label: 'No BGM' },
 ];
 
+const approvalStatusFilterData = [
+	{ value: '0', label: 'Pending' },
+	{ value: '1', label: 'Approved' },
+	{ value: '2', label: 'Rejected' },
+];
+
 const TAB_LABELS: Record<string, string> = {
 	all: 'All',
 	podcasts: 'Podcast',
@@ -123,6 +131,7 @@ function countActiveFilters(filters: AudiobookFilterState) {
 	if (filters.premium) count += 1;
 	if (filters.for_rent) count += 1;
 	if (filters.has_bgm) count += 1;
+	if (filters.approval_status) count += 1;
 	if (filters.author) count += 1;
 	if (filters.price_min) count += 1;
 	if (filters.price_max) count += 1;
@@ -149,6 +158,7 @@ function buildAudiobookQueryParams(
 	if (filters.premium) params.set('premium', filters.premium);
 	if (filters.for_rent) params.set('for_rent', filters.for_rent);
 	if (filters.has_bgm) params.set('has_bgm', filters.has_bgm);
+	if (filters.approval_status) params.set('approval_status', filters.approval_status);
 	if (filters.author) params.set('author', filters.author);
 	if (filters.price_min) params.set('price_min', filters.price_min);
 	if (filters.price_max) params.set('price_max', filters.price_max);
@@ -928,6 +938,18 @@ export default function AudiobookViews({ cookie }: any) {
 										data={bgmFilterSelectData}
 										value={filterDraft.has_bgm || null}
 										onChange={v => setFilterDraft(prev => ({ ...prev, has_bgm: v ?? '' }))}
+									/>
+								</Grid.Col>
+								<Grid.Col span={{ base: 12, sm: 6, md: 4 }}>
+									<Select
+										label="Approval status"
+										placeholder="All"
+										clearable
+										data={approvalStatusFilterData}
+										value={filterDraft.approval_status || null}
+										onChange={v =>
+											setFilterDraft(prev => ({ ...prev, approval_status: v ?? '' }))
+										}
 									/>
 								</Grid.Col>
 								<Grid.Col span={{ base: 12, sm: 6, md: 4 }}>

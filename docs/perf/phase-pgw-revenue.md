@@ -11,9 +11,9 @@
 | Facts + assembly | `src/server/jobs/revenue-daily-facts.js` |
 | Model entry | `RevenueModel.getReport` → `assemblePgwRevenueReport` |
 | Redis job | `src/server/jobs/pgw-revenue.js` |
-| Route | `GET /api/routes/pgw-revenue` — key `revenue:pgw:v1:{start}:{end}`, TTL 600s |
+| Route | `GET /api/routes/pgw-revenue` — key `revenue:pgw:v1:{start}:{end}`, TTL 3600s |
 | Refresh | `?refresh=1` + JWT permission `see_payment_gateway_wise_report` |
-| Cron | `scripts/worker.mjs` — shared nightly rollup/warm; PGW default range warmed every 30 min |
+| Cron | `scripts/worker.mjs` — shared nightly rollup/warm; PGW default range warmed every 30 min (Redis TTL 3600s) |
 | Backfill | `pnpm run backfill:pgw-revenue [daysBack]` |
 
 ## UI
