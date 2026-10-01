@@ -1,27 +1,108 @@
 import DB from '../../../server/config/db.js';
+import {
+	BGM_SELECT,
+	buildAudiobookWhereClause,
+	parseAudiobookListParams,
+} from '../utils/audiobook-query-schema.js';
 const mysql = require('mysql2');
-
 
 class AudioBookModel {
 	tableName = 'audiobooks';
-	async audioList(offset, limit) {
+
+	async _listAudiobooks(filters, { paginate = true } = {}) {
+		const { whereSql, queryParams } = buildAudiobookWhereClause(filters);
+
+		const countSql = `SELECT COUNT(*) AS count FROM ${this.tableName} a WHERE ${whereSql}`;
+		const countRows = await DB.query(countSql, queryParams);
+		const total = countRows[0]?.count ?? 0;
+
+		let dataSql = `SELECT a.*, ${BGM_SELECT} FROM ${this.tableName} a WHERE ${whereSql} ORDER BY a.created_at DESC`;
+		const dataParams = [...queryParams];
+
+		if (paginate) {
+			dataSql += ` LIMIT ? OFFSET ?`;
+			dataParams.push(Number(filters.limit), Number(filters.offset));
+		} else {
+			dataSql += ` LIMIT ?`;
+			dataParams.push(Number(filters.limit));
+		}
+
+		const data = await DB.query(dataSql, dataParams);
+		return { data, total };
+	}
+
+	async audioList(searchParams) {
 		try {
-			const sql = `SELECT * FROM ${this.tableName} ORDER BY created_at DESC
-			LIMIT ${limit} OFFSET ${offset}`;
-
-			const sql2 = `SELECT COUNT(*) as count FROM ${this.tableName}`;
-
-			const data = await DB.query(sql);
-			const sqlResponse2 = await DB.query(sql2);
-
-			const response = {
+			const parsed = parseAudiobookListParams(searchParams);
+			if (parsed.error) {
+				throw new Error(`Invalid audiobook list params: ${parsed.error}`);
+			}
+			const { data, total } = await this._listAudiobooks(parsed.filters, { paginate: true });
+			return {
 				data,
-				total: sqlResponse2[0],
+				total: { count: total },
 			};
-
-			return response;
 		} catch (error) {
 			throw new Error('Error fetching audio list: ' + error.message);
+		}
+	}
+
+	async audioListExport(searchParams) {
+		try {
+			const parsed = parseAudiobookListParams(searchParams, { forExport: true });
+			if (parsed.error) {
+				throw new Error(`Invalid audiobook export params: ${parsed.error}`);
+			}
+			const { data, total } = await this._listAudiobooks(parsed.filters, { paginate: false });
+			return { data, total, capped: total > parsed.filters.limit };
+		} catch (error) {
+			throw new Error('Error exporting audio list: ' + error.message);
+		}
+	}
+
+	async _tabList(searchParams, tab) {
+		const merged = { ...searchParams, tab };
+		const parsed = parseAudiobookListParams(merged);
+		if (parsed.error) {
+			throw new Error(`Invalid audiobook list params: ${parsed.error}`);
+		}
+		const { data, total } = await this._listAudiobooks(parsed.filters, { paginate: true });
+		return { result: data, total };
+	}
+
+	async getPodcastList(searchParams) {
+		try {
+			return await this._tabList(searchParams, 'podcasts');
+		} catch (error) {
+			console.error('Error in getPodcastList:', error);
+			throw error;
+		}
+	}
+
+	async getRentAudiobooks(searchParams) {
+		try {
+			return await this._tabList(searchParams, 'rent');
+		} catch (err) {
+			console.error(err);
+			throw new Error('Error in getRentAudiobooks', err);
+		}
+	}
+
+	async getPendingAudioList(searchParams) {
+		try {
+			return await this._tabList(searchParams, 'pending');
+		} catch (err) {
+			console.error(err);
+			throw err;
+		}
+	}
+
+	async getRejectedAudioList(searchParams) {
+		try {
+			return await this._tabList(searchParams, 'rejected');
+		} catch (err) {
+			console.error(err);
+			throw new Error('Error occurred when fetching rejected audiobooks');
 		}
 	}
 
@@ -31,9 +112,8 @@ class AudioBookModel {
 			const data = await DB.query(sql, [audiobook_id]);
 			return data;
 		} catch (error) {
-			// Handle error here if needed
 			console.error('Error in episodeList:', error);
-			throw error; // Rethrow error to be handled by caller
+			throw error;
 		}
 	}
 	async addEpisode(name, description, isfree, file_path) {
@@ -41,12 +121,10 @@ class AudioBookModel {
 			const sql = `INSERT INTO episodes (name,description,isfree,file_path) VALUES (?, ?, ?,?)`;
 			const sql1 = `INSERT INTO episodes (name,description,isfree,file_path) VALUES (${name},${description},${isfree},${file_path})`;
 
-			// const data = await DB.query(sql, [name,description,isfree,file_path]);
 			return sql1;
 		} catch (error) {
-			// Handle error here if needed
 			console.error('Error in episodeList:', error);
-			throw error; // Rethrow error to be handled by caller
+			throw error;
 		}
 	}
 
@@ -57,27 +135,26 @@ class AudioBookModel {
 			const data = await DB.query(sql, [name, path, bgm, duration, episodeId, audiobookId]);
 			return data;
 		} catch (error) {
-			// Handle error here if needed
 			console.error('Error in editEpisode:', error);
-			throw error; // Rethrow error to be handled by caller
+			throw error;
 		}
 	}
 
-	async updatePremium(id, premium, for_home,isSubRestricted=0) {
+	async updatePremium(id, premium, for_home, isSubRestricted = 0) {
 		try {
 			const sql = `UPDATE audiobooks SET premium = CASE WHEN ? = '1' THEN 1 WHEN ? = '0' THEN 0 END, for_home = CASE WHEN ? = '1' THEN 1 WHEN ? = '0' THEN 0 END,
 			isSubRestricted = ?  WHERE id = ?`;
-			const data = await DB.query(sql, [premium, premium, for_home, for_home,isSubRestricted, id]);
+			const data = await DB.query(sql, [premium, premium, for_home, for_home, isSubRestricted, id]);
 			const formattedQuery = mysql.format(sql, [
 				premium,
 				premium,
 				for_home,
 				for_home,
 				isSubRestricted,
-				id
-			  ]);
-			  
-			  console.log(formattedQuery);
+				id,
+			]);
+
+			console.log(formattedQuery);
 			return data;
 		} catch (error) {
 			console.error('Error in updatePremiumAndFeatured:', error);
@@ -88,14 +165,6 @@ class AudioBookModel {
 	async addAudiobook(name, description, author_name, price, en_name, thumb_path) {
 		try {
 			const sql = `INSERT INTO audiobooks (name, description, author_name, price, en_name, thumb_path) VALUES (?,?,?,?,?,?);`;
-			// const data = await DB.query(sql, [
-			// 	name,
-			// 	description,
-			// 	author_name,
-			// 	price,
-			// 	en_name,
-			// 	thumb_path,
-			// ]);
 
 			return data;
 		} catch (error) {
@@ -141,62 +210,6 @@ class AudioBookModel {
 		} catch (error) {
 			console.error('Error in updatePremiumAndFeatured:', error);
 			throw error;
-		}
-	}
-
-	async getPodcastList(searchParams) {
-		const { limit, offset } = searchParams;
-		try {
-			const sql = `SELECT * FROM ${this.tableName} WHERE podcast = 1 ORDER BY created_at DESC LIMIT ? OFFSET ?`;
-			const data = await DB.query(sql, [Number(limit), Number(offset)]);
-			const totalQuery = `SELECT COUNT(*) AS total FROM ${this.tableName} WHERE podcast = 1`;
-			const totalResult = await DB.query(totalQuery);
-			return { result: data, total: totalResult[0].total };
-		} catch (error) {
-			console.error('Error in updatePremiumAndFeatured:', error);
-			throw error;
-		}
-	}
-
-	async getRentAudiobooks(searchParams) {
-		try {
-			const { limit, offset } = searchParams;
-			const query = `
-				SELECT * FROM audiobooks WHERE for_rent = 1 ORDER BY created_at DESC LIMIT ? OFFSET ?
-			`;
-			const result = await DB.query(query, [Number(limit), Number(offset)]);
-			const queryTotal = `SELECT COUNT(*) AS total FROM audiobooks WHERE for_rent = 1`;
-			const resultTotal = await DB.query(queryTotal);
-			return { result, total: resultTotal[0].total };
-		} catch (err) {
-			console.error(err);
-			throw new Error('Error in model: getRentAudiobooks, ', err);
-		}
-	}
-
-	async getPendingAudioList(searchParams) {
-		try {
-			const { limit, offset } = searchParams;
-			const query = `SELECT * FROM audiobooks WHERE approval_status = 0 ORDER BY created_at DESC LIMIT ? OFFSET ?`;
-			const queryTotal = `SELECT COUNT(*) AS total FROM audiobooks WHERE approval_status = 0`;
-			const result = await DB.query(query, [Number(limit), Number(offset)]);
-			const resultTotal = await DB.query(queryTotal);
-			return { result, total: resultTotal[0].total };
-		} catch (err) {
-			console.error(err);
-		}
-	}
-
-	async getRejectedAudioList(searchParams) {
-		try {
-			const { limit, offset } = searchParams;
-			const query = `SELECT * FROM audiobooks WHERE approval_status = 2 ORDER BY created_at DESC LIMIT ? OFFSET ?`;
-			const queryTotal = `SELECT COUNT(*) AS total FROM audiobooks WHERE approval_status = 2`;
-			const result = await DB.query(query, [Number(limit), Number(offset)]);
-			const resultTotal = await DB.query(queryTotal);
-			return { result, total: resultTotal[0].total };
-		} catch (err) {
-			console.error(err);
 		}
 	}
 
@@ -252,24 +265,15 @@ class AudioBookModel {
 
 	async getSearchedAudiobooks(searchQuery) {
 		try {
-			const query = `
-				SELECT * FROM audiobooks
-				WHERE name LIKE CONCAT('%', ?, '%')
-					OR en_name LIKE CONCAT('%', ?, '%')
-					OR description LIKE CONCAT('%', ?, '%')
-					OR author_name LIKE CONCAT('%', ?, '%')
-					OR contributing_artists LIKE CONCAT('%', ?, '%')
-			`;
-			const result = await DB.query(query, [
-				searchQuery,
-				searchQuery,
-				searchQuery,
-				searchQuery,
-				searchQuery,
-				searchQuery,
-				searchQuery,
-			]);
-			return result;
+			const parsed = parseAudiobookListParams(
+				{ search: searchQuery, tab: 'all' },
+				{ forExport: true },
+			);
+			if (parsed.error) {
+				throw new Error(parsed.error);
+			}
+			const { data } = await this._listAudiobooks(parsed.filters, { paginate: false });
+			return data;
 		} catch (err) {
 			console.error(err);
 			throw err;

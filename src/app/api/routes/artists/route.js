@@ -8,14 +8,10 @@ export async function GET() {
 		const data = await ArtistController.getArtists();
 		return NextResponse.json(data);
 	} catch (error) {
+		console.error('[artists GET]', error);
 		return NextResponse.json(
-			{
-				message: error,
-			},
-
-			{
-				status: 500,
-			},
+			{ message: error?.message ?? 'Internal server error' },
+			{ status: 500 },
 		);
 	}
 }

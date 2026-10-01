@@ -4,10 +4,9 @@ import AudioBookController from '../../controllers/audiobook-controller';
 export const dynamic = 'force-dynamic';
 
 export async function GET(req) {
-	const offset = req.nextUrl.searchParams.get('offset');
-	const limit = req.nextUrl.searchParams.get('limit');
+	const searchParams = Object.fromEntries(req.nextUrl.searchParams);
 	try {
-		const data = await AudioBookController.getAudioList(offset, limit);
+		const data = await AudioBookController.getAudioList(searchParams);
 		if (data) {
 			return NextResponse.json(data);
 		}
