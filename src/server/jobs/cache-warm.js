@@ -9,7 +9,8 @@ export const DASH_HOME_TTL = 3600;
 export const REVENUE_CACHE_TTL = 3600;
 
 export function dashHomeCacheKey(dateYmd) {
-	return dateYmd ? `dash:home:${dateYmd}` : 'dash:home';
+	const date = dateYmd || dhakaTodayYmd();
+	return `dash:home:${date}`;
 }
 
 export function defaultRevenueDateRange(anchorYmd) {
@@ -25,7 +26,7 @@ export function defaultRevenueDateRange(anchorYmd) {
 export async function warmDashboardHome(anchorDate) {
 	const date = anchorDate || dhakaTodayYmd();
 	const snap = await buildHomeSnapshot(date);
-	const key = dashHomeCacheKey(anchorDate ? date : undefined);
+	const key = dashHomeCacheKey(date);
 	await cacheSet(key, snap, DASH_HOME_TTL);
 	return snap;
 }

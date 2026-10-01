@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { ensureRedisReady, redis } from '../../../../server/config/redis.js';
+import { dashHomeCacheKey } from '../../../../server/jobs/cache-warm.js';
 
 export const dynamic = 'force-dynamic';
 
@@ -21,7 +22,7 @@ export async function GET() {
 			readTs('worker:heartbeat'),
 			readTs('warm:home:last_ok'),
 			readTs('warm:revenue-warm:last_ok'),
-			redis.ttl('dash:home'),
+			redis.ttl(dashHomeCacheKey()),
 			Promise.resolve(redis.status),
 		]);
 
