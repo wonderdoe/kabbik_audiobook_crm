@@ -2,13 +2,21 @@ import audiobookModel from '../models/audiobook-model';
 import AudioBookModel from '../models/audiobook-model';
 
 class AudioBookController {
-	async getAudioList(offset, limit) {
+	async getAudioList(searchParams) {
 		try {
-			const results = await AudioBookModel.audioList(offset, limit);
-
+			const results = await AudioBookModel.audioList(searchParams);
 			return results;
 		} catch (error) {
 			console.error('Error in getAudioList:', error);
+			throw error;
+		}
+	}
+
+	async exportAudioList(searchParams) {
+		try {
+			return await AudioBookModel.audioListExport(searchParams);
+		} catch (error) {
+			console.error('Error in exportAudioList:', error);
 			throw error;
 		}
 	}
@@ -36,9 +44,9 @@ class AudioBookController {
 		}
 	}
 
-	async updatePremium(id, premium, for_home,isSubRestricted) {
+	async updatePremium(id, premium, for_home, isSubRestricted) {
 		try {
-			const results = await AudioBookModel.updatePremium(id, premium, for_home,isSubRestricted);
+			const results = await AudioBookModel.updatePremium(id, premium, for_home, isSubRestricted);
 			return { results, message: 'Data Updated Successfully', statusCode: 200 };
 		} catch (error) {
 			console.error('Error in getAudioList:', error);
@@ -64,7 +72,6 @@ class AudioBookController {
 	}
 
 	async editAudioBook(id, name, description, author_name, price, en_name, thumb_path) {
-		// name,description,author_name,price,en_name,thumb_path
 		try {
 			const results = await AudioBookModel.editAudioBook(
 				id,
@@ -79,19 +86,18 @@ class AudioBookController {
 			return { message: 'Data Updated Successfully', statusCode: 200 };
 		} catch (error) {
 			console.error('Error in getAudioList:', error);
-			throw error; // Re-throw the error to be handled by the caller
+			throw error;
 		}
 	}
 
 	async getFeaturedList(offset, limit) {
-		// name,description,author_name,price,en_name,thumb_path
 		try {
 			const results = await AudioBookModel.getFeaturedList(offset, limit);
 
 			return results;
 		} catch (error) {
 			console.error('Error in getAudioList:', error);
-			throw error; // Re-throw the error to be handled by the caller
+			throw error;
 		}
 	}
 
