@@ -47,24 +47,33 @@ redis.on('error', e => console.error('[redis]', e.message));
 
 export async function ensureRedisReady() {
 	if (redis.status === 'ready') return true;
-	if (redis.status === 'connecting') {
-		await new Promise((resolve, reject) => {
-			const onReady = () => {
-				cleanup();
-				resolve();
-			};
-			const onError = err => {
-				cleanup();
-				reject(err);
-			};
-			const cleanup = () => {
-				redis.off('ready', onReady);
-				redis.off('error', onError);
-			};
-			redis.once('ready', onReady);
-			redis.once('error', onError);
-		});
-		return true;
+	if (redis.status === 'connecting' || redis.status === 'reconnecting') {
+		try {
+			await new Promise((resolve, reject) => {
+				const timeout = setTimeout(() => {
+					cleanup();
+					reject(new Error('redis connect timeout'));
+				}, 5000);
+				const onReady = () => {
+					cleanup();
+					resolve();
+				};
+				const onError = err => {
+					cleanup();
+					reject(err);
+				};
+				const cleanup = () => {
+					clearTimeout(timeout);
+					redis.off('ready', onReady);
+					redis.off('error', onError);
+				};
+				redis.once('ready', onReady);
+				redis.once('error', onError);
+			});
+			return true;
+		} catch {
+			return false;
+		}
 	}
 	try {
 		await redis.connect();
