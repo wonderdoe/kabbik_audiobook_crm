@@ -204,6 +204,7 @@ export async function warmUserReport(anchorDate) {
 			),
 		),
 	]);
+	await warmDashboardHome(date);
 	return pageSnapshot;
 }
 

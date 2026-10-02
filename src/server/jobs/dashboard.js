@@ -51,7 +51,7 @@ function sumReportRows(rows) {
 	return rows.reduce((acc, r) => acc + Number(r?.count ?? 0), 0);
 }
 
-function extractReportSummary(snapshot) {
+export function extractReportSummary(snapshot) {
 	if (!snapshot) return null;
 	try {
 		const userCount = snapshot.userCount?.result ?? snapshot.userCount ?? null;
@@ -113,4 +113,14 @@ export async function buildHomeSnapshot(anchorDate) {
 		},
 		reportSummary: extractReportSummary(userReportSnapshot),
 	};
+}
+
+/** Overlay report cards from Redis when dash:home was built before user-report warm. */
+export async function enrichHomeSnapshotWithReportSummary(snap, anchorDate) {
+	if (!snap) return snap;
+	const date = anchorDate || dhakaTodayYmd();
+	const userReportSnapshot = await cacheGet(userReportSnapshotCacheKey(date)).catch(() => null);
+	const reportSummary = extractReportSummary(userReportSnapshot);
+	if (!reportSummary) return snap;
+	return { ...snap, reportSummary };
 }
