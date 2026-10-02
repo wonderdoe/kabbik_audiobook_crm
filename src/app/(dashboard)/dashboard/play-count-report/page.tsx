@@ -1,13 +1,24 @@
 'use client';
 
-import { AreaChart } from '@mantine/charts';
-import { Image, Paper, Table, Text, Title } from '@mantine/core';
+import {
+	Box,
+	Paper,
+	Tab,
+	Table,
+	TableBody,
+	TableCell,
+	TableContainer,
+	TableHead,
+	TableRow,
+	Typography,
+} from '@mui/material';
+import { PageContainer } from '@/components/PageContainer/PageContainer';
+import { MainCard } from '@/components/mantis/MainCard';
+import { MuiAreaChart } from '@/components/Charts/MuiAreaChart';
 import { IconArrowDown, IconArrowUp } from '@tabler/icons-react';
 import moment from 'moment';
 import { useEffect, useState } from 'react';
 import Loader from '@/components/Loader';
-import '@mantine/charts/styles.css';
-
 export default function PageCountReport() {
 	const [loading, setLoading] = useState(true);
 	const [allData, setAllData] = useState<any>([]);
@@ -134,16 +145,19 @@ export default function PageCountReport() {
 	}, []);
 
 	return (
-		<div>
+		<PageContainer
+			title="Play Count Report"
+			items={[{ label: 'Play Count Report', href: '/dashboard/play-count-report' }]}
+		>
 			{loading ? (
 				<Loader />
 			) : (
 				<>
-					<Title order={2} mb={'md'}>
+					<Typography variant="h5" component="h2" mb={'md'}>
 						Overview
-					</Title>
-					<Paper shadow="xs" p="md" mb="md">
-						<AreaChart
+					</Typography>
+					<Paper elevation={1} sx={{ p: 2 }}>
+						<MuiAreaChart
 							h={300}
 							withLegend
 							data={allData
@@ -159,112 +173,112 @@ export default function PageCountReport() {
 							curveType="linear"
 						/>
 					</Paper>
-					<Title order={2} mb={'md'}>
+					<Typography variant="h5" component="h2" mb={'md'}>
 						Play Count Report
-					</Title>
-					<Paper shadow="xs" p="md" mb="md">
+					</Typography>
+					<Paper elevation={1} sx={{ p: 2 }}>
 						<Table>
-							<Table.Tbody>
-								<Table.Tr>
-									<Table.Td>
-										<Text size="xs" color="dimmed">
+							<TableBody>
+								<TableRow>
+									<TableCell>
+										<Typography variant="caption" color="text.secondary">
 											Date
-										</Text>
-									</Table.Td>
+										</Typography>
+									</TableCell>
 									{allData.slice(0, 7).map((element: any) => (
-										<Table.Td key={element.date}>
-											<Text size="xs" color="dimmed">
+										<TableCell key={element.date}>
+											<Typography variant="caption" color="text.secondary">
 												{moment(element.date).format('Do MMM, YYYY')}
-											</Text>
-										</Table.Td>
+											</Typography>
+										</TableCell>
 									))}
-								</Table.Tr>
-								<Table.Tr>
-									<Table.Td>
-										<Image
+								</TableRow>
+								<TableRow>
+									<TableCell>
+										<Box component="img" 
 											h={80}
 											w={80}
 											style={{ objectFit: 'contain' }}
-											radius="md"
+											sx={{ borderRadius: 2 }}
 											src={'https://kabbik-space.sgp1.digitaloceanspaces.com/1713780521478.png'}
 											alt="https://kabbik-space.sgp1.digitaloceanspaces.com/1713780521478.png"
 										/>
-									</Table.Td>
+									</TableCell>
 									{allData.slice(0, 7).map((element: any, index: any) => (
-										<Table.Td key={element.date}>{compareKabbikPlayCount(index)}</Table.Td>
+										<TableCell key={element.date}>{compareKabbikPlayCount(index)}</TableCell>
 									))}
-								</Table.Tr>
-								<Table.Tr>
-									<Table.Td>
-										<Image
+								</TableRow>
+								<TableRow>
+									<TableCell>
+										<Box component="img" 
 											h={80}
 											w={80}
 											style={{ objectFit: 'contain' }}
-											radius="md"
+											sx={{ borderRadius: 2 }}
 											src={'https://kabbik-space.sgp1.digitaloceanspaces.com/1713780481387.png'}
 											alt="https://kabbik-space.sgp1.digitaloceanspaces.com/1713780481387.png"
 										/>
-									</Table.Td>
+									</TableCell>
 									{allData.slice(0, 7).map((element: any, index: any) => (
-										<Table.Td key={element.date}>{compareBlPlayCount(index)}</Table.Td>
+										<TableCell key={element.date}>{compareBlPlayCount(index)}</TableCell>
 									))}
-								</Table.Tr>
-							</Table.Tbody>
+								</TableRow>
+							</TableBody>
 						</Table>
 					</Paper>
-					<Title order={2} mb={'md'}>
+					<Typography variant="h5" component="h2" mb={'md'}>
 						Unique Listener Count
-					</Title>
-					<Paper shadow="xs" p="md" mb="md">
+					</Typography>
+					<Paper elevation={1} sx={{ p: 2 }}>
 						<Table>
-							<Table.Tbody>
-								<Table.Tr>
-									<Table.Td>Date</Table.Td>
+							<TableBody>
+								<TableRow>
+									<TableCell>Date</TableCell>
 									{allData.slice(0, 7).map((element: any) => (
-										<Table.Td key={element.date}>
-											<Text size="xs" color="dimmed">
+										<TableCell key={element.date}>
+											<Typography variant="caption" color="text.secondary">
 												{moment(element.date).format('Do MMM, YYYY')}
-											</Text>
-										</Table.Td>
+											</Typography>
+										</TableCell>
 									))}
-								</Table.Tr>
-								<Table.Tr>
-									<Table.Td>
-										<Image
+								</TableRow>
+								<TableRow>
+									<TableCell>
+										<Box component="img" 
 											h={80}
 											w={80}
 											style={{ objectFit: 'contain' }}
-											radius="md"
+											sx={{ borderRadius: 2 }}
 											src={'https://kabbik-space.sgp1.digitaloceanspaces.com/1713780521478.png'}
 											alt="https://kabbik-space.sgp1.digitaloceanspaces.com/1713780521478.png"
 										/>
-									</Table.Td>
+									</TableCell>
 									{allData.slice(0, 7).map((element: any, index: any) => (
-										<Table.Td key={element.date}>
+										<TableCell key={element.date}>
 											{compareKabbikUniqueListenerCount(index)}
-										</Table.Td>
+										</TableCell>
 									))}
-								</Table.Tr>
-								<Table.Tr>
-									<Table.Td>
-										<Image
+								</TableRow>
+								<TableRow>
+									<TableCell>
+										<Box component="img" 
 											h={80}
 											w={80}
 											style={{ objectFit: 'contain' }}
-											radius="md"
+											sx={{ borderRadius: 2 }}
 											src={'https://kabbik-space.sgp1.digitaloceanspaces.com/1713780481387.png'}
 											alt="https://kabbik-space.sgp1.digitaloceanspaces.com/1713780481387.png"
 										/>
-									</Table.Td>
+									</TableCell>
 									{allData.slice(0, 7).map((element: any, index: any) => (
-										<Table.Td key={index}>{compareMyBlUniqueListenerCount(index)}</Table.Td>
+										<TableCell key={index}>{compareMyBlUniqueListenerCount(index)}</TableCell>
 									))}
-								</Table.Tr>
-							</Table.Tbody>
+								</TableRow>
+							</TableBody>
 						</Table>
 					</Paper>
 				</>
 			)}
-		</div>
+		</PageContainer>
 	);
 }

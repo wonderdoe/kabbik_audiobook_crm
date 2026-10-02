@@ -1,60 +1,55 @@
-"use client"
-import { MantineReactTable, useMantineReactTable } from 'mantine-react-table';
-import React, {  useMemo  } from 'react'
+'use client';
 
+import { PageContainer } from '@/components/PageContainer/PageContainer';
+import { MainCard } from '@/components/mantis/MainCard';
+import { MaterialReactTable } from 'material-react-table';
+import { useMemo } from 'react';
+import { useCustomTable } from '@/hooks/use-custom-table';
 
 const data = [
-    {
-      name: 'John',
-      age: 30,
-    },
-    {
-      name: 'Sara',
-      age: 25,
-    },
-  ]
+	{
+		name: 'John',
+		age: 30,
+	},
+	{
+		name: 'Sara',
+		age: 25,
+	},
+];
 
 export default function VoiceArtistPage() {
+	const columns = useMemo(
+		() => [
+			{
+				accessorKey: 'name',
+				header: 'Name',
+				muiTableHeadCellProps: { sx: { color: 'green' } },
+			},
+			{
+				accessorFn: (row: { age: number }) => row.age,
+				id: 'age',
+				header: 'Age',
+			},
+		],
+		[],
+	);
 
-  //   const [rowSelection, setRowSelection] = useState({});
+	const table = useCustomTable({
+		columns,
+		data,
+		enableColumnOrdering: true,
+		enableRowSelection: true,
+		enablePagination: false,
+	});
 
-  // useEffect(() => {
-  //   //do something when the row selection changes
-  // }, [rowSelection]);
-
-    const columns = useMemo(
-        () => [
-          {
-            accessorKey: 'name', 
-            header: 'Name',
-            mantineTableHeadCellProps: { style: { color: 'green' } },
-            // Cell: ({ cell }:any) => <span>{cell.getValue()}</span>, 
-          },
-          {
-            accessorFn: (row:any) => row.age, 
-            id: 'age', 
-            header: 'Age',
-            // Header: () => <i>Age</i>, 
-          },
-        ],
-        [],
-      );
-
-
-      const table = useMantineReactTable({
-        columns,
-        data,
-        enableColumnOrdering: true, //enable some features
-        enableRowSelection: true,
-        enablePagination: false, //disable a default feature
-        // onRowSelectionChange: setRowSelection, //hoist row selection state to your state
-        // state: { rowSelection },
-      });
-  return (
-    <div>
-        Voice Artist
-
-<MantineReactTable table={table} />
-    </div>
-  )
+	return (
+		<PageContainer
+			title="Voice Artist"
+			items={[{ label: 'Voice Artist', href: '/dashboard/voiceartist' }]}
+		>
+			<MainCard>
+				<MaterialReactTable table={table} />
+			</MainCard>
+		</PageContainer>
+	);
 }

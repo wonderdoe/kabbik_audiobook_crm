@@ -1,10 +1,26 @@
 'use client'
+import {
+	Box,
+	Button,
+	Card,
+	CircularProgress,
+	Grid,
+	Select,
+	Stack,
+	Tab,
+	Table,
+	TableBody,
+	TableCell,
+	TableContainer,
+	TableHead,
+	TableRow,
+	Typography,
+} from '@mui/material';
+import { DataSelect } from '@/components/Form/DataSelect';
 import React, { useEffect, useState } from 'react'
-import { Box, Button, Card, Flex, Grid, Group, Select, Table, Text } from '@mantine/core';
 import CustomDateTimePicker from '../CustomDateTimePicker/CustomDateTimePicker';
 import { CustomDatePicker } from '../Form/CustomDatePicker';
 import { formatSeconds, getFirstDayofMonth } from '@/helper/Commonfunction';
-import { CircularProgress } from '@mui/material';
 import moment from 'moment';
 import { getAllPromocode } from '@/services/services';
 import { useForm } from 'react-hook-form';
@@ -94,14 +110,14 @@ const TopListners = () => {
     <div>
         <Box>
 					
-			<Card withBorder style={{ flexGrow: 1 }}>
+			<Card variant="outlined" style={{ flexGrow: 1 }}>
 				<form
 					onSubmit={form.handleSubmit(handleSubmit, (err:any) => console.error(err))}
 					style={{ marginBottom: '20px' }}
 				>
 					<Grid align="end">
-						<Grid.Col span={{ base: 12, xs: 5 }}>
-							<Select
+						<Grid item xs={12} sm={5} >
+							<DataSelect
 								label="Select promo code"
 								placeholder="Pick one"
 								data={allPromocode}
@@ -110,8 +126,8 @@ const TopListners = () => {
 								searchable
 								clearable
 							/>
-						</Grid.Col>
-						<Grid.Col span={{ base: 12, xs: 5 }}>
+						</Grid>
+						<Grid item xs={12} sm={5} >
 							<CustomDatePicker
 								name="startDate"
 								label="Start Date"
@@ -123,8 +139,8 @@ const TopListners = () => {
 										form.formState.errors.startDate.message) as string
 								}
 							/>
-						</Grid.Col>
-						<Grid.Col span={{ base: 12, xs: 5 }}>
+						</Grid>
+						<Grid item xs={12} sm={5} >
 							<CustomDatePicker
 								name="endDate"
 								label="End Date"
@@ -134,49 +150,49 @@ const TopListners = () => {
 									(form.formState.errors.endDate && form.formState.errors.endDate.message) as string
 								}
 							/>
-						</Grid.Col>
-						<Grid.Col span={{ base: 12, xs: 2 }}>
-							<Button disabled={isLoading} fullWidth type="submit" variant="filled">
+						</Grid>
+						<Grid item xs={12} sm={2} >
+							<Button disabled={isLoading} sx={{ width: "100%" }} type="submit" variant="contained">
 								{isLoading?<CircularProgress size={20} sx={{ color: 'gray',marginRight:'5px' }} />:''}
 								Submit
 							</Button>
-						</Grid.Col>
+						</Grid>
 					</Grid>
 				</form>
-				<Text c="dimmed" tt="uppercase" fw={700} fz="xs">
+				<Typography color="text.secondary" textTransform="uppercase" fontWeight={700} fontSize="xs">
 					Top listners
-				</Text>
+				</Typography>
 				{topListners.length ? (
-					<Table.ScrollContainer minWidth={100}>
+					<TableContainer sx={{ minWidth: 100 }}>
 						<Table>
-							<Table.Thead>
-								<Table.Tr>
-									<Table.Th>User Id</Table.Th>
-									<Table.Th>Name</Table.Th>
-									<Table.Th>Promo Code</Table.Th>
-									<Table.Th>Phone</Table.Th>
-									<Table.Th>Email</Table.Th>
-									<Table.Th>Listening Time</Table.Th>
-								</Table.Tr>
-							</Table.Thead>
-							<Table.Tbody>
+							<TableHead>
+								<TableRow>
+									<TableCell component="th">User Id</TableCell>
+									<TableCell component="th">Name</TableCell>
+									<TableCell component="th">Promo Code</TableCell>
+									<TableCell component="th">Phone</TableCell>
+									<TableCell component="th">Email</TableCell>
+									<TableCell component="th">Listening Time</TableCell>
+								</TableRow>
+							</TableHead>
+							<TableBody>
 								{topListners.map((item: any, index: number) => (
-									<Table.Tr key={index}>
-										<Table.Td>{item.user_id}</Table.Td>
-										<Table.Td>{item.full_name}</Table.Td>
-										<Table.Td>{item.promo_code}</Table.Td>
-										<Table.Td>{item.phone_no ?? item.payer ?? ''}</Table.Td>
-										<Table.Td>{item.user_email}</Table.Td>
-										<Table.Td>{formatSeconds(item.total_streaming_time)}</Table.Td>
-									</Table.Tr>
+									<TableRow key={index}>
+										<TableCell>{item.user_id}</TableCell>
+										<TableCell>{item.full_name}</TableCell>
+										<TableCell>{item.promo_code}</TableCell>
+										<TableCell>{item.phone_no ?? item.payer ?? ''}</TableCell>
+										<TableCell>{item.user_email}</TableCell>
+										<TableCell>{formatSeconds(item.total_streaming_time)}</TableCell>
+									</TableRow>
 								))}
-							</Table.Tbody>
+							</TableBody>
 						</Table>
-					</Table.ScrollContainer>
+					</TableContainer>
 				) : (
-					<Text ta={'center'} my={30}>
+					<Typography textAlign={'center'} my={30}>
 						No data found
-					</Text>
+					</Typography>
 				)}
 			</Card>
 		</Box>

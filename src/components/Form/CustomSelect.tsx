@@ -1,4 +1,8 @@
-import { Select } from '@mantine/core';
+import {
+	Autocomplete,
+	FormHelperText,
+	TextField,
+} from '@mui/material';
 import { Controller } from 'react-hook-form';
 
 type CustomSelectProps = {
@@ -10,38 +14,50 @@ type CustomSelectProps = {
 	clearable?: boolean;
 	searchable?: boolean;
 	error: string;
-	withAsterisk?: boolean;
+	required?: boolean;
 };
 
 export const CustomSelect = ({
 	label,
 	name,
-	data,
+	data = [],
 	placeholder,
 	control,
 	clearable,
 	searchable,
 	error,
-	withAsterisk,
+	required,
 }: CustomSelectProps) => {
 	return (
 		<Controller
 			name={name}
 			control={control}
-			render={({ field }) => {
-				return (
-					<Select
-						label={label}
-						placeholder={placeholder}
-						data={data}
-						{...field}
-						clearable={clearable}
-						searchable={searchable}
-						error={error}
-						withAsterisk={withAsterisk}
-					/>
-				);
-			}}
+			render={({ field }) => (
+				<Autocomplete
+					options={data}
+					getOptionLabel={option => (typeof option === 'string' ? option : option.label)}
+					isOptionEqualToValue={(option, value) =>
+						option.value === (typeof value === 'string' ? value : value?.value)
+					}
+					value={data.find(d => d.value === field.value) ?? null}
+					onChange={(_, newValue) => field.onChange(newValue?.value ?? '')}
+					disableClearable={!clearable}
+					freeSolo={false}
+					renderInput={params => (
+						<TextField
+							{...params}
+							label={label}
+							placeholder={placeholder}
+							margin="normal"
+							size="small"
+							fullWidth
+							required={required}
+							error={Boolean(error)}
+							helperText={error || ' '}
+						/>
+					)}
+				/>
+			)}
 		/>
 	);
 };

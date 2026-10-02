@@ -1,13 +1,8 @@
-import '@mantine/core/styles.css';
-import 'mantine-react-table/styles.css';
-
-import { ColorSchemeScript, DirectionProvider, MantineProvider } from '@mantine/core';
-import { ModalsProvider } from '@mantine/modals';
-import { Notifications } from '@mantine/notifications';
 import { Analytics } from '@vercel/analytics/react';
 import AuthChecker from '@/components/AuthCheck/AuthChecker';
-import { inter } from '@/styles/fonts';
-import { theme } from '@/styles/theme';
+import { MuiAppProvider } from '@/components/providers/MuiAppProvider';
+import { publicSans } from '@/styles/fonts';
+import '@/globals.css';
 import { AppProvider } from './provider';
 
 export const metadata = {
@@ -38,24 +33,18 @@ export default async function RootLayout({ children }: { children: React.ReactNo
 	return (
 		<html lang="en-US">
 			<head>
-				<ColorSchemeScript />
 				<meta
 					name="viewport"
 					content="minimum-scale=1, initial-scale=1, width=device-width, user-scalable=no"
 				/>
 			</head>
-			<body className={inter.className} style={{ marginBottom: '50px' }}>
-				<MantineProvider theme={theme}>
-					<DirectionProvider>
-						<ModalsProvider>
-							<AppProvider>
-								<AuthChecker>{children}</AuthChecker>
-							</AppProvider>
-							<Analytics />
-						</ModalsProvider>
-						<Notifications />
-					</DirectionProvider>
-				</MantineProvider>
+			<body className={publicSans.className} style={{ margin: 0 }}>
+				<MuiAppProvider>
+					<AppProvider>
+						<AuthChecker>{children}</AuthChecker>
+					</AppProvider>
+					<Analytics />
+				</MuiAppProvider>
 			</body>
 		</html>
 	);

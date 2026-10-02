@@ -3,7 +3,7 @@ import { PageContainer } from '@/components/PageContainer/PageContainer';
 
 export default function Form() {
 	return (
-		<PageContainer title="Forms">
+		<PageContainer title="Forms" items={[{ label: 'Forms', href: '/dashboard/form' }]}>
 			<SimpleForm />
 		</PageContainer>
 	);

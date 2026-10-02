@@ -1,5 +1,8 @@
+import {
+	Button,
+	Paper,
+} from '@mui/material';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Button, Paper } from '@mantine/core';
 import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
@@ -8,7 +11,7 @@ import { createToast2 } from 'helpers/SweetAlert';
 import { CustomFileInput } from './CustomFileInput';
 import { CustomInput } from './CustomInput';
 import { CustomSelect } from './CustomSelect';
-import { DateValue } from '@mantine/dates';
+type DateValue = Date | null;
 import CustomDateTimePicker from '../CustomDateTimePicker/CustomDateTimePicker';
 import dayjs from 'dayjs';
 import { createActivityLog } from '@/helper/Commonfunction';
@@ -148,7 +151,7 @@ export const PNSubscriptionForm = () => {
 	// }, [isSubmitSuccessful, reset]);
 
 	return (
-		<Paper shadow="xs" p="lg">
+		<Paper elevation={1} sx={{ p: 3 }}>
 			<form
 				onSubmit={handleSubmit(onSubmitSubscriptionForm, e => console.log(e))}
 				style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}
@@ -175,16 +178,14 @@ export const PNSubscriptionForm = () => {
 					name="title"
 					placeholder="type a title ..."
 					control={control}
-					error={(errors.title && errors.title.message) as string}
-					withAsterisk
+					error={(errors.title && errors.title.message) as string} required
 				/>
 				<CustomInput
 					label="Description"
 					name="description"
 					placeholder="type a description ..."
 					control={control}
-					error={(errors.description && errors.description.message) as string}
-					withAsterisk
+					error={(errors.description && errors.description.message) as string} required
 				/>
 				<CustomSelect
 					label="Select Package"
@@ -209,7 +210,7 @@ export const PNSubscriptionForm = () => {
 					reset={resetImagePath}
 					// error={(errors.imageUrl && errors.imageUrl.message) as string}
 				/>
-				<Button type="submit" mt={20} py={10} fullWidth disabled={isLoading || isSubmitting}>
+				<Button type="submit" mt={20} sx={{ width: "100%" }} disabled={isLoading || isSubmitting}>
 					Submit
 				</Button>
 			</form>

@@ -1,7 +1,20 @@
 'use client';
 
+import {
+	Button,
+	Card,
+	Grid,
+	Tab,
+	Table,
+	TableBody,
+	TableCell,
+	TableContainer,
+	TableHead,
+	TableRow,
+	Typography,
+} from '@mui/material';
+import { PageContainer } from '@/components/PageContainer/PageContainer';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Button, Card, Grid, Table, Text, Title } from '@mantine/core';
 import moment from 'moment';
 import { useCallback, useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
@@ -51,17 +64,17 @@ export default function PackageWiseReport() {
 	};
 
 	return (
-		<>
-			<Title order={1} mb="md">
-				Package Wise Report
-			</Title>
-			<Card withBorder p="md" radius="md" mb="md">
+		<PageContainer
+			title="Package Wise Report"
+			items={[{ label: 'Package Wise Report', href: '/dashboard/package-wise-report' }]}
+		>
+			<Card variant="outlined" sx={{ borderRadius: 2, p: 2 }}>
 				<form
 					onSubmit={form.handleSubmit(handleSubmit, err => console.error(err))}
 					style={{ marginBottom: '20px' }}
 				>
 					<Grid align="end">
-						<Grid.Col span={{ base: 12, xs: 5 }}>
+						<Grid item xs={12} sm={5} >
 							<CustomDatePicker
 								name="startDate"
 								label="Start Date"
@@ -72,8 +85,8 @@ export default function PackageWiseReport() {
 										form.formState.errors.startDate.message) as string
 								}
 							/>
-						</Grid.Col>
-						<Grid.Col span={{ base: 12, xs: 5 }}>
+						</Grid>
+						<Grid item xs={12} sm={5} >
 							<CustomDatePicker
 								name="endDate"
 								label="End Date"
@@ -83,47 +96,47 @@ export default function PackageWiseReport() {
 									(form.formState.errors.endDate && form.formState.errors.endDate.message) as string
 								}
 							/>
-						</Grid.Col>
-						<Grid.Col span={{ base: 12, xs: 2 }}>
-							<Button fullWidth type="submit" variant="filled">
+						</Grid>
+						<Grid item xs={12} sm={2} >
+							<Button sx={{ width: "100%" }} type="submit" variant="contained">
 								Submit
 							</Button>
-						</Grid.Col>
+						</Grid>
 					</Grid>
 				</form>
 			</Card>
 			{isLoading ? (
 				<Loader />
 			) : (
-				<Card withBorder p="md" radius="md">
-					<Table.ScrollContainer minWidth={400}>
+				<Card variant="outlined" sx={{ p: 2 }} sx={{ borderRadius: 2 }}>
+					<TableContainer sx={{ minWidth: 400 }}>
 						<Table>
-							<Table.Thead style={{ borderBottom: '1px solid #ccc', height: '50px' }}>
-								<Table.Tr>
-									<Table.Th ta="left">Package Name</Table.Th>
-									<Table.Th ta="right">Amount (Tk)</Table.Th>
-								</Table.Tr>
-							</Table.Thead>
-							<Table.Tbody>
+							<TableHead style={{ borderBottom: '1px solid #ccc', height: '50px' }}>
+								<TableRow>
+									<TableCell component="th" textAlign="left">Package Name</TableCell>
+									<TableCell component="th" textAlign="right">Amount (Tk)</TableCell>
+								</TableRow>
+							</TableHead>
+							<TableBody>
 								{data?.list.map(item => (
-									<Table.Tr key={item.name}>
-										<Table.Td>{item.name}</Table.Td>
-										<Table.Td align="right">{item.total}</Table.Td>
-									</Table.Tr>
+									<TableRow key={item.name}>
+										<TableCell>{item.name}</TableCell>
+										<TableCell align="right">{item.total}</TableCell>
+									</TableRow>
 								))}
-								<Table.Tr style={{ height: '50px' }}>
-									<Table.Td>
-										<Text fw={700}>Total</Text>
-									</Table.Td>
-									<Table.Td align="right">
-										<Text fw={700}>{data?.total}</Text>
-									</Table.Td>
-								</Table.Tr>
-							</Table.Tbody>
+								<TableRow style={{ height: '50px' }}>
+									<TableCell>
+										<Typography fontWeight={700}>Total</Typography>
+									</TableCell>
+									<TableCell align="right">
+										<Typography fontWeight={700}>{data?.total}</Typography>
+									</TableCell>
+								</TableRow>
+							</TableBody>
 						</Table>
-					</Table.ScrollContainer>
+					</TableContainer>
 				</Card>
 			)}
-		</>
+		</PageContainer>
 	);
 }

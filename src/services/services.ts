@@ -94,7 +94,10 @@ export const getArtistList = async () => {
 		return [];
 	}
 	const result = await response.json();
-	return result;
+	if (Array.isArray(result)) {
+		return result;
+	}
+	return result.data ?? [];
 };
 
 export const getAudiobookCategories = async () => {

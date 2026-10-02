@@ -1,6 +1,12 @@
 import { NextResponse } from 'next/server';
 import { ensureRedisReady, redis } from '../../../../server/config/redis.js';
-import { dashHomeCacheKey } from '../../../../server/jobs/cache-warm.js';
+import {
+	dashHomeCacheKey,
+	playCountReportCacheKey,
+	signUpReportCacheKey,
+	userCountCacheKey,
+} from '../../../../server/jobs/cache-warm.js';
+import { dhakaTodayYmd } from '../../../../server/utils/dhaka-date.js';
 
 export const dynamic = 'force-dynamic';
 
@@ -18,13 +24,18 @@ export async function GET() {
 			);
 		}
 
-		const [heartbeat, homeOk, revenueOk, dashTtl, redisStatus] = await Promise.all([
-			readTs('worker:heartbeat'),
-			readTs('warm:home:last_ok'),
-			readTs('warm:revenue-warm:last_ok'),
-			redis.ttl(dashHomeCacheKey()),
-			Promise.resolve(redis.status),
-		]);
+		const today = dhakaTodayYmd();
+		const [heartbeat, homeOk, revenueOk, dashTtl, signupTtl, playReportTtl, userReportTtl, redisStatus] =
+			await Promise.all([
+				readTs('worker:heartbeat'),
+				readTs('warm:home:last_ok'),
+				readTs('warm:revenue-warm:last_ok'),
+				redis.ttl(dashHomeCacheKey()),
+				redis.ttl(signUpReportCacheKey()),
+				redis.ttl(playCountReportCacheKey()),
+				redis.ttl(userCountCacheKey(today)),
+				Promise.resolve(redis.status),
+			]);
 
 		const now = Date.now();
 		const heartbeatAgeMs = heartbeat ? now - heartbeat : null;
@@ -44,6 +55,9 @@ export async function GET() {
 			},
 			keys: {
 				dashHomeTtlSeconds: dashTtl,
+				signUpReportTtlSeconds: signupTtl,
+				playCountReportTtlSeconds: playReportTtl,
+				userCountTodayTtlSeconds: userReportTtl,
 			},
 			env: {
 				redisEnv: process.env.REDIS_ENV === 'production' ? 'production' : 'staging',

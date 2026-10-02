@@ -1,6 +1,18 @@
 'use client';
 
-import { ActionIcon, Badge, ScrollArea, Table, Text } from '@mantine/core';
+import {
+	Box,
+	Chip,
+	IconButton,
+	Paper,
+	Table,
+	TableBody,
+	TableCell,
+	TableContainer,
+	TableHead,
+	TableRow,
+	Typography,
+} from '@mui/material';
 import { IconEye } from '@tabler/icons-react';
 import { formatDateDhaka, isExpired } from '@/utils/date';
 import type { RewardClaimRow } from '@/types/rewards';
@@ -11,6 +23,17 @@ type Props = {
 	onView: (row: RewardClaimRow) => void;
 };
 
+function chipColor(mantineColor: string): 'default' | 'error' | 'info' | 'success' | 'warning' {
+	const map: Record<string, 'default' | 'error' | 'info' | 'success' | 'warning'> = {
+		yellow: 'warning',
+		red: 'error',
+		green: 'success',
+		gray: 'default',
+		blue: 'info',
+	};
+	return map[mantineColor] ?? 'default';
+}
+
 function userDisplayName(row: RewardClaimRow) {
 	const name = row.full_name || row.user_name || 'Unknown user';
 	return row.user_deleted ? `${name} (deleted)` : name;
@@ -18,84 +41,80 @@ function userDisplayName(row: RewardClaimRow) {
 
 export function RewardClaimsTable({ rows, onView }: Props) {
 	return (
-		<ScrollArea>
-			<Table striped highlightOnHover withTableBorder stickyHeader>
-				<Table.Thead>
-					<Table.Tr>
-						<Table.Th>User</Table.Th>
-						<Table.Th>Phone / City</Table.Th>
-						<Table.Th>Tier</Table.Th>
-						<Table.Th>Reward / Offer</Table.Th>
-						<Table.Th>Points</Table.Th>
-						<Table.Th>Claim status</Table.Th>
-						<Table.Th>Used</Table.Th>
-						<Table.Th>Expires</Table.Th>
-						<Table.Th>Claimed at</Table.Th>
-						<Table.Th />
-					</Table.Tr>
-				</Table.Thead>
-				<Table.Tbody>
+		<TableContainer component={Paper} variant="outlined" sx={{ maxHeight: 560 }}>
+			<Table stickyHeader size="small">
+				<TableHead>
+					<TableRow>
+						<TableCell>User</TableCell>
+						<TableCell>Phone / City</TableCell>
+						<TableCell>Tier</TableCell>
+						<TableCell>Reward / Offer</TableCell>
+						<TableCell>Points</TableCell>
+						<TableCell>Claim status</TableCell>
+						<TableCell>Used</TableCell>
+						<TableCell>Expires</TableCell>
+						<TableCell>Claimed at</TableCell>
+						<TableCell />
+					</TableRow>
+				</TableHead>
+				<TableBody>
 					{rows.map(row => {
 						const claimBadge = getStatusBadge('claim_status', row.claim_status);
 						const usedBadge = getStatusBadge('is_used', row.is_used);
 						const expired = isExpired(row.expire_at) && !row.is_used;
 						return (
-							<Table.Tr key={row.id}>
-								<Table.Td>
-									<Text size="sm" fw={500}>
+							<TableRow key={row.id} hover>
+								<TableCell>
+									<Typography variant="body2" fontWeight={500}>
 										{userDisplayName(row)}
-									</Text>
+									</Typography>
 									{row.user_name && row.full_name ? (
-										<Text size="xs" c="dimmed">
+										<Typography variant="caption" color="text.secondary">
 											@{row.user_name}
-										</Text>
+										</Typography>
 									) : null}
-									<Text size="xs" c="dimmed">
+									<Typography variant="caption" color="text.secondary" display="block">
 										{row.user_email || '—'}
-									</Text>
-								</Table.Td>
-								<Table.Td>
-									<Text size="sm">{row.phone_no || '—'}</Text>
-									<Text size="xs" c="dimmed">
+									</Typography>
+								</TableCell>
+								<TableCell>
+									<Typography variant="body2">{row.phone_no || '—'}</Typography>
+									<Typography variant="caption" color="text.secondary">
 										{row.city || '—'}
-									</Text>
-								</Table.Td>
-								<Table.Td>{row.tier_name || row.tier_id || '—'}</Table.Td>
-								<Table.Td>
-									<Text size="sm">{row.reward_name || `Reward #${row.reward_id}`}</Text>
+									</Typography>
+								</TableCell>
+								<TableCell>{row.tier_name || row.tier_id || '—'}</TableCell>
+								<TableCell>
+									<Typography variant="body2">{row.reward_name || `Reward #${row.reward_id}`}</Typography>
 									{row.offer ? (
-										<Text size="xs" c="dimmed">
+										<Typography variant="caption" color="text.secondary">
 											{row.offer}
-										</Text>
+										</Typography>
 									) : null}
-								</Table.Td>
-								<Table.Td>{row.usage_point ?? '—'}</Table.Td>
-								<Table.Td>
-									<Badge color={claimBadge.color} variant="light">
-										{claimBadge.label}
-									</Badge>
-								</Table.Td>
-								<Table.Td>
-									<Badge color={usedBadge.color} variant="light">
-										{usedBadge.label}
-									</Badge>
-								</Table.Td>
-								<Table.Td>
-									<Text size="sm" c={expired ? 'red' : undefined}>
+								</TableCell>
+								<TableCell>{row.usage_point ?? '—'}</TableCell>
+								<TableCell>
+									<Chip size="small" label={claimBadge.label} color={chipColor(claimBadge.color)} variant="outlined" />
+								</TableCell>
+								<TableCell>
+									<Chip size="small" label={usedBadge.label} color={chipColor(usedBadge.color)} variant="outlined" />
+								</TableCell>
+								<TableCell>
+									<Typography variant="body2" color={expired ? 'error' : 'inherit'}>
 										{formatDateDhaka(row.expire_at)}
-									</Text>
-								</Table.Td>
-								<Table.Td>{formatDateDhaka(row.created_at)}</Table.Td>
-								<Table.Td>
-									<ActionIcon variant="subtle" aria-label="View claim" onClick={() => onView(row)}>
+									</Typography>
+								</TableCell>
+								<TableCell>{formatDateDhaka(row.created_at)}</TableCell>
+								<TableCell>
+									<IconButton size="small" aria-label="View claim" onClick={() => onView(row)}>
 										<IconEye size={18} />
-									</ActionIcon>
-								</Table.Td>
-							</Table.Tr>
+									</IconButton>
+								</TableCell>
+							</TableRow>
 						);
 					})}
-				</Table.Tbody>
+				</TableBody>
 			</Table>
-		</ScrollArea>
+		</TableContainer>
 	);
 }

@@ -1,30 +1,44 @@
 'use client';
 
+import {
+	Badge,
+	Button,
+	Dialog,
+	DialogContent,
+	DialogTitle,
+	FormControl,
+	FormControlLabel,
+	FormLabel,
+	IconButton,
+	InputLabel,
+	MenuItem,
+	Pagination,
+	Radio,
+	RadioGroup,
+	Select,
+	Stack,
+	Switch,
+	Tab,
+	Table,
+	TableBody,
+	TableCell,
+	TableContainer,
+	TableHead,
+	TableRow,
+	TextField,
+	Typography,
+} from '@mui/material';
+import { PageContainer } from '@/components/PageContainer/PageContainer';
+import { MainCard } from '@/components/mantis/MainCard';
+import { DataSelect } from '@/components/Form/DataSelect';
 import Loader from '@/components/Loader';
 import { createActivityLog } from '@/helper/Commonfunction';
 import {
 	QUICK_ACCESS_AUDIENCE_OPTIONS,
 	type QuickAccessAudience,
 } from '@/constants/quickAccess';
-import {
-	ActionIcon,
-	Badge,
-	Button,
-	Flex,
-	Group,
-	Modal,
-	Pagination,
-	Radio,
-	Select,
-	Stack,
-	Switch,
-	Table,
-	Text,
-	TextInput,
-	Title,
-} from '@mantine/core';
-import { notifications } from '@mantine/notifications';
-import { useDisclosure } from '@mantine/hooks';
+import { notifications } from '@/components/providers/SnackbarProvider';
+import { useDisclosure } from '@/hooks/use-disclosure';
 import { IconArrowDown, IconArrowUp, IconPencil, IconTrash } from '@tabler/icons-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import Swal from 'sweetalert2';
@@ -303,14 +317,14 @@ export default function QuickAccessPage() {
 	}
 
 	return (
-		<Stack gap="md">
-			<Flex justify="space-between" align="center" wrap="wrap" gap="sm">
-				<Title order={2}>Quick Access</Title>
-				<Button onClick={openCreate}>Add Quick Access</Button>
-			</Flex>
-
-			<Group grow align="flex-end">
-				<Select
+		<PageContainer
+			title="Quick Access"
+			items={[{ label: 'Quick Access', href: '/dashboard/quick-access' }]}
+			actions={<Button onClick={openCreate}>Add Quick Access</Button>}
+		>
+		<Stack spacing={2}>
+			<Stack direction="row" alignItems="center" grow alignItems="flex-end">
+				<DataSelect
 					label="Audience"
 					placeholder="All audiences"
 					clearable
@@ -324,7 +338,7 @@ export default function QuickAccessPage() {
 						setPage(1);
 					}}
 				/>
-				<Select
+				<DataSelect
 					label="Active"
 					placeholder="All"
 					clearable
@@ -339,7 +353,7 @@ export default function QuickAccessPage() {
 						setPage(1);
 					}}
 				/>
-				<TextInput
+				<TextField
 					label="Search"
 					placeholder="English or Bangla name"
 					value={search}
@@ -348,112 +362,114 @@ export default function QuickAccessPage() {
 						setPage(1);
 					}}
 				/>
-			</Group>
+			</Stack>
 
+			<MainCard contentSX={{ p: 0 }}>
 			<Table striped highlightOnHover withTableBorder>
-				<Table.Thead>
-					<Table.Tr>
-						<Table.Th>Order</Table.Th>
-						<Table.Th>English name</Table.Th>
-						<Table.Th>Bangla name</Table.Th>
-						<Table.Th>Go to page</Table.Th>
-						<Table.Th>Audience</Table.Th>
-						<Table.Th>Active</Table.Th>
-						<Table.Th>Actions</Table.Th>
-					</Table.Tr>
-				</Table.Thead>
-				<Table.Tbody>
+				<TableHead>
+					<TableRow>
+						<TableCell component="th">Order</TableCell>
+						<TableCell component="th">English name</TableCell>
+						<TableCell component="th">Bangla name</TableCell>
+						<TableCell component="th">Go to page</TableCell>
+						<TableCell component="th">Audience</TableCell>
+						<TableCell component="th">Active</TableCell>
+						<TableCell component="th">Actions</TableCell>
+					</TableRow>
+				</TableHead>
+				<TableBody>
 					{rows.length === 0 ? (
-						<Table.Tr>
-							<Table.Td colSpan={7}>
-								<Text ta="center" c="dimmed">No items found</Text>
-							</Table.Td>
-						</Table.Tr>
+						<TableRow>
+							<TableCell colSpan={7}>
+								<Typography textAlign="center" color="text.secondary">No items found</Typography>
+							</TableCell>
+						</TableRow>
 					) : (
 						rows.map((row, index) => (
-							<Table.Tr key={row.id}>
-								<Table.Td>
-									<Group gap={4} wrap="nowrap">
+							<TableRow key={row.id}>
+								<TableCell>
+									<Stack direction="row" alignItems="center" spacing={4} wrap="nowrap">
 										{reorderVisible && (
 											<>
-												<ActionIcon
-													variant="subtle"
-													size="sm"
+												<IconButton
+													variant="text"
+													variant="body2"
 													disabled={index === 0}
 													onClick={() => moveRow(index, 'up')}
 													aria-label="Move up"
 												>
 													<IconArrowUp size={14} />
-												</ActionIcon>
-												<ActionIcon
-													variant="subtle"
-													size="sm"
+												</IconButton>
+												<IconButton
+													variant="text"
+													variant="body2"
 													disabled={index === rows.length - 1}
 													onClick={() => moveRow(index, 'down')}
 													aria-label="Move down"
 												>
 													<IconArrowDown size={14} />
-												</ActionIcon>
+												</IconButton>
 											</>
 										)}
-									</Group>
-								</Table.Td>
-								<Table.Td>{row.enName}</Table.Td>
-								<Table.Td>{row.bnName}</Table.Td>
-								<Table.Td>
-									<Text size="sm" ff="monospace">{row.gotoPage}</Text>
-								</Table.Td>
-								<Table.Td>
-									<Badge color={audienceBadgeColor[row.audience]} variant="light">
+									</Stack>
+								</TableCell>
+								<TableCell>{row.enName}</TableCell>
+								<TableCell>{row.bnName}</TableCell>
+								<TableCell>
+									<Typography variant="body2" fontFamily="monospace">{row.gotoPage}</Typography>
+								</TableCell>
+								<TableCell>
+									<Badge color={audienceBadgeColor[row.audience]} variant="outlined">
 										{audienceLabel(row.audience)}
 									</Badge>
-								</Table.Td>
-								<Table.Td>
+								</TableCell>
+								<TableCell>
 									<Switch
 										checked={row.isActive}
 										onChange={() => handleToggle(row)}
 										aria-label="Toggle active"
 									/>
-								</Table.Td>
-								<Table.Td>
-									<Group gap="xs">
-										<ActionIcon variant="light" onClick={() => openEdit(row)} aria-label="Edit">
+								</TableCell>
+								<TableCell>
+									<Stack direction="row" alignItems="center" gap="xs">
+										<IconButton variant="outlined" onClick={() => openEdit(row)} aria-label="Edit">
 											<IconPencil size={16} />
-										</ActionIcon>
-										<ActionIcon
-											variant="light"
+										</IconButton>
+										<IconButton
+											variant="outlined"
 											color="red"
 											onClick={() => handleDelete(row.id)}
 											aria-label="Delete"
 										>
 											<IconTrash size={16} />
-										</ActionIcon>
-									</Group>
-								</Table.Td>
-							</Table.Tr>
+										</IconButton>
+									</Stack>
+								</TableCell>
+							</TableRow>
 						))
 					)}
-				</Table.Tbody>
+				</TableBody>
 			</Table>
 
 			{totalPages > 1 && (
-				<Flex justify="center">
-					<Pagination value={page} onChange={setPage} total={totalPages} />
-				</Flex>
+				<Stack direction="row" flexWrap="wrap" justifyContent="center">
+					<Pagination page={page} onChange={setPage} count={totalPages} />
+				</Stack>
 			)}
+			</MainCard>
 
-			<Modal
-				opened={modalOpened}
+			<Dialog
+				open={modalOpened}
 				onClose={() => {
 					closeModal();
 					resetForm();
 				}}
 				title={editingId ? 'Edit Quick Access' : 'Add Quick Access'}
-				size="lg"
+				variant="h6"
 			>
 				<form onSubmit={handleSubmit}>
-					<Stack gap="sm">
-						<TextInput
+					<Stack spacing={2}>
+						<TextField
 							label="English name"
 							required
 							value={form.enName}
@@ -463,7 +479,7 @@ export default function QuickAccessPage() {
 								setForm(f => ({ ...f, enName }));
 							}}
 						/>
-						<TextInput
+						<TextField
 							label="Bangla name"
 							required
 							lang="bn"
@@ -474,7 +490,7 @@ export default function QuickAccessPage() {
 								setForm(f => ({ ...f, bnName }));
 							}}
 						/>
-						<TextInput
+						<TextField
 							label="Go to page"
 							required
 							placeholder="/your-route"
@@ -485,21 +501,25 @@ export default function QuickAccessPage() {
 								setForm(f => ({ ...f, gotoPage }));
 							}}
 						/>
-						<Radio.Group
-							label="Audience"
-							value={form.audience}
-							onChange={v =>
-								setForm(f => ({ ...f, audience: (v as QuickAccessAudience) || 'all' }))
-							}
-						>
-							<Group mt="xs">
+						<FormControl>
+							<FormLabel>Audience</FormLabel>
+							<RadioGroup
+								row
+								value={form.audience}
+								onChange={e =>
+									setForm(f => ({
+										...f,
+										audience: (e.target.value as QuickAccessAudience) || 'all',
+									}))
+								}
+							>
 								{QUICK_ACCESS_AUDIENCE_OPTIONS.map(o => (
-									<Radio key={o.value} value={o.value} label={o.label} />
+									<FormControlLabel key={o.value} value={o.value} control={<Radio />} label={o.label} />
 								))}
-							</Group>
-						</Radio.Group>
+							</RadioGroup>
+						</FormControl>
 						{fieldErrors.audience && (
-							<Text size="sm" c="red">{fieldErrors.audience}</Text>
+							<Typography variant="body2" color="red">{fieldErrors.audience}</Typography>
 						)}
 						<Switch
 							label="Active"
@@ -509,15 +529,16 @@ export default function QuickAccessPage() {
 								setForm(f => ({ ...f, isActive }));
 							}}
 						/>
-						<Group justify="flex-end" mt="md">
-							<Button variant="default" onClick={closeModal} type="button">
+						<Stack direction="row" alignItems="center" justifyContent="flex-end">
+							<Button variant="outlined" onClick={closeModal} type="button">
 								Cancel
 							</Button>
 							<Button type="submit">Save</Button>
-						</Group>
+						</Stack>
 					</Stack>
 				</form>
-			</Modal>
+			</Dialog>
 		</Stack>
+		</PageContainer>
 	);
 }

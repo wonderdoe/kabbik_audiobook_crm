@@ -1,7 +1,12 @@
 'use client';
 
+import {
+	Box,
+	Button,
+	Stack,
+	Typography,
+} from '@mui/material';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Button } from '@mantine/core';
 import moment from 'moment';
 import { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
@@ -9,9 +14,7 @@ import { z } from 'zod';
 import { CustomInput } from '@/components/Form/CustomInput';
 import { createToast, createToast2 } from 'helpers/SweetAlert';
 import { CustomDatePicker } from './CustomDatePicker';
-import '@mantine/dates/styles.css';
 import { CustomTextarea } from './CustomTextarea';
-import { create } from 'domain';
 import { createActivityLog } from '@/helper/Commonfunction';
 
 const emailNotificationFormSchema = z.object({
@@ -41,12 +44,7 @@ export const EmailNotificationForm = () => {
 
 	useEffect(() => {
 		if (isSubmitSuccessful) {
-			reset({
-				subject: '',
-				body: '',
-				startDate: new Date(),
-				endDate: new Date(),
-			});
+			reset({ subject: '', body: '', startDate: new Date(), endDate: new Date() });
 		}
 	}, [isSubmitSuccessful, reset]);
 
@@ -58,21 +56,15 @@ export const EmailNotificationForm = () => {
 		};
 		const response = await fetch(`/api/routes/send-email-notification`, {
 			method: 'POST',
-			headers: {
-				Accept: 'application/json',
-				'Content-Type': 'application/json',
-			},
+			headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
 			body: JSON.stringify(refinedFormData),
 		});
-
-		let activityLogPayload = {
+		createActivityLog({
 			name: 'onSubmitEmailNotificationForm',
 			action_type: 'create',
 			payload: JSON.stringify({ refinedFormData }),
 			api_end_point: '/api/routes/send-email-notification',
-		};
-		createActivityLog(activityLogPayload);
-
+		});
 		if (!response.ok) {
 			const result = await response.json();
 			return createToast(result.message);
@@ -82,45 +74,90 @@ export const EmailNotificationForm = () => {
 	};
 
 	return (
-		<form
+		<Stack
+			component="form"
+			id="email-notification-form"
+			spacing={0}
 			onSubmit={handleSubmit(onSubmitEmailNotificationForm, e => console.log(e))}
-			style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}
 		>
-			<CustomInput
-				label="Subject"
-				name="subject"
-				placeholder="type a subject ..."
-				control={control}
-				error={(errors.subject && errors.subject.message) as string}
-				withAsterisk
-			/>
-			<CustomTextarea
-				label="Body"
-				name="body"
-				placeholder="type a body ..."
-				control={control}
-				error={(errors.body && errors.body.message) as string}
-				withAsterisk
-			/>
-			<CustomDatePicker
-				label="Start Date"
-				name="startDate"
-				placeholder="pick a date ..."
-				control={control}
-				error={(errors.startDate && errors.startDate.message) as string}
-				withAsterisk
-			/>
-			<CustomDatePicker
-				label="End Date"
-				name="endDate"
-				placeholder="pick a date ..."
-				control={control}
-				error={(errors.startDate && errors.startDate.message) as string}
-				withAsterisk
-			/>
-			<Button type="submit" mt={20} py={10} fullWidth disabled={isSubmitting}>
-				Submit
-			</Button>
-		</form>
+			{/* Header */}
+			<Box sx={{ mb: 3 }}>
+				<Typography variant="h6" fontWeight={600}>Email Notification</Typography>
+				<Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+					Send an email to users within a date range
+				</Typography>
+			</Box>
+
+			<Stack spacing={2}>
+				{/* Notification content */}
+				<Box sx={{ p: 2.5, borderRadius: 2, border: 1, borderColor: 'divider' }}>
+					<Typography variant="overline" color="text.secondary" fontWeight={700} sx={{ mb: 2, display: 'block' }}>
+						Email content
+					</Typography>
+					<Stack spacing={0.5}>
+						<CustomInput
+							label="Subject"
+							name="subject"
+							placeholder="Email subject line"
+							control={control}
+							error={(errors.subject?.message) as string}
+							required
+						/>
+						<CustomTextarea
+							label="Body"
+							name="body"
+							placeholder="Email body content"
+							control={control}
+							error={(errors.body?.message) as string}
+							required
+							minRows={5}
+						/>
+					</Stack>
+				</Box>
+
+				{/* Date range */}
+				<Box sx={{ p: 2.5, borderRadius: 2, border: 1, borderColor: 'divider' }}>
+					<Typography variant="overline" color="text.secondary" fontWeight={700} sx={{ mb: 2, display: 'block' }}>
+						Target date range
+					</Typography>
+					<Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+						Send to users who registered within this range
+					</Typography>
+					<Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
+						<Box sx={{ flex: 1 }}>
+							<CustomDatePicker
+								label="Start date"
+								name="startDate"
+								placeholder="Pick start date"
+								control={control}
+								error={(errors.startDate?.message) as string}
+								required
+							/>
+						</Box>
+						<Box sx={{ flex: 1 }}>
+							<CustomDatePicker
+								label="End date"
+								name="endDate"
+								placeholder="Pick end date"
+								control={control}
+								error={(errors.endDate?.message) as string}
+								required
+							/>
+						</Box>
+					</Stack>
+				</Box>
+
+				<Button
+					type="submit"
+					form="email-notification-form"
+					variant="contained"
+					size="large"
+					disabled={isSubmitting}
+					sx={{ alignSelf: 'flex-end', minWidth: 160 }}
+				>
+					Send email
+				</Button>
+			</Stack>
+		</Stack>
 	);
 };

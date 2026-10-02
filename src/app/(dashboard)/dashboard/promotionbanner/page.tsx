@@ -1,25 +1,36 @@
 'use client';
-
+import {
+	Box,
+	Button,
+	Chip,
+	Dialog,
+	DialogActions,
+	DialogContent,
+	DialogTitle,
+	FormControlLabel,
+	Grid,
+	IconButton,
+	Paper,
+	Stack,
+	Switch,
+	TextField,
+	ToggleButton,
+	ToggleButtonGroup,
+	Tooltip,
+	Typography,
+} from '@mui/material';
+import { CatalogMediaCard } from '@/components/mantis/CatalogMediaCard';
+import { PageContainer } from '@/components/PageContainer/PageContainer';
+import { DataSelect } from '@/components/Form/DataSelect';
 import Loader from '@/components/Loader';
 import { createActivityLog } from '@/helper/Commonfunction';
-import {
-	Button,
-	Divider,
-	Flex,
-	Image,
-	Modal,
-	Paper,
-	Select,
-	Switch,
-	Table,
-	Text,
-	TextInput,
-	Title,
-} from '@mantine/core';
-import { useDisclosure } from '@mantine/hooks';
+import { useDisclosure } from '@/hooks/use-disclosure';
+import { IconEdit, IconPlus, IconTrash, IconX } from '@tabler/icons-react';
+import { motion } from 'framer-motion';
 import moment from 'moment';
 import { useEffect, useMemo, useState } from 'react';
 import Swal from 'sweetalert2';
+import { transition } from '@/styles/motion';
 
 type TargetAudience = 'all' | 'free' | 'premium';
 
@@ -47,6 +58,12 @@ const audienceOptions = [
 ];
 
 const filterOptions = [{ value: '', label: 'All audiences' }, ...audienceOptions];
+
+const audienceChipColor: Record<TargetAudience, 'default' | 'info' | 'secondary'> = {
+	all: 'default',
+	free: 'info',
+	premium: 'secondary',
+};
 
 const gotoPageOptions = [
 	{ value: '/audiobook', label: 'Audiobook' },
@@ -94,6 +111,7 @@ export default function PromotionBannerPage() {
 	const [originalForm, setOriginalForm] = useState(emptyForm);
 
 	const [modalOpened, { open: openModal, close: closeModal }] = useDisclosure(false);
+	const [previewBanner, setPreviewBanner] = useState<{ url: string; title: string } | null>(null);
 
 	const filteredBanners = useMemo(() => {
 		if (!audienceFilter) {
@@ -103,7 +121,11 @@ export default function PromotionBannerPage() {
 	}, [audienceFilter, bannerList]);
 
 	const categoryOptions = useMemo(
-		() => categoryList.map(category => ({ value: category.name, label: category.name })),
+		() =>
+			(Array.isArray(categoryList) ? categoryList : []).map(category => ({
+				value: category.name,
+				label: category.name,
+			})),
 		[categoryList],
 	);
 
@@ -137,7 +159,7 @@ export default function PromotionBannerPage() {
 		try {
 			const response = await fetch('/api/routes/audio-category', { cache: 'no-store' });
 			const result = await response.json();
-			setCategoryList(result || []);
+			setCategoryList(Array.isArray(result) ? result : []);
 		} catch {
 			setCategoryList([]);
 		}
@@ -451,204 +473,313 @@ export default function PromotionBannerPage() {
 		getCategoryList();
 	}, []);
 
-	const rows = filteredBanners.map(banner => (
-		<Table.Tr key={banner.id}>
-			<Table.Td>{banner.id}</Table.Td>
-			<Table.Td>
-				<Image
-					radius="sm"
-					h={120}
-					w={200}
-					fit="contain"
-					src={banner.banner_url}
-					alt={banner.banner_url}
-				/>
-			</Table.Td>
-			<Table.Td>{getGotoPageLabel(banner.goto_page)}</Table.Td>
-			<Table.Td>{formatPayload(banner)}</Table.Td>
-			<Table.Td>{banner.target_audience}</Table.Td>
-			<Table.Td>
-				<Switch
-					checked={banner.is_active === 1}
-					onChange={() => handleToggle(banner)}
-					size="xs"
-				/>
-			</Table.Td>
-			<Table.Td>{moment(banner.created_at).format('Do MMM YYYY h:mma')}</Table.Td>
-			<Table.Td>
-				<Flex gap="sm">
-					<Button size="xs" onClick={() => openEditModal(banner)}>Edit</Button>
-					<Button size="xs" color="red" onClick={() => handleDelete(banner.id)}>
-						Delete
-					</Button>
-				</Flex>
-			</Table.Td>
-		</Table.Tr>
-	));
+	// card grid — no rows variable needed
+
+	const closeFormModal = () => {
+		closeModal();
+		resetForm();
+	};
 
 	return (
 		<>
 			{loading ? (
 				<Loader />
 			) : (
-				<>
-					<Flex justify="space-between" align="center" mb={20}>
-						<Title order={1}>Promotion Banner List</Title>
-						<Button onClick={openCreateModal} variant="filled">Add Promotion Banner</Button>
-					</Flex>
+				<PageContainer
+					title="Promotion Banners"
+					items={[{ label: 'Promotion Banner', href: '/dashboard/promotionbanner' }]}
+					subtitle={
+						<Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+							{filteredBanners.length} banner{filteredBanners.length === 1 ? '' : 's'}
+							{audienceFilter ? ` · audience: ${audienceFilter}` : ''}
+						</Typography>
+					}
+					actions={
+						<Button onClick={openCreateModal} variant="contained" startIcon={<IconPlus size={16} />}>
+							Add Banner
+						</Button>
+					}
+				>
+					{/* Filter bar */}
+					<Paper variant="outlined" sx={{ p: 2, mb: 3, borderRadius: 2 }}>
+						<Stack direction="row" alignItems="center" spacing={2} flexWrap="wrap">
+							<Typography variant="subtitle2" color="text.secondary" sx={{ mr: 1 }}>
+								Audience:
+							</Typography>
+							<ToggleButtonGroup
+								value={audienceFilter}
+								exclusive
+								size="small"
+								onChange={(_, v) => setAudienceFilter(v ?? '')}
+							>
+								<ToggleButton value="">All</ToggleButton>
+								<ToggleButton value="free">Free</ToggleButton>
+								<ToggleButton value="premium">Premium</ToggleButton>
+							</ToggleButtonGroup>
+						</Stack>
+					</Paper>
 
-					<Paper withBorder radius="md" p="md" mb="md">
-						<Select
-							label="Filter by audience"
-							data={filterOptions}
-							value={audienceFilter}
-							onChange={value => setAudienceFilter(value || '')}
-							clearable
-							style={{ maxWidth: 280 }}
+					{/* Card grid */}
+					{filteredBanners.length === 0 ? (
+						<Paper
+							variant="outlined"
+							sx={{ py: 10, textAlign: 'center', borderRadius: 2, borderStyle: 'dashed' }}
+						>
+							<Typography color="text.secondary">No promotion banners found.</Typography>
+							<Button onClick={openCreateModal} variant="contained" sx={{ mt: 2 }} startIcon={<IconPlus size={16} />}>
+								Add first banner
+							</Button>
+						</Paper>
+					) : (
+						<Grid container spacing={3}>
+							{filteredBanners.map(banner => (
+								<Grid item key={banner.id} xs={12} sm={6} md={4} lg={3}>
+									<CatalogMediaCard
+										imageSrc={banner.banner_url}
+										imageAlt={`Banner #${banner.id}`}
+										imageHeight={160}
+										imageFit="contain"
+										inactive={banner.is_active !== 1}
+										onImageClick={() =>
+											setPreviewBanner({
+												url: banner.banner_url,
+												title: getGotoPageLabel(banner.goto_page),
+											})
+										}
+										topBadge={
+											<Chip
+												label={banner.is_active === 1 ? 'Active' : 'Inactive'}
+												size="small"
+												color={banner.is_active === 1 ? 'success' : 'default'}
+												sx={{ fontWeight: 700, fontSize: '0.65rem' }}
+											/>
+										}
+										actions={
+											<>
+												<Tooltip title={banner.is_active === 1 ? 'Deactivate' : 'Activate'}>
+													<Switch
+														size="small"
+														checked={banner.is_active === 1}
+														onChange={() => handleToggle(banner)}
+													/>
+												</Tooltip>
+												<Stack direction="row" spacing={0.5}>
+													<Tooltip title="Edit">
+														<IconButton size="small" onClick={() => openEditModal(banner)}>
+															<IconEdit size={16} />
+														</IconButton>
+													</Tooltip>
+													<Tooltip title="Delete">
+														<IconButton size="small" color="error" onClick={() => handleDelete(banner.id)}>
+															<IconTrash size={16} />
+														</IconButton>
+													</Tooltip>
+												</Stack>
+											</>
+										}
+										actionsSx={{ px: 2, justifyContent: 'space-between', width: '100%' }}
+									>
+										<Stack direction="row" alignItems="center" justifyContent="space-between" mb={1}>
+											<Typography variant="caption" color="text.disabled" fontFamily="monospace">
+												#{banner.id}
+											</Typography>
+											<Typography variant="caption" color="text.disabled">
+												{moment(banner.created_at).format('D MMM YYYY')}
+											</Typography>
+										</Stack>
+										<Stack direction="row" spacing={0.75} flexWrap="wrap" sx={{ gap: 0.75 }}>
+											<Chip
+												label={getGotoPageLabel(banner.goto_page)}
+												size="small"
+												variant="outlined"
+												sx={{ fontWeight: 600 }}
+											/>
+											<Chip
+												label={banner.target_audience}
+												size="small"
+												color={audienceChipColor[banner.target_audience]}
+												sx={{ textTransform: 'capitalize', fontWeight: 600 }}
+											/>
+										</Stack>
+										{formatPayload(banner) !== '-' && (
+											<Typography variant="caption" color="text.secondary" display="block" mt={1} noWrap title={formatPayload(banner)}>
+												{formatPayload(banner)}
+											</Typography>
+										)}
+									</CatalogMediaCard>
+								</Grid>
+							))}
+						</Grid>
+					)}
+
+					</PageContainer>
+			)}
+
+			{/* Create / Edit dialog */}
+			<Dialog open={modalOpened} onClose={closeFormModal} maxWidth="sm" fullWidth>
+				<DialogTitle sx={{ fontWeight: 600 }}>
+					{editingId ? 'Edit promotion banner' : 'Add promotion banner'}
+				</DialogTitle>
+				<DialogContent dividers>
+					<Stack component="form" id="promotion-banner-form" spacing={2} onSubmit={handleSubmit} sx={{ pt: 0.5 }}>
+						<DataSelect
+							label="Goto page"
+							placeholder="Select destination"
+							data={gotoPageOptions}
+							value={form.goto_page || null}
+							onChange={value =>
+								setForm(current => ({
+									...current,
+									goto_page: value || '',
+									bookId: '',
+									categoryName: '',
+								}))
+							}
+							required
 						/>
-					</Paper>
 
-					<Paper withBorder radius="md" p="md">
-						<Table.ScrollContainer minWidth={1000}>
-							<Table>
-								<Table.Thead>
-									<Table.Tr>
-										<Table.Th>ID</Table.Th>
-										<Table.Th>Image</Table.Th>
-										<Table.Th>Goto Page</Table.Th>
-										<Table.Th>Payload</Table.Th>
-										<Table.Th>Audience</Table.Th>
-										<Table.Th>Active</Table.Th>
-										<Table.Th>Created At</Table.Th>
-										<Table.Th>Actions</Table.Th>
-									</Table.Tr>
-								</Table.Thead>
-								<Table.Tbody>
-									{rows.length > 0 ? (
-										rows
-									) : (
-										<Table.Tr>
-											<Table.Td colSpan={8}>
-												<Text ta="center" c="dimmed">No promotion banners found</Text>
-											</Table.Td>
-										</Table.Tr>
-									)}
-								</Table.Tbody>
-							</Table>
-						</Table.ScrollContainer>
-						<Divider my="sm" />
-					</Paper>
+						{form.goto_page === '/audiobook' && (
+							<TextField
+								label="Book ID"
+								placeholder="Enter audiobook ID"
+								value={form.bookId}
+								onChange={e => setForm(current => ({ ...current, bookId: e.target.value }))}
+								required
+								fullWidth
+								size="small"
+							/>
+						)}
 
-					<Modal
-						opened={modalOpened}
-						onClose={() => {
-							closeModal();
-							resetForm();
-						}}
-						title=""
-						centered
-						size="lg"
-					>
-						<Text size="xl" fw={900} style={{ textAlign: 'center' }}>
-							{editingId ? 'Edit Promotion Banner' : 'Add Promotion Banner'}
-						</Text>
-						<Paper shadow="xs" p="xl">
-							<form onSubmit={handleSubmit}>
-								<Select
-									label="Goto Page"
-									placeholder="Select destination"
-									data={gotoPageOptions}
-									value={form.goto_page}
-									onChange={value =>
+						{form.goto_page === '/category' && (
+							<DataSelect
+								label="Category name"
+								placeholder="Select category"
+								data={categoryOptions}
+								value={form.categoryName || null}
+								onChange={value => setForm(current => ({ ...current, categoryName: value || '' }))}
+								searchable
+								required
+							/>
+						)}
+
+						<DataSelect
+							label="Target audience"
+							data={audienceOptions}
+							value={form.target_audience}
+							onChange={value =>
+								setForm(current => ({
+									...current,
+									target_audience: (value as TargetAudience) || 'all',
+								}))
+							}
+						/>
+
+						<FormControlLabel
+							control={
+								<Switch
+									checked={form.is_active}
+									onChange={e =>
 										setForm(current => ({
 											...current,
-											goto_page: value || '',
-											bookId: '',
-											categoryName: '',
+											is_active: e.target.checked,
 										}))
 									}
-									required
-									mb="md"
 								/>
+							}
+							label="Active"
+						/>
 
-								{form.goto_page === '/audiobook' && (
-									<TextInput
-										label="Book ID"
-										placeholder="Enter audiobook ID"
-										value={form.bookId}
-										onChange={e =>
-											setForm(current => ({ ...current, bookId: e.target.value }))
-										}
-										required
-										mb="md"
-									/>
-								)}
-
-								{form.goto_page === '/category' && (
-									<Select
-										label="Category Name"
-										placeholder="Select category"
-										data={categoryOptions}
-										value={form.categoryName}
-										onChange={value =>
-											setForm(current => ({ ...current, categoryName: value || '' }))
-										}
-										searchable
-										required
-										mb="md"
-									/>
-								)}
-
-								<Select
-									label="Target Audience"
-									data={audienceOptions}
-									value={form.target_audience}
-									onChange={value =>
-										setForm(current => ({
-											...current,
-											target_audience: (value as TargetAudience) || 'all',
-										}))
-									}
-									mb="md"
-								/>
-
-								<Flex align="center" gap="sm" mb="md">
-									<Text size="sm" fw={500}>Active</Text>
-									<Switch
-										checked={form.is_active}
-										onChange={e =>
-											setForm(current => ({
-												...current,
-												is_active: e.target.checked,
-											}))
-										}
-									/>
-								</Flex>
-
-								<Text size="sm" fw={500} mb={6}>Banner Image</Text>
-								<input
-									type="file"
-									accept="image/*"
-									onChange={handleImageUpload}
-									style={{ marginBottom: 12 }}
-								/>
-								{form.banner_url && (
-									<Image
+						<Box>
+							<Typography variant="subtitle2" fontWeight={600} sx={{ mb: 1 }}>
+								Banner image
+							</Typography>
+							<Stack direction="row" spacing={2} alignItems="flex-start" flexWrap="wrap">
+								<Button variant="outlined" component="label" size="small">
+									Upload image
+									<input type="file" hidden accept="image/*" onChange={handleImageUpload} />
+								</Button>
+								{form.banner_url ? (
+									<Box
+										component="img"
 										src={form.banner_url}
 										alt="Banner preview"
-										height={200}
-										width={200}
-										fit="contain"
-										mb="md"
+										sx={{
+											width: 180,
+											height: 100,
+											objectFit: 'contain',
+											borderRadius: 1,
+											border: 1,
+											borderColor: 'divider',
+											bgcolor: 'grey.50',
+										}}
 									/>
+								) : (
+									<Typography variant="caption" color="text.secondary" sx={{ alignSelf: 'center' }}>
+										Required — upload a banner image
+									</Typography>
 								)}
+							</Stack>
+						</Box>
+					</Stack>
+				</DialogContent>
+				<DialogActions sx={{ px: 3, py: 2 }}>
+					<Button variant="outlined" color="inherit" onClick={closeFormModal}>
+						Cancel
+					</Button>
+					<Button type="submit" form="promotion-banner-form" variant="contained">
+						{editingId ? 'Save changes' : 'Create banner'}
+					</Button>
+				</DialogActions>
+			</Dialog>
 
-								<Button type="submit">{editingId ? 'Save Changes' : 'Create Banner'}</Button>
-							</form>
-						</Paper>
-					</Modal>
-				</>
-			)}
+			{/* Preview dialog */}
+			<Dialog
+				open={Boolean(previewBanner)}
+				onClose={() => setPreviewBanner(null)}
+				maxWidth="md"
+				fullWidth
+			>
+				<DialogTitle
+					sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', py: 1.5 }}
+				>
+					<Typography variant="subtitle1" fontWeight={600}>
+						{previewBanner?.title}
+					</Typography>
+					<IconButton aria-label="Close preview" size="small" onClick={() => setPreviewBanner(null)}>
+						<IconX size={18} />
+					</IconButton>
+				</DialogTitle>
+				<DialogContent
+					dividers
+					sx={{
+						display: 'flex',
+						justifyContent: 'center',
+						alignItems: 'center',
+						bgcolor: 'grey.50',
+						minHeight: 240,
+						py: 3,
+					}}
+				>
+					{previewBanner?.url ? (
+						<Box
+							component={motion.img}
+							key={previewBanner.url}
+							src={previewBanner.url}
+							alt={previewBanner.title}
+							initial={{ opacity: 0, scale: 0.9 }}
+							animate={{ opacity: 1, scale: 1 }}
+							transition={transition.normal}
+							sx={{
+								maxWidth: '100%',
+								maxHeight: '70vh',
+								objectFit: 'contain',
+								borderRadius: 1,
+								boxShadow: 4,
+							}}
+						/>
+					) : null}
+				</DialogContent>
+			</Dialog>
 		</>
 	);
 }

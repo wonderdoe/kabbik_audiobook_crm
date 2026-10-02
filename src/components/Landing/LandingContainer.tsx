@@ -1,6 +1,8 @@
 'use client';
 
-import { Box } from '@mantine/core';
+import {
+	Box,
+} from '@mui/material';
 import { ReactNode } from 'react';
 import classes from './LandingContainer.module.css';
 

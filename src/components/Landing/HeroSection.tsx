@@ -1,6 +1,11 @@
 'use client';
 
-import { Button, Container, Group, Text, Title } from '@mantine/core';
+import {
+	Button,
+	Container,
+	Stack,
+	Typography,
+} from '@mui/material';
 import { IconArrowRight, IconStar } from '@tabler/icons-react';
 import { useRouter } from 'next/navigation';
 import classes from './HeroSection.module.css';
@@ -9,42 +14,44 @@ export function HeroSection() {
 	const router = useRouter();
 
 	return (
-		<Container pt="sm" size="lg">
+		<Container sx={{ pt: 1 }}>
 			<div className={classes.inner}>
-				<Title className={classes.title}>MantineAdmin</Title>
-				<Title className={classes.subtitle}>
+				<Typography className={classes.title} component="h1" variant="h2">
+					MantineAdmin
+				</Typography>
+				<Typography className={classes.subtitle} component="h2" variant="h5">
 					A Next.js 13 Admin template build with Mantine UI
-				</Title>
+				</Typography>
 
-				<Text className={classes.description} mt={30}>
+				<Typography className={classes.description} mt={30}>
 					Build fully functional dashboard web applications with ease – Mantine-Admin includes all
 					components and hooks to cover you in any situation
-				</Text>
+				</Typography>
 
-				<Group mt={40}>
+				<Stack direction="row" alignItems="center" mt={40}>
 					<Button
-						size="lg"
+						variant="h6"
 						className={classes.control}
 						onClick={() => {
 							router.push('/dashboard');
 						}}
-						rightSection={<IconArrowRight />}
+						endIcon={<IconArrowRight />}
 					>
 						Get started
 					</Button>
 					<Button
-						variant="outline"
-						size="lg"
+						variant="outlined"
+						variant="h6"
 						className={classes.control}
 						onClick={() => {
 							// open github
 							window.open('https://github.com/jotyy/mantine-admin');
 						}}
-						rightSection={<IconStar />}
+						endIcon={<IconStar />}
 					>
 						Give a Star
 					</Button>
-				</Group>
+				</Stack>
 			</div>
 		</Container>
 	);

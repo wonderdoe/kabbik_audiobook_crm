@@ -1,5 +1,11 @@
+import {
+	Box,
+	Button,
+	Grid,
+	Paper,
+	Typography,
+} from '@mui/material';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Button, Center, Grid, Paper, Title } from '@mantine/core';
 import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
@@ -8,7 +14,6 @@ import { CustomDatePicker } from './CustomDatePicker';
 import { CustomFileInput } from './CustomFileInput';
 import { CustomInput } from './CustomInput';
 import { CustomSelect } from './CustomSelect';
-import '@mantine/dates/styles.css';
 import moment from 'moment';
 import { createActivityLog } from '@/helper/Commonfunction';
 
@@ -106,17 +111,19 @@ export const SubscribeForm = ({ userId, modifiedBy }: { userId: number; modified
 	}, [isSubmitSuccessful, reset]);
 
 	return (
-		<Paper shadow="md" p="md" pt="0">
-			<Center>
-				<Title order={2}>User Id: {userId}</Title>
-			</Center>
+		<Paper elevation={3} sx={{ p: 2 }} pt="0">
+			<Box display="flex" justifyContent="center" alignItems="center">
+				<Typography variant="h5" component="h2">User Id: {userId}</Typography>
+			</Box>
 			<form
 				onSubmit={handleSubmit(onSubmit, e => console.error(e))}
 				style={{ marginTop: '20px', display: 'flex', flexDirection: 'column', gap: '20px' }}
 			>
-				<Grid grow>
-					<Grid.Col
-						span={{ base: 12, sm: 6 }}
+				<Grid container spacing={2}>
+					<Grid
+						item
+						xs={12}
+						sm={6}
 						style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}
 					>
 						<CustomSelect
@@ -131,8 +138,7 @@ export const SubscribeForm = ({ userId, modifiedBy }: { userId: number; modified
 							placeholder="Pick a package type ..."
 							control={control}
 							error={(errors.packageId && errors.packageId.message) as string}
-							clearable
-							withAsterisk
+							clearable required
 						/>
 						<CustomSelect
 							label="Payment Method"
@@ -149,8 +155,7 @@ export const SubscribeForm = ({ userId, modifiedBy }: { userId: number; modified
 							placeholder="Pick a payment method ..."
 							control={control}
 							error={(errors.paymentMethod && errors.paymentMethod.message) as string}
-							clearable
-							withAsterisk
+							clearable required
 						/>
 						<CustomInput
 							label="Promocode"
@@ -164,12 +169,13 @@ export const SubscribeForm = ({ userId, modifiedBy }: { userId: number; modified
 							name="subscriptionDate"
 							placeholder="pick a date"
 							control={control}
-							error={(errors.subscriptionDate && errors.subscriptionDate.message) as string}
-							withAsterisk
+							error={(errors.subscriptionDate && errors.subscriptionDate.message) as string} required
 						/>
-					</Grid.Col>
-					<Grid.Col
-						span={{ base: 12, sm: 6 }}
+					</Grid>
+					<Grid
+						item
+						xs={12}
+						sm={6}
 						style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}
 					>
 						<CustomInput
@@ -194,11 +200,10 @@ export const SubscribeForm = ({ userId, modifiedBy }: { userId: number; modified
 							register={register}
 							setValue={setValue}
 							setLoading={setLoading}
-							reset={resetImagePath}
-							withAsterisk
+							reset={resetImagePath} required
 						/>
-					</Grid.Col>
-					<Button m="xs" mt="md" type="submit" fullWidth disabled={loading}>
+					</Grid>
+					<Button m="xs" type="submit" sx={{ width: "100%" }} disabled={loading}>
 						Submit
 					</Button>
 				</Grid>

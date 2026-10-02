@@ -1,4 +1,6 @@
-import { TextInput } from '@mantine/core';
+import {
+	TextField,
+} from '@mui/material';
 import { Controller } from 'react-hook-form';
 
 type CustomInputProps = {
@@ -7,7 +9,8 @@ type CustomInputProps = {
 	placeholder: string;
 	control: any;
 	error: string;
-	withAsterisk?: boolean;
+	required?: boolean;
+	dense?: boolean;
 };
 
 export const CustomInput = ({
@@ -16,23 +19,27 @@ export const CustomInput = ({
 	placeholder,
 	control,
 	error,
-	withAsterisk = false,
+	required = false,
+	dense = false,
 }: CustomInputProps) => {
 	return (
 		<Controller
 			name={name}
 			control={control}
-			render={({ field }) => {
-				return (
-					<TextInput
-						label={label}
-						placeholder={placeholder}
-						{...field}
-						error={error}
-						withAsterisk={withAsterisk}
-					/>
-				);
-			}}
+			render={({ field }) => (
+				<TextField
+					label={label}
+					placeholder={placeholder}
+					{...field}
+					value={field.value ?? ''}
+					error={Boolean(error)}
+					helperText={error || ' '}
+					required={required}
+					sx={{ width: '100%' }}
+					size={dense ? 'small' : 'medium'}
+					margin={dense ? 'none' : 'normal'}
+				/>
+			)}
 		/>
 	);
 };

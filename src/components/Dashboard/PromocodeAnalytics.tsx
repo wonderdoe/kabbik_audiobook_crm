@@ -1,7 +1,13 @@
 'use client';
 
+import {
+	Button,
+	Paper,
+	Stack,
+	Typography,
+} from '@mui/material';
+import Loader from '@/components/Loader';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Button, Flex, Paper, Title } from '@mantine/core';
 import moment from 'moment';
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
@@ -66,12 +72,12 @@ function PromocodeAnalytics() {
 				<Loader />
 			) : (
 				<>
-					<Title order={1} style={{ marginBottom: 20 }}>
+					<Typography variant="h4" component="h1" style={{ marginBottom: 20 }}>
 						Promocode Count
-					</Title>
+					</Typography>
 					<form onSubmit={handleSubmit(onSubmitShowAnalytics, err => console.error(err))}>
-						<Flex direction={'column'}>
-							<Flex direction={{ base: 'column', xs: 'row' }} gap={15}>
+						<Stack direction="row" flexWrap="wrap" direction={'column'}>
+							<Stack direction="row" flexWrap="wrap" direction={{ base: 'column', xs: 'row' }} spacing={15}>
 								<div style={{ width: '100%', flexGrow: 1 }}>
 									<CustomDatePicker
 										label="Start Date"
@@ -92,20 +98,20 @@ function PromocodeAnalytics() {
 										error={(errors.endDate && errors.endDate.message) as string}
 									/>
 								</div>
-							</Flex>
-							<Flex direction="column" w={'100%'}>
+							</Stack>
+							<Stack direction="row" flexWrap="wrap" direction="column" w={'100%'}>
 								<p style={{ margin: 0, padding: 0, fontSize: 14, opacity: 0 }}>something</p>
-								<Flex gap={20}>
+								<Stack direction="row" flexWrap="wrap" spacing={20}>
 									<Button type="submit" disabled={isSubmitting}>
 										Filter
 									</Button>
 									<Button onClick={handleResetFilter}>Reset</Button>
-								</Flex>
+								</Stack>
 								<p style={{ margin: 0, padding: 0, fontSize: 12, opacity: 0 }}>something</p>
-							</Flex>
-						</Flex>
+							</Stack>
+						</Stack>
 					</form>
-					<Paper withBorder radius="md" p="md"></Paper>
+					<Paper variant="outlined" sx={{ borderRadius: 2, p: 2 }}></Paper>
 				</>
 			)}
 		</>

@@ -1,41 +1,50 @@
 'use client';
 
-import { Card, Group, SimpleGrid, Text, useMantineTheme } from '@mantine/core';
+import {
+	Grid,
+	Stack,
+	Typography,
+	useTheme,
+} from '@mui/material';
 import { IconArrowDownRight, IconArrowUpRight } from '@tabler/icons-react';
+import { StatCard } from '@/components/Dashboard/StatCard';
 
 interface StatsGroupProps {
 	data: { title: string; value: string; diff: number }[];
 }
 
 export function StatsGroup({ data }: StatsGroupProps) {
-	const theme = useMantineTheme();
-	const stats = data.map(stat => {
+	const theme = useTheme();
+	const stats = data.map((stat, index) => {
 		const DiffIcon = stat.diff > 0 ? IconArrowUpRight : IconArrowDownRight;
+		const diffColor = stat.diff > 0 ? theme.palette.success.main : theme.palette.error.main;
 
 		return (
-			<Card key={stat.title} p="md" radius="md">
-				<Group>
-					<div>
-						<Text c="dimmed" tt="uppercase" fw={700} fz="xs">
-							{stat.title}
-						</Text>
-						<Text fw={700} fz="xl">
-							{stat.value}
-						</Text>
-					</div>
-				</Group>
-				<Text c="dimmed" fz="sm" mt="sm">
-					<Text component="span" c={stat.diff > 0 ? 'green.4' : 'red.4'} fw={700}>
-						{stat.diff}%
-					</Text>{' '}
-					<DiffIcon
-						size="1rem"
-						color={stat.diff > 0 ? theme.colors.green[4] : theme.colors.red[4]}
-					/>
-				</Text>
-			</Card>
+			<Grid item xs={12} md={4} key={stat.title}>
+				<StatCard
+					title={stat.title}
+					value={
+						<Stack spacing={0.5}>
+							<Typography component="span" variant="h5" fontWeight={700}>
+								{stat.value}
+							</Typography>
+							<Typography variant="caption" color="text.secondary">
+								<Typography component="span" sx={{ color: diffColor, fontWeight: 700 }}>
+									{stat.diff}%
+								</Typography>{' '}
+								<DiffIcon size={14} color={diffColor} style={{ verticalAlign: 'middle' }} />
+							</Typography>
+						</Stack>
+					}
+					index={index}
+				/>
+			</Grid>
 		);
 	});
 
-	return <SimpleGrid cols={{ sm: 1, md: 3 }}>{stats}</SimpleGrid>;
+	return (
+		<Grid container spacing={2}>
+			{stats}
+		</Grid>
+	);
 }

@@ -1,7 +1,25 @@
 'use client';
 
+import {
+	Box,
+	Button,
+	Chip,
+	CircularProgress,
+	Drawer,
+	FormControl,
+	InputLabel,
+	MenuItem,
+	Select,
+	Stack,
+	Table,
+	TableBody,
+	TableCell,
+	TableContainer,
+	TableHead,
+	TableRow,
+	Typography,
+} from '@mui/material';
 import { createActivityLog } from '@/helper/Commonfunction';
-import { Badge, Button, Drawer, Group, Loader, Select, Stack, Table, Text, Title } from '@mantine/core';
 import { useEffect, useMemo, useState } from 'react';
 import Swal from 'sweetalert2';
 import { formatDateDhaka } from '@/utils/date';
@@ -24,6 +42,17 @@ const claimStatusSelectData = ALLOWED_CLAIM_STATUSES.map(value => {
 	const badge = getStatusBadge('claim_status', value);
 	return { value, label: badge.label };
 });
+
+function chipColor(mantineColor: string): 'default' | 'error' | 'info' | 'success' | 'warning' {
+	const map: Record<string, 'default' | 'error' | 'info' | 'success' | 'warning'> = {
+		yellow: 'warning',
+		red: 'error',
+		green: 'success',
+		gray: 'default',
+		blue: 'info',
+	};
+	return map[mantineColor] ?? 'default';
+}
 
 function userDisplayName(claim: RewardClaimRow) {
 	const name = claim.full_name || claim.user_name || 'Unknown user';
@@ -141,117 +170,128 @@ export function RewardClaimDrawer({ claimId, opened, onClose, onUpdated }: Props
 	};
 
 	return (
-		<Drawer opened={opened} onClose={onClose} title="Reward claim" position="right" size="lg">
-			{loading ? (
-				<Loader />
-			) : error ? (
-				<Text c="red">{error}</Text>
-			) : !claim ? (
-				<Text c="dimmed">No data</Text>
-			) : (
-				<Stack gap="md">
-					<div>
-						<Title order={4}>{userDisplayName(claim)}</Title>
-						<Text size="sm" c="dimmed">
-							{claim.user_email || '—'} · {claim.phone_no || '—'}
-						</Text>
-						<Text size="sm">{claim.city || '—'}</Text>
-					</div>
-
-					<div>
-						<Text fw={600} size="sm" mb="xs">
-							Claim status
-						</Text>
-						<Group align="flex-end" wrap="wrap">
-							<Select
-								label="Status"
-								data={claimStatusSelectData}
-								value={selectedStatus}
-								onChange={v => setSelectedStatus(v as ClaimStatus | null)}
-								w={220}
-								disabled={saving}
-							/>
-							<Button
-								onClick={handleSaveStatus}
-								loading={saving}
-								disabled={statusUnchanged || !selectedStatus}
-							>
-								Save
-							</Button>
-						</Group>
-					</div>
-
-					<div>
-						<Text fw={600} size="sm">
-							Tier and points
-						</Text>
-						<Text size="sm">
-							Tier: {claim.tier_name || claim.tier_id} · Acquired: {claim.acquired_point ?? '—'} ·
-							Balance: {claim.balance_point ?? '—'}
-						</Text>
-					</div>
-
-					<div>
-						<Text fw={600} size="sm">
-							Reward
-						</Text>
-						<Text size="sm">{claim.reward_name || `Reward #${claim.reward_id}`}</Text>
-						{claim.offer ? <Text size="sm">Offer: {claim.offer}</Text> : null}
-						<GroupBadges claim={claim} />
-					</div>
-
-					{claim.user_additional_info && typeof claim.user_additional_info === 'object' ? (
+		<Drawer anchor="right" open={opened} onClose={onClose} PaperProps={{ sx: { width: { xs: '100%', sm: 480 } } }}>
+			<Box sx={{ p: 2 }}>
+				<Typography variant="h6" gutterBottom>Reward claim</Typography>
+				{loading ? (
+					<CircularProgress size={32} />
+				) : error ? (
+					<Typography color="error">{error}</Typography>
+				) : !claim ? (
+					<Typography color="text.secondary">No data</Typography>
+				) : (
+					<Stack spacing={2}>
 						<div>
-							<Text fw={600} size="sm" mb="xs">
-								Additional info
-							</Text>
-							<Table withTableBorder>
-								<Table.Tbody>
-									{Object.entries(claim.user_additional_info).map(([k, v]) => (
-										<Table.Tr key={k}>
-											<Table.Td fw={500}>{k}</Table.Td>
-											<Table.Td>{String(v)}</Table.Td>
-										</Table.Tr>
-									))}
-								</Table.Tbody>
-							</Table>
+							<Typography variant="h6">{userDisplayName(claim)}</Typography>
+							<Typography variant="body2" color="text.secondary">
+								{claim.user_email || '—'} · {claim.phone_no || '—'}
+							</Typography>
+							<Typography variant="body2">{claim.city || '—'}</Typography>
 						</div>
-					) : null}
 
-					<div>
-						<Text size="sm">Created: {formatDateDhaka(claim.created_at)}</Text>
-						<Text size="sm">Updated: {formatDateDhaka(claim.updated_at)}</Text>
-						<Text size="sm">Expires: {formatDateDhaka(claim.expire_at)}</Text>
-						<Text size="sm">Usage points: {claim.usage_point ?? '—'}</Text>
-					</div>
-
-					{data?.otherClaims?.length ? (
 						<div>
-							<Text fw={600} size="sm" mb="xs">
-								Other recent claims
-							</Text>
-							<Table withTableBorder>
-								<Table.Thead>
-									<Table.Tr>
-										<Table.Th>Reward</Table.Th>
-										<Table.Th>Status</Table.Th>
-										<Table.Th>Date</Table.Th>
-									</Table.Tr>
-								</Table.Thead>
-								<Table.Tbody>
-									{data.otherClaims.map(oc => (
-										<Table.Tr key={oc.id}>
-											<Table.Td>{oc.reward_name || oc.reward_id}</Table.Td>
-											<Table.Td>{oc.claim_status}</Table.Td>
-											<Table.Td>{formatDateDhaka(oc.created_at)}</Table.Td>
-										</Table.Tr>
-									))}
-								</Table.Tbody>
-							</Table>
+							<Typography fontWeight={600} variant="body2" mb={1}>
+								Claim status
+							</Typography>
+							<Stack direction="row" flexWrap="wrap" alignItems="flex-end" gap={1}>
+								<FormControl size="small" sx={{ width: 220 }} disabled={saving}>
+									<InputLabel>Status</InputLabel>
+									<Select
+										label="Status"
+										value={selectedStatus ?? ''}
+										onChange={e => setSelectedStatus((e.target.value as ClaimStatus) || null)}
+									>
+										{claimStatusSelectData.map(o => (
+											<MenuItem key={o.value} value={o.value}>{o.label}</MenuItem>
+										))}
+									</Select>
+								</FormControl>
+								<Button
+									variant="contained"
+									onClick={handleSaveStatus}
+									disabled={saving || statusUnchanged || !selectedStatus}
+								>
+									{saving ? 'Saving…' : 'Save'}
+								</Button>
+							</Stack>
 						</div>
-					) : null}
-				</Stack>
-			)}
+
+						<div>
+							<Typography fontWeight={600} variant="body2">
+								Tier and points
+							</Typography>
+							<Typography variant="body2">
+								Tier: {claim.tier_name || claim.tier_id} · Acquired: {claim.acquired_point ?? '—'} ·
+								Balance: {claim.balance_point ?? '—'}
+							</Typography>
+						</div>
+
+						<div>
+							<Typography fontWeight={600} variant="body2">
+								Reward
+							</Typography>
+							<Typography variant="body2">{claim.reward_name || `Reward #${claim.reward_id}`}</Typography>
+							{claim.offer ? <Typography variant="body2">Offer: {claim.offer}</Typography> : null}
+							<GroupBadges claim={claim} />
+						</div>
+
+						{claim.user_additional_info && typeof claim.user_additional_info === 'object' ? (
+							<div>
+								<Typography fontWeight={600} variant="body2" mb={1}>
+									Additional info
+								</Typography>
+								<TableContainer>
+									<Table size="small">
+										<TableBody>
+											{Object.entries(claim.user_additional_info).map(([k, v]) => (
+												<TableRow key={k}>
+													<TableCell sx={{ fontWeight: 500 }}>{k}</TableCell>
+													<TableCell>{String(v)}</TableCell>
+												</TableRow>
+											))}
+										</TableBody>
+									</Table>
+								</TableContainer>
+							</div>
+						) : null}
+
+						<div>
+							<Typography variant="body2">Created: {formatDateDhaka(claim.created_at)}</Typography>
+							<Typography variant="body2">Updated: {formatDateDhaka(claim.updated_at)}</Typography>
+							<Typography variant="body2">Expires: {formatDateDhaka(claim.expire_at)}</Typography>
+							<Typography variant="body2">Usage points: {claim.usage_point ?? '—'}</Typography>
+						</div>
+
+						{data?.otherClaims?.length ? (
+							<div>
+								<Typography fontWeight={600} variant="body2" mb={1}>
+									Other recent claims
+								</Typography>
+								<TableContainer>
+									<Table size="small">
+										<TableHead>
+											<TableRow>
+												<TableCell>Reward</TableCell>
+												<TableCell>Status</TableCell>
+												<TableCell>Date</TableCell>
+											</TableRow>
+										</TableHead>
+										<TableBody>
+											{data.otherClaims.map(oc => (
+												<TableRow key={oc.id}>
+													<TableCell>{oc.reward_name || oc.reward_id}</TableCell>
+													<TableCell>{oc.claim_status}</TableCell>
+													<TableCell>{formatDateDhaka(oc.created_at)}</TableCell>
+												</TableRow>
+											))}
+										</TableBody>
+									</Table>
+								</TableContainer>
+							</div>
+						) : null}
+					</Stack>
+				)}
+			</Box>
 		</Drawer>
 	);
 }
@@ -261,10 +301,10 @@ function GroupBadges({ claim }: { claim: RewardClaimRow }) {
 	const statusBadge = getStatusBadge('status', claim.status);
 	const usedBadge = getStatusBadge('is_used', claim.is_used);
 	return (
-		<Stack gap={4} mt="xs">
-			<Badge color={claimBadge.color}>{claimBadge.label}</Badge>
-			<Badge color={statusBadge.color}>{statusBadge.label}</Badge>
-			<Badge color={usedBadge.color}>{usedBadge.label}</Badge>
+		<Stack spacing={0.5} mt={1}>
+			<Chip size="small" label={claimBadge.label} color={chipColor(claimBadge.color)} />
+			<Chip size="small" label={statusBadge.label} color={chipColor(statusBadge.color)} />
+			<Chip size="small" label={usedBadge.label} color={chipColor(usedBadge.color)} />
 		</Stack>
 	);
 }

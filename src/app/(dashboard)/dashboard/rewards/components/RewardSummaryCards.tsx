@@ -1,6 +1,11 @@
 'use client';
 
-import { Card, Group, SimpleGrid, Text } from '@mantine/core';
+import {
+	Card,
+	Grid,
+	Stack,
+	Typography,
+} from '@mui/material';
 import type { RewardSummary } from '@/types/rewards';
 
 type Props = {
@@ -20,19 +25,21 @@ const cards: { key: keyof RewardSummary; title: string }[] = [
 
 export function RewardSummaryCards({ summary, loading }: Props) {
 	return (
-		<SimpleGrid cols={{ base: 1, sm: 2, md: 4 }} spacing="md">
+		<Grid container spacing={2}>
 			{cards.map(({ key, title }) => (
-				<Card key={key} withBorder padding="md" radius="md">
-					<Text size="xs" c="dimmed" tt="uppercase" fw={600}>
-						{title}
-					</Text>
-					<Group mt="xs">
-						<Text size="xl" fw={700}>
-							{loading || !summary ? '—' : Number(summary[key] ?? 0).toLocaleString()}
-						</Text>
-					</Group>
-				</Card>
+				<Grid item xs={12} sm={6} md={3} key={key}>
+					<Card variant="outlined" sx={{ p: 2 }}>
+						<Typography variant="caption" color="text.secondary" fontWeight={600} textTransform="uppercase">
+							{title}
+						</Typography>
+						<Stack mt={0.5}>
+							<Typography variant="h5" fontWeight={700}>
+								{loading || !summary ? '—' : Number(summary[key] ?? 0).toLocaleString()}
+							</Typography>
+						</Stack>
+					</Card>
+				</Grid>
 			))}
-		</SimpleGrid>
+		</Grid>
 	);
 }

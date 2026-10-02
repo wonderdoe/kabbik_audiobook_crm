@@ -1,28 +1,48 @@
-import { Avatar, Flex, Text, UnstyledButton, UnstyledButtonProps } from '@mantine/core';
-import classes from './UserButton.module.css';
+import {
+	Avatar,
+	Box,
+	ListItemAvatar,
+	ListItemButton,
+	ListItemText,
+	Typography,
+} from '@mui/material';
+'use client';
 
-interface UserButtonProps extends UnstyledButtonProps {
+interface UserButtonProps {
 	image: string;
 	name: string;
 	email: string;
+	mini?: boolean;
 }
 
-export function UserButton({ image, name, email }: UserButtonProps) {
+export function UserButton({ image, name, email, mini = false }: UserButtonProps) {
+	if (mini) {
+		return (
+			<Box sx={{ display: 'flex', justifyContent: 'center' }}>
+				<Avatar src={image || undefined} sx={{ width: 36, height: 36 }}>
+					{name?.charAt(0)?.toUpperCase()}
+				</Avatar>
+			</Box>
+		);
+	}
+
 	return (
-		<UnstyledButton className={classes.user}>
-			<Flex direction="row" gap={8}>
-				<Avatar src={image} radius="xl" />
-
-				<div style={{ flex: 1 }}>
-					<Text size="sm" w={500}>
+		<ListItemButton sx={{ borderRadius: 2, px: 1 }}>
+			<ListItemAvatar sx={{ minWidth: 44 }}>
+				<Avatar src={image || undefined}>{name?.charAt(0)?.toUpperCase()}</Avatar>
+			</ListItemAvatar>
+			<ListItemText
+				primary={
+					<Typography variant="body2" fontWeight={600} noWrap>
 						{name}
-					</Text>
-
-					<Text c="dimmed" size="xs">
+					</Typography>
+				}
+				secondary={
+					<Typography variant="caption" color="text.secondary" noWrap>
 						{email}
-					</Text>
-				</div>
-			</Flex>
-		</UnstyledButton>
+					</Typography>
+				}
+			/>
+		</ListItemButton>
 	);
 }

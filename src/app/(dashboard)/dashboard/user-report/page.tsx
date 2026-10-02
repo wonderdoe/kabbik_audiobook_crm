@@ -1,6 +1,16 @@
 'use client';
+import {
+	Badge,
+	Box,
+	Card,
+	Grid,
+	Paper,
+	Stack,
+	Typography,
+} from '@mui/material';
+import { PageContainer } from '@/components/PageContainer/PageContainer';
+import { TableThumbnail } from '@/components/mantis/TableThumbnail';
 
-import { Badge, Box, Card, Grid, Group, Image, Paper, Text, Title } from '@mantine/core';
 import moment from 'moment';
 import { useCallback, useEffect, useState } from 'react';
 import Loader from '@/components/Loader';
@@ -20,7 +30,7 @@ const CustomGridDisplay = ({ list }: { list: Item[] }) => {
 		
 		<Grid gutter={20}>
 			{list.map((item: Item) => (
-				<Grid.Col key={item.title} span={{ base: 6, md: 4, lg: 2 }}>
+				<Grid item key={item.title} xs={6} md={4} lg={2}>
 					<Card
 						style={{
 							display: 'flex',
@@ -30,9 +40,9 @@ const CustomGridDisplay = ({ list }: { list: Item[] }) => {
 							height: 180,
 							flexBasis: '150px',
 						}}
-						radius="md"
+						sx={{ borderRadius: 2 }}
 					>
-						<Group>
+						<Stack direction="row" alignItems="center">
 							<div
 								style={{
 									display: 'flex',
@@ -42,25 +52,16 @@ const CustomGridDisplay = ({ list }: { list: Item[] }) => {
 								}}
 							>
 								{item.image !== '' && (
-									<Box w={60}>
-										<Image
-											h={60}
-											w={60}
-											style={{ objectFit: 'contain' }}
-											radius="md"
-											src={item.image}
-											alt={item.image}
-										/>
-									</Box>
+									<TableThumbnail src={item.image} alt={item.title} objectFit="contain" size={48} />
 								)}
-								<Text style={{ textAlign: 'center', margin: 10 }} c="dimmed" tt="uppercase" fz="xs">
+								<Typography style={{ textAlign: 'center', margin: 10 }} color="text.secondary" textTransform="uppercase" fontSize="xs">
 									{item.title}
-								</Text>
+								</Typography>
 								<Badge color="pink">{item.count !== undefined ? item.count : 'N/A'}</Badge>
 							</div>
-						</Group>
+						</Stack>
 					</Card>
-				</Grid.Col>
+				</Grid>
 			))}
 		</Grid>
 	);
@@ -165,16 +166,11 @@ export default function UserReport() {
 			{loading ? (
 				<Loader />
 			) : (
-				
-				<>
-				
-					<Title order={1} mb={16}>
-						User Report
-					</Title>
-					<Paper shadow="xs" p="xl" style={{ padding: 25, marginBottom: '20px' }}>
-						<Text size="xl" fw={900}>
+			<PageContainer title="User Report" items={[{ label: 'User Report', href: '/dashboard/user-report' }]}>
+					<Paper elevation={1} sx={{ p: 3 }} style={{ padding: 25, marginBottom: '20px' }}>
+						<Typography maxWidth="xl" sx={{ width: "100%" }} fontWeight={900}>
 							Total Lifetime Subscribers
-						</Text>
+						</Typography>
 						<TreeDiagram
 							headingChildren={
 								<div  className={styles.totalUsers}>
@@ -193,10 +189,10 @@ export default function UserReport() {
 										flexBasis: '190px',
 										padding:'6px'
 									}}
-									radius="md"
+									sx={{ borderRadius: 2 }}
 								>
 									
-								<Group>
+								<Stack direction="row" alignItems="center">
 									<div
 										style={{
 											display: 'flex',
@@ -206,31 +202,22 @@ export default function UserReport() {
 										}}
 									>
 										{item.image !== '' && (
-											<Box w={60}>
-												<Image
-													h={60}
-													w={60}
-													style={{ objectFit: 'contain',maxHeight: '60px',maxWidth: '60px' }}
-													radius="md"
-													src={item.image}
-													alt={item.image}
-												/>
-											</Box>
+											<TableThumbnail src={item.image} alt={item.title} objectFit="contain" size={48} />
 										)}
-										<Text style={{ textAlign: 'center', margin: '5px  0' }} c="dimmed" tt="uppercase" fz="xs">
+										<Typography style={{ textAlign: 'center', margin: '5px  0' }} color="text.secondary" textTransform="uppercase" fontSize="xs">
 											{item.title}
-										</Text>
+										</Typography>
 										<Badge color="pink">{item.count !== undefined ? Number(item.recurring)+Number(item.is_onetime) : 'N/A'}</Badge>
-										<Text style={{ textAlign: 'center', margin: '5px  0' }} c="dimmed" tt="uppercase" fz="xs">
+										<Typography style={{ textAlign: 'center', margin: '5px  0' }} color="text.secondary" textTransform="uppercase" fontSize="xs">
 											RECURRING <br/>
 											({item.recurring})
-										</Text>
-										<Text style={{ textAlign: 'center', margin: ' 5px 0' }} c="dimmed" tt="uppercase" fz="xs">
+										</Typography>
+										<Typography style={{ textAlign: 'center', margin: ' 5px 0' }} color="text.secondary" textTransform="uppercase" fontSize="xs">
 											ONE TIME <br/>
 											({item.is_onetime})
-										</Text>
+										</Typography>
 									</div>
-								</Group>
+								</Stack>
 									
 								</Card>
 								// <span key={item.title} >
@@ -242,10 +229,10 @@ export default function UserReport() {
 						/>
 						{/* <CustomGridDisplay list={subsData} /> */}
 					</Paper>
-					<Paper shadow="xs" p="xl" style={{ padding: 25, marginBottom: '20px' }}>
-						<Text size="xl" fw={900}>
+					<Paper elevation={1} sx={{ p: 3 }} style={{ padding: 25, marginBottom: '20px' }}>
+						<Typography maxWidth="xl" sx={{ width: "100%" }} fontWeight={900}>
 							Active Subscribed Users
-						</Text>
+						</Typography>
 						
 						<TreeDiagram
 							headingChildren={
@@ -265,10 +252,10 @@ export default function UserReport() {
 										flexBasis: '190px',
 										padding:'6px'
 									}}
-									radius="md"
+									sx={{ borderRadius: 2 }}
 								>
 									
-								<Group>
+								<Stack direction="row" alignItems="center">
 									<div
 										style={{
 											display: 'flex',
@@ -278,31 +265,22 @@ export default function UserReport() {
 										}}
 									>
 										{item.image !== '' && (
-											<Box w={60}>
-												<Image
-													h={60}
-													w={60}
-													style={{ objectFit: 'contain',maxHeight: '60px',maxWidth: '60px' }}
-													radius="md"
-													src={item.image}
-													alt={item.image}
-												/>
-											</Box>
+											<TableThumbnail src={item.image} alt={item.title} objectFit="contain" size={48} />
 										)}
-										<Text style={{ textAlign: 'center', margin: '5px 0' }} c="dimmed" tt="uppercase" fz="xs">
+										<Typography style={{ textAlign: 'center', margin: '5px 0' }} color="text.secondary" textTransform="uppercase" fontSize="xs">
 											{item.title}
-										</Text>
+										</Typography>
 										<Badge color="pink">{item.count !== undefined ? Number(item.recurring)+Number(item.is_onetime) : 'N/A'}</Badge>
-										<Text style={{ textAlign: 'center', margin: '5px 0' }} c="dimmed" tt="uppercase" fz="xs">
+										<Typography style={{ textAlign: 'center', margin: '5px 0' }} color="text.secondary" textTransform="uppercase" fontSize="xs">
 											RECURRING <br/>
 											({item.recurring})
-										</Text>
-										<Text style={{ textAlign: 'center', margin: ' 5px 0' }} c="dimmed" tt="uppercase" fz="xs">
+										</Typography>
+										<Typography style={{ textAlign: 'center', margin: ' 5px 0' }} color="text.secondary" textTransform="uppercase" fontSize="xs">
 											ONE TIME <br/>
 											({item.is_onetime})
-										</Text>
+										</Typography>
 									</div>
-								</Group>
+								</Stack>
 									
 								</Card>
 								// <span key={item.title} >
@@ -314,11 +292,11 @@ export default function UserReport() {
 						/>
 						{/* <CustomGridDisplay list={subsData} /> */}
 					</Paper>
-					<Paper shadow="xs" p="xl" style={{ padding: 25, marginBottom: '20px' }}>
+					<Paper elevation={1} sx={{ p: 3 }} style={{ padding: 25, marginBottom: '20px' }}>
 						<div className={styles.showUniqueRentCount}>
-							<Text size="xl" fw={900}>
+							<Typography maxWidth="xl" sx={{ width: "100%" }} fontWeight={900}>
 								Total Rent Count
-							</Text>
+							</Typography>
 							<button 
 								onClick={()=>setShowTotalRentUniqUserCount(!ShowTotalRentUniqUserCount)}
 								className={styles.unique_rent_button}
@@ -344,10 +322,10 @@ export default function UserReport() {
 										flexBasis: '150px',
 										padding:'15px'
 									}}
-									radius="md"
+									sx={{ borderRadius: 2 }}
 								>
 									
-								<Group>
+								<Stack direction="row" alignItems="center">
 									<div
 										style={{
 											display: 'flex',
@@ -357,24 +335,15 @@ export default function UserReport() {
 										}}
 									>
 										{item.image !== '' && (
-											<Box w={80}>
-												<Image
-													h={80}
-													w={80}
-													style={{ objectFit: 'contain',maxHeight: '80px',maxWidth: '80px' }}
-													radius="md"
-													src={item.image}
-													alt={item.image}
-												/>
-											</Box>
+											<TableThumbnail src={item.image} alt={item.title} objectFit="contain" size={48} />
 										)}
-										<Text style={{ textAlign: 'center', margin: ' 5px 0' }} c="dimmed" tt="uppercase" fz="xs">
+										<Typography style={{ textAlign: 'center', margin: ' 5px 0' }} color="text.secondary" textTransform="uppercase" fontSize="xs">
 											{item.title}
-										</Text>
+										</Typography>
 										<Badge color="pink">{item.count !== undefined ? item.count : 'N/A'}</Badge>
 										
 									</div>
-								</Group>
+								</Stack>
 									
 								</Card>
 								// <span key={item.title} >
@@ -386,11 +355,11 @@ export default function UserReport() {
 						/>
 						{/* <CustomGridDisplay list={subsData} /> */}
 					</Paper>
-					<Paper shadow="xs" p="xl" style={{ padding: 25, marginBottom: '20px' }}>
+					<Paper elevation={1} sx={{ p: 3 }} style={{ padding: 25, marginBottom: '20px' }}>
 						<div className={styles.showUniqueRentCount}>
-							<Text size="xl" fw={900}>
+							<Typography maxWidth="xl" sx={{ width: "100%" }} fontWeight={900}>
 								Active Rent Count
-							</Text>
+							</Typography>
 							<button 
 								onClick={()=>setShowActiveRentUniqUserCount(!ShowActiveRentUniqUserCount)}
 								className={styles.unique_rent_button}
@@ -416,10 +385,10 @@ export default function UserReport() {
 										flexBasis: '150px',
 										padding:'15px'
 									}}
-									radius="md"
+									sx={{ borderRadius: 2 }}
 								>
 									
-								<Group>
+								<Stack direction="row" alignItems="center">
 									<div
 										style={{
 											display: 'flex',
@@ -429,24 +398,15 @@ export default function UserReport() {
 										}}
 									>
 										{item.image !== '' && (
-											<Box w={80}>
-												<Image
-													h={80}
-													w={80}
-													style={{ objectFit: 'contain',maxHeight: '80px',maxWidth: '80px' }}
-													radius="md"
-													src={item.image}
-													alt={item.image}
-												/>
-											</Box>
+											<TableThumbnail src={item.image} alt={item.title} objectFit="contain" size={48} />
 										)}
-										<Text style={{ textAlign: 'center', margin: ' 5px 0' }} c="dimmed" tt="uppercase" fz="xs">
+										<Typography style={{ textAlign: 'center', margin: ' 5px 0' }} color="text.secondary" textTransform="uppercase" fontSize="xs">
 											{item.title}
-										</Text>
+										</Typography>
 										<Badge color="pink">{item.count !== undefined ? item.count : 'N/A'}</Badge>
 										
 									</div>
-								</Group>
+								</Stack>
 									
 								</Card>
 								// <span key={item.title} >
@@ -458,10 +418,10 @@ export default function UserReport() {
 						/>
 						{/* <CustomGridDisplay list={subsData} /> */}
 					</Paper>
-					<Paper shadow="xs" p="xl" style={{ padding: 25, marginBottom: '20px' }}>
-						<Text size="xl" fw={900}>
+					<Paper elevation={1} sx={{ p: 3 }} style={{ padding: 25, marginBottom: '20px' }}>
+						<Typography maxWidth="xl" sx={{ width: "100%" }} fontWeight={900}>
 							Active Subscriber From Banglalink App
-						</Text>
+						</Typography>
 						<TreeDiagram
 							headingChildren={
 								<div  className={styles.totalUsers}>
@@ -480,10 +440,10 @@ export default function UserReport() {
 										flexBasis: '190px',
 										padding:'6px'
 									}}
-									radius="md"
+									sx={{ borderRadius: 2 }}
 								>
 									
-								<Group>
+								<Stack direction="row" alignItems="center">
 									<div
 										style={{
 											display: 'flex',
@@ -493,31 +453,22 @@ export default function UserReport() {
 										}}
 									>
 										{item.image !== '' && (
-											<Box w={60}>
-												<Image
-													h={60}
-													w={60}
-													style={{ objectFit: 'contain',maxHeight: '60px',maxWidth: '60px' }}
-													radius="md"
-													src={item.image}
-													alt={item.image}
-												/>
-											</Box>
+											<TableThumbnail src={item.image} alt={item.title} objectFit="contain" size={48} />
 										)}
-										<Text style={{ textAlign: 'center', margin: ' 5px 0' }} c="dimmed" tt="uppercase" fz="xs">
+										<Typography style={{ textAlign: 'center', margin: ' 5px 0' }} color="text.secondary" textTransform="uppercase" fontSize="xs">
 											{item.title}
-										</Text>
+										</Typography>
 										<Badge color="pink">{item.count !== undefined ? Number(item.recurring)+Number(item.is_onetime) : 'N/A'}</Badge>
-										<Text style={{ textAlign: 'center', margin: '5px 0' }} c="dimmed" tt="uppercase" fz="xs">
+										<Typography style={{ textAlign: 'center', margin: '5px 0' }} color="text.secondary" textTransform="uppercase" fontSize="xs">
 											RECURRING <br/>
 											({item.recurring})
-										</Text>
-										<Text style={{ textAlign: 'center', margin: '5px 0' }} c="dimmed" tt="uppercase" fz="xs">
+										</Typography>
+										<Typography style={{ textAlign: 'center', margin: '5px 0' }} color="text.secondary" textTransform="uppercase" fontSize="xs">
 											ONE TIME <br/>
 											({item.is_onetime})
-										</Text>
+										</Typography>
 									</div>
-								</Group>
+								</Stack>
 									
 								</Card>
 								// <span key={item.title} >
@@ -529,13 +480,13 @@ export default function UserReport() {
 						/>
 						{/* <CustomGridDisplay list={subsData} /> */}
 					</Paper>
-					<Paper shadow="xs" p="xl" style={{ padding: 25 }}>
-						<Text size="xl" fw={900}>
+					<Paper elevation={1} sx={{ p: 3 }} style={{ padding: 25 }}>
+						<Typography maxWidth="xl" sx={{ width: "100%" }} fontWeight={900}>
 							Total Play Count
-						</Text>
+						</Typography>
 						<CustomGridDisplay list={playCount} />
 					</Paper>
-				</>
+			</PageContainer>
 			)}
 		</>
 	);

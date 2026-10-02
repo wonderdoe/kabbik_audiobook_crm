@@ -1,43 +1,57 @@
 'use client';
 
-import { Burger, Button, Center, Drawer, Group, Menu, rem, Stack } from '@mantine/core';
-import { useDisclosure } from '@mantine/hooks';
+import {
+	Box,
+	Button,
+	Drawer,
+	IconButton,
+	Menu,
+	MenuItem,
+	Stack,
+} from '@mui/material';
+import MenuIcon from '@mui/icons-material/Menu';
+import { useDisclosure } from '@/hooks/use-disclosure';
 import { IconChevronDown } from '@tabler/icons-react';
 import { Logo } from '@/components/Logo/Logo';
 import classes from './Header.module.css';
+import { useState } from 'react';
 
 interface HeaderActionProps {
 	links: { link: string; label: string; links?: { link: string; label: string }[] }[];
 }
 
 export function Header({ links }: HeaderActionProps) {
-	const [opened, { toggle }] = useDisclosure(false);
-	const items = links.map(link => {
-		const menuItems = link.links?.map(item => <Menu.Item key={item.link}>{item.label}</Menu.Item>);
+	const [opened, { toggle, close }] = useDisclosure(false);
+	const [menuAnchors, setMenuAnchors] = useState<Record<string, HTMLElement | null>>({});
 
-		if (menuItems) {
+	const items = links.map(link => {
+		if (link.links?.length) {
 			return (
-				<Menu key={link.label} trigger="hover" transitionProps={{ exitDuration: 0 }} withinPortal>
-					<Menu.Target>
-						<a href={link.link} className={classes.link} onClick={event => event.preventDefault()}>
-							<Center>
-								<span className={classes.linkLabel}>{link.label}</span>
-								<IconChevronDown size={rem(12)} stroke={1.5} />
-							</Center>
-						</a>
-					</Menu.Target>
-					<Menu.Dropdown>{menuItems}</Menu.Dropdown>
-				</Menu>
+				<Box key={link.label} component="span">
+					<Button
+						className={classes.link}
+						endIcon={<IconChevronDown size={16} stroke={1.5} />}
+						onClick={e => setMenuAnchors(a => ({ ...a, [link.label]: e.currentTarget }))}
+					>
+						{link.label}
+					</Button>
+					<Menu
+						anchorEl={menuAnchors[link.label]}
+						open={Boolean(menuAnchors[link.label])}
+						onClose={() => setMenuAnchors(a => ({ ...a, [link.label]: null }))}
+					>
+						{link.links.map(item => (
+							<MenuItem key={item.link} component="a" href={item.link}>
+								{item.label}
+							</MenuItem>
+						))}
+					</Menu>
+				</Box>
 			);
 		}
 
 		return (
-			<a
-				key={link.label}
-				href={link.link}
-				className={classes.link}
-				onClick={event => event.preventDefault()}
-			>
+			<a key={link.label} href={link.link} className={classes.link} onClick={event => event.preventDefault()}>
 				{link.label}
 			</a>
 		);
@@ -45,24 +59,24 @@ export function Header({ links }: HeaderActionProps) {
 
 	return (
 		<header className={classes.header}>
-			<Group justify="space-between" w="100%" className={classes.inner}>
-				<Group>
-					<Burger opened={opened} onClick={toggle} className={classes.burger} size="sm" />
+			<Stack direction="row" alignItems="center" justifyContent="space-between" width="100%" className={classes.inner}>
+				<Stack direction="row" alignItems="center">
+					<IconButton onClick={toggle} className={classes.burger} size="small">
+						<MenuIcon />
+					</IconButton>
 					<Logo />
-				</Group>
-				<Group gap="sm" className={classes.links}>
+				</Stack>
+				<Stack direction="row" alignItems="center" spacing={1} className={classes.links}>
 					{items}
-				</Group>
-				<Button radius="xl" h={30}>
-					Try it now
-				</Button>
+				</Stack>
+				<Button sx={{ borderRadius: 8, height: 30 }}>Try it now</Button>
 
-				<Drawer opened={opened} onClose={toggle} size="md" padding="xl">
-					<Stack gap="md" pt="lg">
+				<Drawer anchor="right" open={opened} onClose={close}>
+					<Stack spacing={2} sx={{ p: 3, pt: 4 }}>
 						{items}
 					</Stack>
 				</Drawer>
-			</Group>
+			</Stack>
 		</header>
 	);
 }

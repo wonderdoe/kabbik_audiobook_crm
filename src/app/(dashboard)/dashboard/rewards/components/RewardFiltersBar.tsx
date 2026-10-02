@@ -1,8 +1,17 @@
 'use client';
 
-import { Button, Group, Select, TextInput } from '@mantine/core';
-import { DatePickerInput } from '@mantine/dates';
+import {
+	Button,
+	FormControl,
+	InputLabel,
+	MenuItem,
+	Select,
+	Stack,
+	TextField,
+} from '@mui/material';
+import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { IconSearch } from '@tabler/icons-react';
+import dayjs, { Dayjs } from 'dayjs';
 import type { RewardFilters } from '@/types/rewards';
 
 type FilterOptions = {
@@ -19,62 +28,72 @@ type Props = {
 
 export function RewardFiltersBar({ filters, onChange, onReset, options }: Props) {
 	return (
-		<Group align="flex-end" wrap="wrap" gap="sm">
-			<TextInput
+		<Stack direction="row" flexWrap="wrap" alignItems="flex-end" gap={1.5}>
+			<TextField
 				label="Search"
 				placeholder="Name, username, email, phone"
-				leftSection={<IconSearch size={16} />}
+				size="small"
 				value={filters.search}
-				onChange={e => onChange({ ...filters, search: e.currentTarget.value })}
-				w={{ base: '100%', sm: 280 }}
+				onChange={e => onChange({ ...filters, search: e.target.value })}
+				sx={{ width: { xs: '100%', sm: 280 } }}
+				InputProps={{
+					startAdornment: <IconSearch size={16} style={{ marginRight: 8, opacity: 0.6 }} />,
+				}}
 			/>
-			<Select
-				label="Claim status"
-				placeholder="All"
-				clearable
-				data={options?.claimStatuses ?? []}
-				value={filters.claimStatus}
-				onChange={v => onChange({ ...filters, claimStatus: v })}
-				w={160}
+			<FormControl size="small" sx={{ width: 160 }}>
+				<InputLabel>Claim status</InputLabel>
+				<Select
+					label="Claim status"
+					value={filters.claimStatus ?? ''}
+					onChange={e => onChange({ ...filters, claimStatus: e.target.value || null })}
+					displayEmpty
+				>
+					<MenuItem value="">All</MenuItem>
+					{(options?.claimStatuses ?? []).map(s => (
+						<MenuItem key={s} value={s}>{s}</MenuItem>
+					))}
+				</Select>
+			</FormControl>
+			<FormControl size="small" sx={{ width: 180 }}>
+				<InputLabel>Tier</InputLabel>
+				<Select
+					label="Tier"
+					value={filters.tierId ?? ''}
+					onChange={e => onChange({ ...filters, tierId: e.target.value || null })}
+					displayEmpty
+				>
+					<MenuItem value="">All</MenuItem>
+					{(options?.tiers ?? []).map(t => (
+						<MenuItem key={t.value} value={t.value}>{t.label}</MenuItem>
+					))}
+				</Select>
+			</FormControl>
+			<FormControl size="small" sx={{ width: 120 }}>
+				<InputLabel>Used</InputLabel>
+				<Select
+					label="Used"
+					value={filters.isUsed ?? ''}
+					onChange={e => onChange({ ...filters, isUsed: e.target.value || null })}
+					displayEmpty
+				>
+					<MenuItem value="">All</MenuItem>
+					<MenuItem value="1">Yes</MenuItem>
+					<MenuItem value="0">No</MenuItem>
+				</Select>
+			</FormControl>
+			<DatePicker
+				label="Claimed from"
+				value={filters.dateFrom ? dayjs(filters.dateFrom) : null}
+				onChange={(d: Dayjs | null) => onChange({ ...filters, dateFrom: d?.toDate() ?? null })}
+				slotProps={{ textField: { size: 'small', sx: { width: { xs: '100%', sm: 160 } } } }}
 			/>
-			<Select
-				label="Tier"
-				placeholder="All"
-				clearable
-				data={options?.tiers ?? []}
-				value={filters.tierId}
-				onChange={v => onChange({ ...filters, tierId: v })}
-				w={180}
+			<DatePicker
+				label="Claimed to"
+				value={filters.dateTo ? dayjs(filters.dateTo) : null}
+				onChange={(d: Dayjs | null) => onChange({ ...filters, dateTo: d?.toDate() ?? null })}
+				slotProps={{ textField: { size: 'small', sx: { width: { xs: '100%', sm: 160 } } } }}
 			/>
-			<Select
-				label="Used"
-				placeholder="All"
-				clearable
-				data={[
-					{ value: '1', label: 'Yes' },
-					{ value: '0', label: 'No' },
-				]}
-				value={filters.isUsed}
-				onChange={v => onChange({ ...filters, isUsed: v })}
-				w={120}
-			/>
-			<DatePickerInput
-				type="range"
-				label="Claimed date range"
-				value={[filters.dateFrom, filters.dateTo]}
-				onChange={range =>
-					onChange({
-						...filters,
-						dateFrom: range[0],
-						dateTo: range[1],
-					})
-				}
-				clearable
-				w={{ base: '100%', sm: 280 }}
-			/>
-			<Button variant="default" onClick={onReset}>
-				Reset filters
-			</Button>
-		</Group>
+			<Button variant="outlined" onClick={onReset}>Reset filters</Button>
+		</Stack>
 	);
 }

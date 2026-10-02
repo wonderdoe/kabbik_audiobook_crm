@@ -1,22 +1,29 @@
 'use client';
 
+// import styles from '../../../styles/subscription.module.css';
 import {
+	Box,
 	Button,
+	Dialog,
+	DialogContent,
+	DialogTitle,
 	Divider,
-	Modal,
 	Pagination,
 	Paper,
-	Space,
+	Tab,
 	Table,
-	Text,
-	TextInput,
-	Title,
-	UnstyledButton,
-} from '@mantine/core';
-
-// import styles from '../../../styles/subscription.module.css';
-import { useDisclosure } from '@mantine/hooks';
+	TableBody,
+	TableCell,
+	TableContainer,
+	TableHead,
+	TableRow,
+	TextField,
+	Typography,
+} from '@mui/material';
+import { useDisclosure } from '@/hooks/use-disclosure';
 import { IconSearch } from '@tabler/icons-react';
+import { PageContainer } from '@/components/PageContainer/PageContainer';
+import { MainCard } from '@/components/mantis/MainCard';
 
 export default function SubscriptionListView({ data }: any) {
 	const [detailsModalOpened, { open: openDetailsModal, close: closeDetailsModal }] =
@@ -24,52 +31,48 @@ export default function SubscriptionListView({ data }: any) {
 
 	const icon = <IconSearch size={30} strokeWidth={1} color={'black'} />;
 	const rows = data?.map((element: any) => (
-		<Table.Tr key={element.id}>
-			<Table.Td>{element.user_name}</Table.Td>
-			<Table.Td>{element.user_email}</Table.Td>
-			<Table.Td>{element.phone_no}</Table.Td>
+		<TableRow key={element.id}>
+			<TableCell>{element.user_name}</TableCell>
+			<TableCell>{element.user_email}</TableCell>
+			<TableCell>{element.phone_no}</TableCell>
 
-			<Table.Td>
-				<Button onClick={openDetailsModal} variant="outline">
+			<TableCell>
+				<Button onClick={openDetailsModal} variant="outlined">
 					Details
 				</Button>
-			</Table.Td>
-		</Table.Tr>
+			</TableCell>
+		</TableRow>
 	));
 
 	return (
-		<div>
-			<Title order={1} style={{ marginBottom: 20 }}>
-				Subscription
-			</Title>
-			<Paper withBorder radius="md" p="md">
-				<TextInput
-					mt="md"
-					rightSection={<UnstyledButton>{icon}</UnstyledButton>}
+		<PageContainer title="Subscription" items={[{ label: 'Subscription', href: '/dashboard/subscription' }]}>
+			<MainCard contentSX={{ p: 0 }}>
+				<TextField
+					endIcon={<Button variant="text">{icon}</Button>}
 					placeholder="Search by name, email or number..."
 				/>
-				<Space h="md" />
+				<Box sx={{ height: 16 }} />
 				<Table>
-					<Table.Thead>
-						<Table.Tr>
-							<Table.Th>Name</Table.Th>
-							<Table.Th>Email</Table.Th>
-							<Table.Th>Phone Number</Table.Th>
-						</Table.Tr>
-					</Table.Thead>
-					<Table.Tbody>{rows}</Table.Tbody>
+					<TableHead>
+						<TableRow>
+							<TableCell component="th">Name</TableCell>
+							<TableCell component="th">Email</TableCell>
+							<TableCell component="th">Phone Number</TableCell>
+						</TableRow>
+					</TableHead>
+					<TableBody>{rows}</TableBody>
 				</Table>
-				<Divider my="sm" />
-				<Pagination total={20} siblings={1} defaultValue={10} />
-			</Paper>
-			<Modal opened={detailsModalOpened} onClose={closeDetailsModal} centered>
-				<Text size="xl" fw={900} style={{ textAlign: 'center' }}>
+				<Divider sx={{ my: 1 }} />
+				<Pagination count={20} defaultValue={10} />
+			</MainCard>
+			<Dialog open={detailsModalOpened} onClose={closeDetailsModal}>
+				<Typography maxWidth="xl" sx={{ width: "100%" }} fontWeight={900} style={{ textAlign: 'center' }}>
 					Subscription Details
-				</Text>
-				<Paper shadow="xs" p="xl">
-					<Text>Subscription Details content goes here...</Text>
+				</Typography>
+				<Paper elevation={1} sx={{ p: 3 }}>
+					<Typography>Subscription Details content goes here...</Typography>
 				</Paper>
-			</Modal>
-		</div>
+			</Dialog>
+		</PageContainer>
 	);
 }

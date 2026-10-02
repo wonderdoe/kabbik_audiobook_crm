@@ -1,4 +1,4 @@
-import { Inter } from 'next/font/google';
+import { Inter, Public_Sans } from 'next/font/google';
 import localFont from 'next/font/local';
 
 const quickSand = localFont({
@@ -31,10 +31,17 @@ const quickSand = localFont({
 	],
 });
 
+const publicSans = Public_Sans({
+	subsets: ['latin'],
+	display: 'swap',
+	weight: ['400', '500', '600', '700'],
+	variable: '--font-public-sans',
+});
+
 const inter = Inter({
 	subsets: ['latin'],
 	display: 'swap',
 	weight: ['200', '300', '400', '500', '600', '700', '800', '900'],
 });
 
-export { quickSand, inter };
+export { quickSand, inter, publicSans };

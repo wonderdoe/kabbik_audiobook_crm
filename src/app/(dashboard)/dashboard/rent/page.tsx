@@ -3,17 +3,24 @@
 import {
 	Box,
 	Button,
-	Flex,
-	Image,
-	Modal,
+	CircularProgress,
+	Dialog,
+	DialogContent,
+	DialogTitle,
 	Pagination,
-	Paper,
-	Space,
+	Stack,
+	Tab,
 	Table,
-	Text,
-	Title,
-} from '@mantine/core';
-import { useDisclosure } from '@mantine/hooks';
+	TableBody,
+	TableCell,
+	TableContainer,
+	TableHead,
+	TableRow,
+	Typography,
+} from '@mui/material';
+import { PageContainer } from '@/components/PageContainer/PageContainer';
+import { MainCard } from '@/components/mantis/MainCard';
+import { useDisclosure } from '@/hooks/use-disclosure';
 import moment from 'moment';
 import { useCallback, useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
@@ -80,25 +87,21 @@ export default function Rent() {
 		setOffset(offsetCount);
 	};
 
-	return (
-		<>
-			{isLoading ? (
-				<Loader />
-			) : (
-				<>
-					<Title order={1} mb="md">
-						Rent Revenue Report
-					</Title>
-					<Paper shadow="xs" p="md" px={'lg'}>
-						<Flex
-							justify={'space-between'}
-							gap={'md'}
-							direction={{ base: 'column', xs: 'row' }}
-							align={'center'}
+	return isLoading ? (
+		<Loader />
+	) : (
+		<PageContainer title="Rent Revenue Report" items={[{ label: 'Rent', href: '/dashboard/rent' }]}>
+					<MainCard content={false} sx={{ p: 2, mb: 2 }}>
+						<Stack
+							direction={{ xs: 'column', sm: 'row' }}
+							flexWrap="wrap"
+							justifyContent="space-between"
+							alignItems="center"
+							spacing={2}
 						>
 							<Box>
 								<form onSubmit={handleSubmit(handleSubmitForm, err => console.error(err))}>
-									<Flex direction={'column'} align={'start'} gap={15}>
+									<Stack direction="column" alignItems="flex-start" spacing={1}>
 										<div
 											style={{ width: '300px', display: 'flex', flexDirection: 'column', gap: 10 }}
 										>
@@ -118,72 +121,71 @@ export default function Rent() {
 											/>
 										</div>
 										<Button type="submit">Filter</Button>
-									</Flex>
+									</Stack>
 								</form>
 							</Box>
-							<Flex display={'flex'} gap={30}>
-								<Flex direction={'column'} align={'end'} gap={8}>
-									<Text size="xl" fw={900} c="green">
+							<Stack direction="row" spacing={3} sx={{ display: 'flex' }}>
+								<Stack direction="column" alignItems="flex-end" spacing={1}>
+									<Typography variant="h5" fontWeight={900} color="success.main">
 										Rent Revenue so far
-									</Text>
-									<Text size="md" fw={700} c={'gray'}>
+									</Typography>
+									<Typography variant="body1" fontWeight={700} color="text.secondary">
 										Rent Revenue in between range
-									</Text>
-									<Text size="md" fw={700} c={'gray'}>
+									</Typography>
+									<Typography variant="body1" fontWeight={700} color="text.secondary">
 										Count of rented books
-									</Text>
-								</Flex>
-								<Flex direction={'column'} gap={8}>
-									<Text size="xl" fw={900} c={'green'}>
+									</Typography>
+								</Stack>
+								<Stack direction="column" spacing={1}>
+									<Typography variant="h5" fontWeight={900} color="success.main">
 										{rentData?.total} Tk
-									</Text>
-									<Text size="md" fw={700} c={'gray'}>
+									</Typography>
+									<Typography variant="body1" fontWeight={700} color="text.secondary">
 										{rentData?.totalAmountInRange} Tk
-									</Text>
-									<Text size="md" fw={700} c={'gray'}>
+									</Typography>
+									<Typography variant="body1" fontWeight={700} color="text.secondary">
 										{rentData?.totalCountInRange}
-									</Text>
-								</Flex>
-							</Flex>
-						</Flex>
-					</Paper>
-					<Space h={'md'} />
-					<Paper shadow="xs" p="xl" style={{ padding: 25, marginBottom: '20px' }}>
-						<Table.ScrollContainer minWidth={'100%'}>
+									</Typography>
+								</Stack>
+							</Stack>
+						</Stack>
+					</MainCard>
+					<Box sx={{ height: 16 }} />
+					<MainCard content={false} sx={{ p: 2.5, mb: 2 }}>
+						<TableContainer sx={{ minWidth: '100%' }}>
 							<Table>
-								<Table.Thead>
-									<Table.Tr>
-										<Table.Th>User Name</Table.Th>
-										<Table.Th>Thumbnail</Table.Th>
-										<Table.Th>Audiobook Name</Table.Th>
-										<Table.Th>Amount</Table.Th>
-										<Table.Th>Payment Date</Table.Th>
-										<Table.Th>Action</Table.Th>
-									</Table.Tr>
-								</Table.Thead>
-								<Table.Tbody>
+								<TableHead>
+									<TableRow>
+										<TableCell component="th">User Name</TableCell>
+										<TableCell component="th">Thumbnail</TableCell>
+										<TableCell component="th">Audiobook Name</TableCell>
+										<TableCell component="th">Amount</TableCell>
+										<TableCell component="th">Payment Date</TableCell>
+										<TableCell component="th">Action</TableCell>
+									</TableRow>
+								</TableHead>
+								<TableBody>
 									{rentData?.data.map((element: any, index: any) => (
-										<Table.Tr key={index}>
-											<Table.Td> {element.name || 'N/A'} </Table.Td>
-											<Table.Td>
-												<Image
+										<TableRow key={index}>
+											<TableCell> {element.name || 'N/A'} </TableCell>
+											<TableCell>
+												<Box
+													component="img"
 													src={element.thumb_path}
 													alt={element.audiobook_name}
-													w={100}
-													h={'auto'}
-													radius={'md'}
+													sx={{ width: 100, height: 'auto', borderRadius: 1 }}
 												/>
-											</Table.Td>
-											<Table.Td>{element.audiobook_name || 'N/A'}</Table.Td>
-											<Table.Td className="border border-indigo-600">
-												<Text size="sm" fw={700} ta="center" c="green">
+											</TableCell>
+											<TableCell>{element.audiobook_name || 'N/A'}</TableCell>
+											<TableCell className="border border-indigo-600">
+												<Typography variant="body2" fontWeight={700} textAlign="center" color="success.main">
 													৳ {element.amount || 'N/A'}
-												</Text>
-											</Table.Td>
-											<Table.Td>
+												</Typography>
+											</TableCell>
+											<TableCell>
 												{moment(element.created_at).format('Do MMM YYYY, h:mm:ss a') || 'N/A'}
-											</Table.Td>
-											<Table.Th>
+											</TableCell>
+											<TableCell component="th">
 												<Button
 													onClick={() => {
 														openDetailsModal();
@@ -192,64 +194,52 @@ export default function Rent() {
 												>
 													Details
 												</Button>
-											</Table.Th>
-										</Table.Tr>
+											</TableCell>
+										</TableRow>
 									))}
-								</Table.Tbody>
+								</TableBody>
 							</Table>
-						</Table.ScrollContainer>
+						</TableContainer>
 
-						<Space h={'md'} />
+						<Box sx={{ height: 16 }} />
 
-						<Pagination
-							value={currentPage}
-							total={getTotalPageNumber(rentData.totalCountInRange)}
-							onChange={handlePageChange}
+						<Pagination page={currentPage} count={getTotalPageNumber(rentData.totalCountInRange)} onChange={(_, p) => handlePageChange(p)}
 							siblings={1}
 						/>
-					</Paper>
-					<Modal
-						title="Rent Details"
-						opened={isOpenDetailsModal}
-						onClose={closeDetailsModal}
-						centered
-						size={'80%'}
-						classNames={{
-							title: 'mantine-modal-title',
-							close: 'mantine-modal-close',
-						}}
-					>
-						<Table.ScrollContainer minWidth={'100%'}>
+					</MainCard>
+					<Dialog open={isOpenDetailsModal} onClose={closeDetailsModal} maxWidth="lg" fullWidth>
+<DialogTitle>Rent Details</DialogTitle>
+<DialogContent>
+						<TableContainer sx={{ minWidth: '100%' }}>
 							<Table>
-								<Table.Thead>
-									<Table.Tr>
-										<Table.Th>Audiobook ID</Table.Th>
-										<Table.Th>User ID</Table.Th>
-										<Table.Th>Email</Table.Th>
-										<Table.Th>Phone</Table.Th>
-										<Table.Th>Transaction ID</Table.Th>
-										<Table.Th>Platform</Table.Th>
-										<Table.Th>Source</Table.Th>
-										<Table.Th>Payment Method</Table.Th>
-									</Table.Tr>
-								</Table.Thead>
-								<Table.Tbody>
-									<Table.Tr>
-										<Table.Td>{rentDetails?.product_id || 'N/A'}</Table.Td>
-										<Table.Td> {rentDetails?.user_id || 'N/A'} </Table.Td>
-										<Table.Td> {rentDetails?.email || 'N/A'} </Table.Td>
-										<Table.Td> {formatPhoneNumber(rentDetails?.phone) || 'N/A'} </Table.Td>
-										<Table.Td> {rentDetails?.transaction_id || 'N/A'} </Table.Td>
-										<Table.Td> {rentDetails?.platform || 'N/A'} </Table.Td>
-										<Table.Td> {rentDetails?.source || 'N/A'} </Table.Td>
-										<Table.Td> {rentDetails?.payment_method || 'N/A'} </Table.Td>
-									</Table.Tr>
-								</Table.Tbody>
+								<TableHead>
+									<TableRow>
+										<TableCell component="th">Audiobook ID</TableCell>
+										<TableCell component="th">User ID</TableCell>
+										<TableCell component="th">Email</TableCell>
+										<TableCell component="th">Phone</TableCell>
+										<TableCell component="th">Transaction ID</TableCell>
+										<TableCell component="th">Platform</TableCell>
+										<TableCell component="th">Source</TableCell>
+										<TableCell component="th">Payment Method</TableCell>
+									</TableRow>
+								</TableHead>
+								<TableBody>
+									<TableRow>
+										<TableCell>{rentDetails?.product_id || 'N/A'}</TableCell>
+										<TableCell> {rentDetails?.user_id || 'N/A'} </TableCell>
+										<TableCell> {rentDetails?.email || 'N/A'} </TableCell>
+										<TableCell> {formatPhoneNumber(rentDetails?.phone) || 'N/A'} </TableCell>
+										<TableCell> {rentDetails?.transaction_id || 'N/A'} </TableCell>
+										<TableCell> {rentDetails?.platform || 'N/A'} </TableCell>
+										<TableCell> {rentDetails?.source || 'N/A'} </TableCell>
+										<TableCell> {rentDetails?.payment_method || 'N/A'} </TableCell>
+									</TableRow>
+								</TableBody>
 							</Table>
-						</Table.ScrollContainer>
-					</Modal>
-				</>
-			)}
-		</>
+						</TableContainer>
+					</DialogContent>
+					</Dialog>
+				</PageContainer>
 	);
 }
