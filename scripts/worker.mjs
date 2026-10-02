@@ -207,7 +207,7 @@ async function withLock(name, ttlSeconds, fn, { retries = 2 } = {}) {
 
 
 
-/** Home → revenue → rent revenue page (no user-report — daily 03:00 only). */
+/** Home → revenue → rent revenue page (no user-report — daily 03:30 only). */
 
 async function runScheduledWarm() {
 
@@ -271,7 +271,7 @@ cron.schedule(
 
 cron.schedule(
 
-	'0 3 * * *',
+	'30 3 * * *',
 
 	() =>
 
@@ -337,7 +337,7 @@ cron.schedule(
 
 
 
-console.log('[worker] started (Asia/Dhaka); daywise promo cache warm at 02:00; user-report at 03:00');
+console.log('[worker] started (Asia/Dhaka); daywise promo cache warm at 02:00; user-report at 03:30');
 
 
 

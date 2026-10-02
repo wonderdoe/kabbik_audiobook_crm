@@ -7,17 +7,34 @@ Intermittent dashboard slowness usually means Redis miss or worker not warming.
 ```bash
 pm2 status crm-worker
 pm2 logs crm-worker --lines 100
+pnpm run verify:worker-imports   # after deploy, before restart — catches missing job modules
 ```
 
 Expect every **15 minutes** (Asia/Dhaka):
 
-- `[cron:home] ok`
-- `[cron:revenue-warm] ok` (skipped at **00:00** only)
-- `[cron:report-warm] ok` — user-report snapshot, rent revenue default page (`limit=10`, month-to-date), and related report keys (skipped at **00:00** only)
+- `[cron:scheduled-warm] ok` — sequential: **home → revenue → rent revenue page** (no user-report SQL)
+- Phase logs: `phase home`, `phase revenue`, `phase rent-report`
+- At **00:00** only: `midnight tick: home only` (rollup at **00:10** warms secondary report caches)
+- `warm:home:last_ok`, `warm:revenue-warm:last_ok` updated during the pipeline
 
-At **00:10** daily: `[cron:rollup-and-warm] ok` (daily rollups + `warmAllDefaultCaches` for sign-up / play-count / user-report / rent default page)
+At **02:00** daily: `[cron:daywise-promo-cache-warm] ok` — **daywise promo** default range (`warmDaywisePromoCache`). Daywise API is cache-only; manual: `node scripts/warm-daywise-promo-cache.mjs`.
 
-`warmAllDefaultCaches` on startup warms **report caches only**; home and revenue rely on their 15-min crons.
+At **03:00** daily: `[cron:user-report-daily] ok` — heavy **user-report** warm only (`warmUserReport`). Redis logical TTL **25h** (`USER_REPORT_TTL`). Snapshot API serves cache only (no on-demand SQL).
+
+At **00:10** daily: `[cron:rollup-and-warm] ok` (daily rollups + `warmSecondaryReportCaches` — signup, play, rent, package-wise; not daywise)
+
+Startup: `warmSecondaryReportCaches` + `warmDaywisePromoCache`. Manual: `node scripts/backfill-daily-package-revenue.mjs` after migration.
+
+After pulling worker-related changes on the app host:
+
+```bash
+cd /opt/kabbik-services/kabbik_audiobook_crm
+git pull
+pnpm run verify:worker-imports
+pm2 restart crm-worker
+```
+
+Package-wise: `redis-cli TTL report:pkg-wise:v1:YYYY-MM-01:YYYY-MM-DD` (MTD key), `GET warm:package-wise:last_ok`. See [package-wise-baseline.md](./package-wise-baseline.md).
 
 Bad signs: `redis unavailable`, `skipped (lock held)` every tick, repeated `failed`.
 
@@ -37,6 +54,14 @@ Quick check:
 node scripts/check-cache-env.mjs
 ```
 
+User-report SQL validation (before switching `USER_REPORT_ACTIVE_SOURCE`):
+
+```bash
+node scripts/validate-user-report-metrics.mjs
+```
+
+See [user-report-baseline.md](./user-report-baseline.md). After deploy, expect `[user-report] …ms` step logs during warm and `warmUserReport ok` within a few minutes once indexes exist.
+
 ## Redis keys
 
 ```bash
@@ -44,7 +69,8 @@ redis-cli TTL dash:home
 redis-cli GET worker:heartbeat
 redis-cli GET warm:home:last_ok
 redis-cli GET warm:revenue-warm:last_ok
-redis-cli GET warm:report-warm:last_ok
+redis-cli GET warm:scheduled-warm:last_ok
+redis-cli GET warm:user-report-daily:last_ok
 redis-cli TTL report:user-report:v1:YYYY-MM-DD
 redis-cli TTL report:rent-revenue:v1:YYYY-MM-01:YYYY-MM-DD:10:0
 ```
