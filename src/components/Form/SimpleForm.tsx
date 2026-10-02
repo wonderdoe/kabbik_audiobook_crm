@@ -1,8 +1,15 @@
 'use client';
 
+import {
+	Box,
+	Button,
+	Card,
+	CardContent,
+	TextField,
+	Typography,
+} from '@mui/material';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Box, Button, Paper, Space, Text, TextInput } from '@mantine/core';
-import { modals } from '@mantine/modals';
+import { modals } from '@/components/providers/ConfirmModal';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 
@@ -25,34 +32,40 @@ export const SimpleForm = () => {
 	const onSubmit = (data: User) =>
 		modals.openConfirmModal({
 			title: 'Register successfully',
-			children: <Text size="sm">{data.name}</Text>,
+			children: data.name,
 			labels: { confirm: 'Confirm', cancel: 'Cancel' },
 			onConfirm: () => console.log('Confirmed'),
 		});
 
 	return (
-		<Paper withBorder shadow="md" p="md" w="400px">
-			<Box<'form'>>
-				<Text<'h2'> component="h2" fw="bold" fz="lg">
+		<Card sx={{ maxWidth: 400 }}>
+			<CardContent>
+				<Typography variant="h6" fontWeight={700} gutterBottom>
 					Register
-				</Text>
-				<TextInput
+				</Typography>
+				<TextField
 					label="Username"
-					error={errors.name && errors.name.message}
+					error={Boolean(errors.name)}
+					helperText={errors.name?.message}
+					sx={{ width: "100%" }}
+					margin="normal"
 					{...register('name')}
 				/>
-				<Space h="sm" />
-				<TextInput
+				<TextField
 					label="Email"
-					error={errors.email && errors.email.message}
+					error={Boolean(errors.email)}
+					helperText={errors.email?.message}
+					sx={{ width: "100%" }}
+					margin="normal"
 					{...register('email')}
 				/>
-				<Text component="p" color="gray" size="sm">
+				<Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
 					We will send you a confirmation email
-				</Text>
-				<Space h="md" />
-				<Button onClick={handleSubmit(onSubmit)}>Register</Button>
-			</Box>
-		</Paper>
+				</Typography>
+				<Button variant="contained" sx={{ mt: 2 }} onClick={handleSubmit(onSubmit)}>
+					Register
+				</Button>
+			</CardContent>
+		</Card>
 	);
 };

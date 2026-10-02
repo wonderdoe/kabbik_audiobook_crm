@@ -1,105 +1,148 @@
 'use client';
 
-import { Paper, Space, Title } from '@mantine/core';
-import { MantineReactTable, MRT_ColumnDef } from 'mantine-react-table';
+
+
+import {
+	Box,
+	Paper,
+	Typography,
+} from '@mui/material';
+import { MaterialReactTable, type MRT_ColumnDef } from 'material-react-table';
+
 import { useMemo } from 'react';
 
+import { useCustomTable } from '@/hooks/use-custom-table';
+
+
+
 type Person = {
+
 	name: {
+
 		firstName: string;
+
 		lastName: string;
+
 	};
+
 	address: string;
+
 	city: string;
+
 	state: string;
+
 };
 
-// nested data is ok, see accessorKeys in ColumnDef below
+
+
 const data: Person[] = [
+
 	{
-		name: {
-			firstName: 'Zachary',
-			lastName: 'Davis',
-		},
+
+		name: { firstName: 'Zachary', lastName: 'Davis' },
+
 		address: '261 Battle Ford',
+
 		city: 'Columbus',
+
 		state: 'Ohio',
+
 	},
+
 	{
-		name: {
-			firstName: 'Robert',
-			lastName: 'Smith',
-		},
+
+		name: { firstName: 'Robert', lastName: 'Smith' },
+
 		address: '566 Brakus Inlet',
+
 		city: 'Westerville',
+
 		state: 'West Virginia',
+
 	},
+
 	{
-		name: {
-			firstName: 'Kevin',
-			lastName: 'Yan',
-		},
+
+		name: { firstName: 'Kevin', lastName: 'Yan' },
+
 		address: '7777 Kuhic Knoll',
+
 		city: 'South Linda',
+
 		state: 'West Virginia',
+
 	},
+
 	{
-		name: {
-			firstName: 'John',
-			lastName: 'Upton',
-		},
+
+		name: { firstName: 'John', lastName: 'Upton' },
+
 		address: '722 Emie Stream',
+
 		city: 'Huntington',
+
 		state: 'Washington',
+
 	},
+
 	{
-		name: {
-			firstName: 'Nathan',
-			lastName: 'Harris',
-		},
+
+		name: { firstName: 'Nathan', lastName: 'Harris' },
+
 		address: '1 Kuhic Knoll',
+
 		city: 'Ohiowa',
+
 		state: 'Nebraska',
+
 	},
+
 ];
 
+
+
 export const SimpleTable = () => {
-	//should be memoized or stable
+
 	const columns = useMemo<MRT_ColumnDef<Person>[]>(
+
 		() => [
-			{
-				accessorKey: 'name.firstName', //access nested data with dot notation
-				header: 'First Name',
-			},
-			{
-				accessorKey: 'name.lastName',
-				header: 'Last Name',
-			},
-			{
-				accessorKey: 'address', //normal accessorKey
-				header: 'Address',
-			},
-			{
-				accessorKey: 'city',
-				header: 'City',
-			},
-			{
-				accessorKey: 'state',
-				header: 'State',
-			},
+
+			{ accessorKey: 'name.firstName', header: 'First Name' },
+
+			{ accessorKey: 'name.lastName', header: 'Last Name' },
+
+			{ accessorKey: 'address', header: 'Address' },
+
+			{ accessorKey: 'city', header: 'City' },
+
+			{ accessorKey: 'state', header: 'State' },
+
 		],
+
 		[],
+
 	);
 
+
+
+	const table = useCustomTable({ columns, data });
+
+
+
 	return (
-		<Paper withBorder radius="md" p="md">
-			<Title order={5}>Simple</Title>
-			<Space h="md" />
-			<MantineReactTable
-				columns={columns}
-				data={data}
-				mantinePaperProps={{ shadow: '0', withBorder: false }}
-			/>
+
+		<Paper variant="outlined" sx={{ borderRadius: 2, p: 2 }}>
+
+			<Typography variant="subtitle2" component="h5">Simple</Typography>
+
+			<Box sx={{ height: 16 }} />
+
+			<MaterialReactTable table={table} />
+
 		</Paper>
+
 	);
+
 };
+
+

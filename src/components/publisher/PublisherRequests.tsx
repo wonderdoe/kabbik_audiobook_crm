@@ -1,5 +1,22 @@
 'use client';
-import { Card, Select, Space, Table, Tabs, Text, Title } from '@mantine/core';
+import {
+	Box,
+	Card,
+	FormControl,
+	InputLabel,
+	MenuItem,
+	Select,
+	Tab,
+	Table,
+	TableBody,
+	TableCell,
+	TableContainer,
+	TableHead,
+	TableRow,
+	Tabs,
+	Typography,
+} from '@mui/material';
+import { DataSelect } from '@/components/Form/DataSelect';
 import { IconCheck, IconX } from '@tabler/icons-react';
 import { useCallback, useEffect, useState } from 'react';
 import Swal from 'sweetalert2';
@@ -67,49 +84,49 @@ export const PublisherRequests = () => {
 
 	return (
 		<>
-			<Title order={1}>Request Access</Title>
-			<Space h="md" />
+			<Typography variant="h4" component="h1">Request Access</Typography>
+			<Box sx={{ height: 16 }} />
 			<Tabs value={activeTab}>
-				<Tabs.List>
-					<Tabs.Tab value="pending" onClick={() => setActiveTab('pending')}>
+				<Box>
+					<Tab value="pending" onClick={() => setActiveTab('pending')}>
 						Pending
-					</Tabs.Tab>
-					<Tabs.Tab value="approved" onClick={() => setActiveTab('approved')}>
+					</Tab>
+					<Tab value="approved" onClick={() => setActiveTab('approved')}>
 						Approved
-					</Tabs.Tab>
-				</Tabs.List>
+					</Tab>
+				</Box>
 			</Tabs>
-			<Space h="md" />
-			<Card withBorder>
+			<Box sx={{ height: 16 }} />
+			<Card variant="outlined">
 				{requests.length > 0 ? (
-					<Table.ScrollContainer minWidth={200}>
+					<TableContainer sx={{ minWidth: 200 }}>
 						<Table>
-							<Table.Thead>
-								<Table.Tr>
-									<Table.Th>Full Name</Table.Th>
-									<Table.Th>Email</Table.Th>
-									<Table.Th>Phone</Table.Th>
-									<Table.Th>Publisher Name</Table.Th>
-									<Table.Th>Designation</Table.Th>
-									<Table.Th>Address</Table.Th>
-									<Table.Th>Approved</Table.Th>
-									<Table.Th>{activeTab !== 'pending' ? 'Publisher' : 'Assign Publisher'}</Table.Th>
-								</Table.Tr>
-							</Table.Thead>
-							<Table.Tbody>
+							<TableHead>
+								<TableRow>
+									<TableCell component="th">Full Name</TableCell>
+									<TableCell component="th">Email</TableCell>
+									<TableCell component="th">Phone</TableCell>
+									<TableCell component="th">Publisher Name</TableCell>
+									<TableCell component="th">Designation</TableCell>
+									<TableCell component="th">Address</TableCell>
+									<TableCell component="th">Approved</TableCell>
+									<TableCell component="th">{activeTab !== 'pending' ? 'Publisher' : 'Assign Publisher'}</TableCell>
+								</TableRow>
+							</TableHead>
+							<TableBody>
 								{requests.map((item: any) => (
-									<Table.Tr key={item.id}>
-										<Table.Td>{item.full_name}</Table.Td>
-										<Table.Td>{item.email}</Table.Td>
-										<Table.Td>{item.phone}</Table.Td>
-										<Table.Td>{item.publisher_name}</Table.Td>
-										<Table.Td>{item.role}</Table.Td>
-										<Table.Td>{item.address || 'N/A'}</Table.Td>
-										<Table.Td>{item.approved ? <IconCheck /> : <IconX />}</Table.Td>
-										<Table.Td>
+									<TableRow key={item.id}>
+										<TableCell>{item.full_name}</TableCell>
+										<TableCell>{item.email}</TableCell>
+										<TableCell>{item.phone}</TableCell>
+										<TableCell>{item.publisher_name}</TableCell>
+										<TableCell>{item.role}</TableCell>
+										<TableCell>{item.address || 'N/A'}</TableCell>
+										<TableCell>{item.approved ? <IconCheck /> : <IconX />}</TableCell>
+										<TableCell>
 											{activeTab === 'pending' ? (
-												<Select
-													maw={200}
+												<DataSelect
+													sx={{ maxWidth: 200 }}
 													data={[
 														...publishers.map((item: any) => ({
 															value: item.id.toString(),
@@ -125,14 +142,14 @@ export const PublisherRequests = () => {
 											) : (
 												item.publisher_name ?? 'Admin'
 											)}
-										</Table.Td>
-									</Table.Tr>
+										</TableCell>
+									</TableRow>
 								))}
-							</Table.Tbody>
+							</TableBody>
 						</Table>
-					</Table.ScrollContainer>
+					</TableContainer>
 				) : (
-					<Text ta={'center'}>No data</Text>
+					<Typography textAlign={'center'}>No data</Typography>
 				)}
 			</Card>
 		</>

@@ -1,417 +1,442 @@
 'use client';
-
 import {
+	Box,
 	Button,
-	Divider,
-	Flex,
-	Image,
-	Modal,
+	Chip,
+	Dialog,
+	DialogActions,
+	DialogContent,
+	DialogTitle,
+	Grid,
+	IconButton,
 	Pagination,
 	Paper,
-	Select,
+	Stack,
 	Switch,
-	Table,
-	Text,
-	TextInput,
-	Title,
-} from '@mantine/core';
-import { useDisclosure } from '@mantine/hooks';
+	TextField,
+	Tooltip,
+	Typography,
+} from '@mui/material';
+import { CatalogMediaCard } from '@/components/mantis/CatalogMediaCard';
+import { PageContainer } from '@/components/PageContainer/PageContainer';
+import { DataSelect } from '@/components/Form/DataSelect';
+import { useDisclosure } from '@/hooks/use-disclosure';
+import { IconPlus, IconRefresh, IconTrash, IconX } from '@tabler/icons-react';
+import { motion } from 'framer-motion';
 import moment from 'moment';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import Swal from 'sweetalert2';
 import Loader from '@/components/Loader';
 import { createActivityLog } from '@/helper/Commonfunction';
+import { transition } from '@/styles/motion';
+
+const IMAGE_UPLOAD_URL = 'https://api.kabbik.com/v3/audiobooks/upload-image-in-stack';
+const ITEMS_PER_PAGE = 12;
 
 export default function HeroBanner() {
-	const [bannerData, setBannerData] = useState([]);
-
+	const [bannerData, setBannerData] = useState<any[]>([]);
 	const [currentPage, setCurrentPage] = useState(1);
-	const [itemsPerPage, setItemsPerPage] = useState(10);
 	const [offset, setOffset] = useState(0);
 	const [totalData, setTotalData] = useState(0);
 	const [loading, setLoading] = useState(true);
 
-	// hero banner add
+	// Add form
 	const [audioBookId, setAudioBookId] = useState('');
-	const [value, setValue] = useState('');
-	const [imageFile, setImageFile] = useState(null);
+	const [bannerType, setBannerType] = useState('');
+	const [imageFile, setImageFile] = useState<string | null>(null);
+	const [uploading, setUploading] = useState(false);
 
 	const [addBannerOpened, { open: openAddBanner, close: closeAddBanner }] = useDisclosure(false);
-	const [details, setDetails] = useState<any>(null);
-	const [detailsModalOpened, { open: openDetailsModal, close: closeDetailsModal }] =
-		useDisclosure(false);
+	const [previewBanner, setPreviewBanner] = useState<{ url: string; title: string } | null>(null);
 
-	const fileInputRef = useRef<HTMLInputElement>(null);
-	const totalPages = Math.ceil(totalData / itemsPerPage);
+	const totalPages = Math.ceil(totalData / ITEMS_PER_PAGE);
 
 	const getBannerData = async () => {
 		try {
 			const response = await fetch(
-				`/api/routes/herobanner?offset=${offset}&limit=${itemsPerPage}`,
-				{
-					method: 'GET',
-				},
+				`/api/routes/herobanner?offset=${offset}&limit=${ITEMS_PER_PAGE}`,
 			);
-
 			const res = await response.json();
 			setLoading(false);
-			setBannerData(res.data);
-			setTotalData(res.total.count);
-		} catch (error) {}
+			setBannerData(res.data ?? []);
+			setTotalData(res.total?.count ?? 0);
+		} catch (error) {
+			setLoading(false);
+		}
 	};
 
-	const handleHeroImage = async (event: any, index: any) => {
-		try {
-			const tempArray: any = bannerData;
-			const item = tempArray[index];
-			const formData = new FormData();
-			formData.append('files', event.target.files[0]);
-			formData.append('size', event.target.files[0].size);
+	useEffect(() => { getBannerData(); }, [offset]);
 
-			const response = await fetch('https://api.kabbik.com/v3/audiobooks/upload-image-in-stack', {
-				method: 'POST',
-				body: formData,
+	const handlePageChange = (_: any, page: number) => {
+		setCurrentPage(page);
+		setOffset((page - 1) * ITEMS_PER_PAGE);
+	};
+
+	const uploadImage = async (file: File, logLabel: string) => {
+		const formData = new FormData();
+		formData.append('files', file);
+		formData.append('size', String(file.size));
+		const response = await fetch(IMAGE_UPLOAD_URL, { method: 'POST', body: formData });
+		createActivityLog({
+			name: `${logLabel},herobanner/page.tsx`,
+			action_type: 'update',
+			payload: JSON.stringify({ fileName: file.name }),
+			api_end_point: IMAGE_UPLOAD_URL,
+		});
+		const res = await response.json();
+		return res.image_file_url as string;
+	};
+
+	const handleReplaceImage = async (event: React.ChangeEvent<HTMLInputElement>, item: any) => {
+		try {
+			const file = event.target.files?.[0];
+			if (!file) return;
+			const imageUrl = await uploadImage(file, 'handleHeroImage');
+			if (!imageUrl) return;
+			await fetch(`/api/routes/herobanner/${item.id}`, {
+				method: 'PATCH',
+				body: JSON.stringify({ image_url: imageUrl }),
 			});
-			let activityLogPayload = {
+			createActivityLog({
 				name: 'handleHeroImage,herobanner/page.tsx',
 				action_type: 'update',
-				payload: JSON.stringify({ fileName: event.target.files[0].name }),
-				api_end_point: 'https://api.kabbik.com/v3/audiobooks/upload-image-in-stack',
-			};
-			createActivityLog(activityLogPayload);
-
-			const res = await response.json();
-
-			const data = {
-				image_url: res.image_file_url,
-			};
-			if (res.image_file_url) {
-				const getresponse = await fetch(`/api/routes/herobanner/${item.id}`, {
-					method: 'PATCH',
-					body: JSON.stringify(data),
-				});
-				let activityLogPayload = {
-					name: 'handleHeroImage,herobanner/page.tsx',
-					action_type: 'update',
-					payload: JSON.stringify(data),
-					api_end_point: `/api/routes/herobanner/${item.id}`,
-				};
-				createActivityLog(activityLogPayload);
-			}
-			const updatedBannerData: any = bannerData.map((element: any) => {
-				if (element.id === item.id) {
-					return { ...element, image_url: res.image_file_url };
-				}
-				return element;
+				payload: JSON.stringify({ image_url: imageUrl }),
+				api_end_point: `/api/routes/herobanner/${item.id}`,
 			});
-
-			if (fileInputRef.current) {
-				fileInputRef.current.value = '';
-			}
-
-			setBannerData(updatedBannerData);
-		} catch (error) {
-			return;
-		}
+			setBannerData(prev =>
+				prev.map(el => (el.id === item.id ? { ...el, image_url: imageUrl } : el)),
+			);
+		} catch { /* silent */ }
 	};
 
-	const addHeroImage = async (event: any) => {
+	const handleAddImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+		const file = event.target.files?.[0];
+		if (!file) return;
+		setUploading(true);
 		try {
-			const formData = new FormData();
-			formData.append('files', event.target.files[0]);
-			formData.append('size', event.target.files[0].size);
-
-			const response = await fetch('https://api.kabbik.com/v3/audiobooks/upload-image-in-stack', {
-				method: 'POST',
-				body: formData,
-			});
-			let activityLogPayload = {
-				name: 'addHeroImage,herobanner/page.tsx',
-				action_type: 'create',
-				payload: JSON.stringify({ fileName: event.target.files[0].name }),
-				api_end_point: 'https://api.kabbik.com/v3/audiobooks/upload-image-in-stack',
-			};
-			createActivityLog(activityLogPayload);
-
-			const res = await response.json();
-
-			setImageFile(res.image_file_url);
-		} catch (error) {
-			return;
-		}
+			const url = await uploadImage(file, 'addHeroImage');
+			setImageFile(url);
+		} catch { /* silent */ }
+		finally { setUploading(false); }
 	};
 
-	const handleAddHeroBanner = async (e: any) => {
+	const handleAddHeroBanner = async (e: React.FormEvent) => {
 		e.preventDefault();
+		if (!imageFile) {
+			Swal.fire({ title: 'Missing image', text: 'Please upload a banner image.', icon: 'warning' });
+			return;
+		}
 		try {
-			const data = {
-				audiobook_id: audioBookId,
-				image_url: imageFile,
-				title: value,
-			};
-
-			const getresponse = await fetch(`/api/routes/herobanner`, {
-				method: 'POST',
-				body: JSON.stringify(data),
-			});
-			let activityLogPayload = {
+			const data = { audiobook_id: audioBookId, image_url: imageFile, title: bannerType };
+			await fetch('/api/routes/herobanner', { method: 'POST', body: JSON.stringify(data) });
+			createActivityLog({
 				name: 'handleAddHeroBanner,herobanner/page.tsx',
 				action_type: 'create',
-				payload: JSON.stringify({ audiobook_id: audioBookId, image_url: imageFile, title: value }),
+				payload: JSON.stringify(data),
 				api_end_point: '/api/routes/herobanner',
-			};
-			createActivityLog(activityLogPayload);
-
+			});
 			getBannerData();
 			closeAddBanner();
-			setAudioBookId('');
-			setValue('');
-			setImageFile(null);
-		} catch (error) {}
+			setAudioBookId(''); setBannerType(''); setImageFile(null);
+		} catch { /* silent */ }
 	};
 
-	const handleToggle = async (index: any) => {
-		const tempArr: any = bannerData;
-		const item = tempArr[index];
-
-		if (tempArr[index].status == 0) {
-			tempArr[index].status = 1;
-			item.status = 1;
-		} else {
-			tempArr[index].status = 1;
-			item.status = 0;
-		}
+	const handleToggle = async (item: any) => {
+		const newStatus = item.status === 1 ? 0 : 1;
 		try {
-			let data = {
-				audiobook_id: item.audiobook_id,
-				status: item.status,
-			};
-			const getresponse = await fetch(`/api/routes/hero-banner-toggle`, {
+			await fetch('/api/routes/hero-banner-toggle', {
 				method: 'POST',
-				body: JSON.stringify(data),
+				body: JSON.stringify({ audiobook_id: item.audiobook_id, status: newStatus }),
 			});
-			let activityLogPayload = {
+			createActivityLog({
 				name: 'handleToggle,herobanner/page.tsx',
 				action_type: 'update',
-				payload: JSON.stringify({ id: item.id, status: item.status }),
+				payload: JSON.stringify({ id: item.id, status: newStatus }),
 				api_end_point: `/api/routes/popup/${item.id}`,
-			};
-			createActivityLog(activityLogPayload);
+			});
 			getBannerData();
-		} catch (error) {}
+		} catch { /* silent */ }
 	};
 
 	const deleteHeroImage = async (id: any) => {
+		const result = await Swal.fire({
+			title: 'Are you sure?',
+			text: "You won't be able to revert this!",
+			icon: 'warning',
+			showCancelButton: true,
+			confirmButtonColor: '#3085d6',
+			cancelButtonColor: '#d33',
+			confirmButtonText: 'Yes, delete it!',
+		});
+		if (!result.isConfirmed) return;
 		try {
-			Swal.fire({
-				title: 'Are you sure?',
-				text: "You won't be able to revert this!",
-				icon: 'warning',
-				showCancelButton: true,
-				confirmButtonColor: '#3085d6',
-				cancelButtonColor: '#d33',
-				confirmButtonText: 'Yes, delete it!',
-			}).then(async (result: any) => {
-				if (result.isConfirmed) {
-					const response = await fetch(`/api/routes/herobanner/${id}`, {
-						method: 'DELETE',
-					});
-					let activityLogPayload = {
-						name: 'deleteHeroImage,herobanner/page.tsx',
-						action_type: 'delete',
-						payload: JSON.stringify({ id }),
-						api_end_point: `/api/routes/herobanner/${id}`,
-					};
-					createActivityLog(activityLogPayload);
-
-					const res = await response.json();
-					if (res.statusCode === 200) {
-						Swal.fire({
-							title: 'Deleted!',
-							text: 'Item has been deleted.',
-							icon: 'success',
-						});
-						getBannerData();
-					}
-				}
+			const response = await fetch(`/api/routes/herobanner/${id}`, { method: 'DELETE' });
+			createActivityLog({
+				name: 'deleteHeroImage,herobanner/page.tsx',
+				action_type: 'delete',
+				payload: JSON.stringify({ id }),
+				api_end_point: `/api/routes/herobanner/${id}`,
 			});
-		} catch (error) {
-			return;
-		}
+			const res = await response.json();
+			if (res.statusCode === 200) {
+				Swal.fire({ title: 'Deleted!', text: 'Banner deleted.', icon: 'success' });
+				getBannerData();
+			}
+		} catch { /* silent */ }
 	};
-
-	const handlePageChange = (e: any) => {
-		const offsetCount = (e - 1) * itemsPerPage;
-		setCurrentPage(e);
-		setOffset(offsetCount);
-	};
-
-	useEffect(() => {
-		getBannerData();
-	}, [offset, itemsPerPage]);
-
-	const rows = bannerData?.map((element: any, index: any) => {
-		return (
-			<>
-				<Table.Tr key={element.id}>
-					<Table.Td>{element.audiobook_id || 'N/A'}</Table.Td>
-					<Table.Td>{element.title || 'N/A'}</Table.Td>
-					<Table.Td>
-						<Flex direction={'column'} gap={10}>
-							<Image
-								radius="sm"
-								h={200}
-								w={200}
-								fit="contain"
-								p="6px"
-								src={element.image_url}
-								alt={element.image_url}
-							/>
-							<input
-								ref={fileInputRef}
-								type="file"
-								onChange={event => handleHeroImage(event, index)}
-							/>
-						</Flex>
-					</Table.Td>
-					<Table.Td>
-						<Switch
-							checked={element.status == 1 ? true : false}
-							onChange={() => handleToggle(index)}
-							size="xs"
-						/>
-					</Table.Td>
-					<Table.Td>
-						<Button
-							onClick={() => {
-								openDetailsModal();
-								setDetails(element);
-							}}
-						>
-							Details
-						</Button>
-					</Table.Td>
-				</Table.Tr>
-			</>
-		);
-	});
 
 	return (
 		<>
 			{loading ? (
 				<Loader />
 			) : (
-				<>
-					<Flex justify={'space-between'}>
-						<Title order={1} style={{ marginBottom: 20 }}>
-							Hero Banner List
-						</Title>
-						<Button onClick={openAddBanner} variant="filled">
-							Add Hero Banner
+				<PageContainer
+					title="Hero Banners"
+					items={[{ label: 'Hero Banner', href: '/dashboard/herobanner' }]}
+					subtitle={
+						<Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+							{totalData} banner{totalData !== 1 ? 's' : ''} · shown on app home screen
+						</Typography>
+					}
+					actions={
+						<Button onClick={openAddBanner} variant="contained" startIcon={<IconPlus size={16} />}>
+							Add Banner
 						</Button>
-					</Flex>
-					<Paper withBorder radius="md" p="md">
-						<Table.ScrollContainer minWidth={200}>
-							<Table>
-								<Table.Thead>
-									<Table.Tr>
-										<Table.Th>Audiobook Id</Table.Th>
-										<Table.Th>Title</Table.Th>
-										<Table.Th>Image</Table.Th>
-										<Table.Th>Toggle</Table.Th>
-										<Table.Th>Action</Table.Th>
-									</Table.Tr>
-								</Table.Thead>
-								<Table.Tbody>{rows}</Table.Tbody>
-							</Table>
-						</Table.ScrollContainer>
-						<Divider my="sm" />
-						<Pagination
-							value={currentPage}
-							onChange={handlePageChange}
-							total={totalPages}
-							siblings={1}
-						/>
-					</Paper>
+					}
+				>
+					<Stack spacing={3}>
+						{/* Card grid */}
+						{bannerData.length === 0 ? (
+							<Paper
+								variant="outlined"
+								sx={{ py: 10, textAlign: 'center', borderRadius: 2, borderStyle: 'dashed' }}
+							>
+								<Typography color="text.secondary">No hero banners found.</Typography>
+								<Button onClick={openAddBanner} variant="contained" sx={{ mt: 2 }} startIcon={<IconPlus size={16} />}>
+									Add first banner
+								</Button>
+							</Paper>
+						) : (
+							<Grid container spacing={3}>
+								{bannerData.map((banner: any) => (
+									<Grid item key={banner.id} xs={12} sm={6} md={4} lg={3}>
+										<CatalogMediaCard
+											imageSrc={banner.image_url}
+											imageAlt={banner.title || `Banner #${banner.id}`}
+											imageHeight={160}
+											imageFit="cover"
+											inactive={banner.status !== 1}
+											onImageClick={
+												banner.image_url
+													? () =>
+															setPreviewBanner({
+																url: banner.image_url,
+																title: banner.title || `Banner #${banner.id}`,
+															})
+													: undefined
+											}
+											topBadge={
+												<Chip
+													label={banner.status === 1 ? 'Active' : 'Inactive'}
+													size="small"
+													color={banner.status === 1 ? 'success' : 'default'}
+													sx={{ fontWeight: 700, fontSize: '0.65rem' }}
+												/>
+											}
+											actions={
+												<>
+													<Tooltip title={banner.status === 1 ? 'Deactivate' : 'Activate'}>
+														<Switch
+															size="small"
+															checked={banner.status === 1}
+															onChange={() => handleToggle(banner)}
+														/>
+													</Tooltip>
+													<Stack direction="row" spacing={0.5}>
+														<Tooltip title="Replace image">
+															<IconButton size="small" component="label">
+																<IconRefresh size={16} />
+																<input
+																	type="file"
+																	hidden
+																	accept="image/*"
+																	onChange={e => { handleReplaceImage(e, banner); e.target.value = ''; }}
+																/>
+															</IconButton>
+														</Tooltip>
+														<Tooltip title="Delete">
+															<IconButton size="small" color="error" onClick={() => deleteHeroImage(banner.id)}>
+																<IconTrash size={16} />
+															</IconButton>
+														</Tooltip>
+													</Stack>
+												</>
+											}
+											actionsSx={{ justifyContent: 'space-between', width: '100%' }}
+										>
+											<Stack direction="row" justifyContent="space-between" mb={0.5}>
+												<Typography variant="caption" color="text.disabled" fontFamily="monospace">
+													#{banner.id}
+												</Typography>
+												<Typography variant="caption" color="text.disabled">
+													{moment(banner.created_at).format('D MMM YYYY')}
+												</Typography>
+											</Stack>
+											{banner.title && (
+												<Chip
+													label={banner.title}
+													size="small"
+													variant="outlined"
+													sx={{ fontWeight: 600, textTransform: 'uppercase', mt: 0.5 }}
+												/>
+											)}
+											{banner.audiobook_id && (
+												<Typography variant="caption" color="text.secondary" display="block" mt={0.5}>
+													Audiobook #{banner.audiobook_id}
+												</Typography>
+											)}
+										</CatalogMediaCard>
+									</Grid>
+								))}
+							</Grid>
+						)}
 
-					<Modal opened={addBannerOpened} onClose={closeAddBanner} title="" centered>
-						<Text size="xl" fw={900} style={{ textAlign: 'center' }}>
-							Add Hero Banner
-						</Text>
-						<Paper shadow="xs" p="xl">
-							<form onSubmit={handleAddHeroBanner}>
-								<TextInput
-									value={audioBookId}
-									onChange={(e: any) => setAudioBookId(e.target.value)}
-									py={10}
-									required
-									placeholder="Type Audiobook Id"
+						{/* Pagination */}
+						{totalPages > 1 && (
+							<Stack direction="row" justifyContent="space-between" alignItems="center">
+								<Typography variant="body2" color="text.secondary">
+									Showing {bannerData.length} of {totalData}
+								</Typography>
+								<Pagination
+									page={currentPage}
+									onChange={handlePageChange}
+									count={totalPages}
+									shape="rounded"
+									color="primary"
 								/>
-								<Select
-									py={10}
-									data={[
-										{ value: 'subscription', label: 'SUBSCRIPTION' },
-										{ value: 'audiobook', label: 'AUDIOBOOK' },
-									]}
-									placeholder="Pick value"
-									value={value}
-									onChange={(option: any) => {
-										setValue(option);
-									}}
-								/>
-								<input
-									style={{ paddingTop: 10, paddingBottom: 10 }}
-									type="file"
-									onChange={event => addHeroImage(event)}
-								/>
-								{imageFile && (
-									<Image
-										style={{ objectFit: 'contain' }}
-										height={200}
-										width={200}
-										src={imageFile}
-										alt={imageFile}
-									/>
-								)}
-
-								<Button type="submit">Create</Button>
-							</form>
-						</Paper>
-					</Modal>
-					<Modal
-						title="Details"
-						opened={detailsModalOpened}
-						onClose={closeDetailsModal}
-						classNames={{
-							title: 'mantine-modal-title',
-							close: 'mantine-modal-close',
-						}}
-						size={'lg'}
-						centered
-					>
-						<Table.ScrollContainer minWidth={100}>
-							<Table>
-								<Table.Thead>
-									<Table.Th>Id</Table.Th>
-									<Table.Th>Created at</Table.Th>
-									<Table.Th>Updated at</Table.Th>
-								</Table.Thead>
-								<Table.Tbody>
-									<Table.Tr>
-										<Table.Td>{details?.id || 'N/A'}</Table.Td>
-										<Table.Td>
-											{moment(details?.created_at).format('Do MMM YYYY h:mma') || 'N/A'}
-										</Table.Td>
-										<Table.Td>
-											{moment(details?.updated_at).format('Do MMM YYYY h:mma') || 'N/A'}
-										</Table.Td>
-									</Table.Tr>
-								</Table.Tbody>
-							</Table>
-						</Table.ScrollContainer>
-					</Modal>
-				</>
+							</Stack>
+						)}
+					</Stack>
+				</PageContainer>
 			)}
+
+			{/* Add dialog */}
+			<Dialog open={addBannerOpened} onClose={closeAddBanner} maxWidth="sm" fullWidth>
+				<DialogTitle sx={{ fontWeight: 600 }}>Add Hero Banner</DialogTitle>
+				<DialogContent dividers>
+					<Stack component="form" id="hero-banner-form" spacing={2} onSubmit={handleAddHeroBanner} sx={{ pt: 0.5 }}>
+						<TextField
+							label="Audiobook ID"
+							value={audioBookId}
+							onChange={e => setAudioBookId(e.target.value)}
+							fullWidth
+							size="small"
+							placeholder="e.g. 42"
+							type="number"
+						/>
+						<DataSelect
+							label="Banner Type"
+							data={[
+								{ value: 'subscription', label: 'Subscription' },
+								{ value: 'audiobook', label: 'Audiobook' },
+							]}
+							placeholder="Select banner type"
+							value={bannerType}
+							onChange={(v: any) => setBannerType(v ?? '')}
+						/>
+						<Box>
+							<Typography variant="subtitle2" fontWeight={600} mb={1}>
+								Banner Image
+							</Typography>
+							<Stack direction="row" spacing={2} alignItems="center">
+								<Button variant="outlined" component="label" size="small" disabled={uploading}>
+									{uploading ? 'Uploading…' : 'Upload image'}
+									<input type="file" hidden accept="image/*" onChange={handleAddImageUpload} />
+								</Button>
+								{imageFile ? (
+									<Box
+										component="img"
+										src={imageFile}
+										alt="Preview"
+										sx={{
+											height: 80,
+											maxWidth: 200,
+											objectFit: 'contain',
+											borderRadius: 1,
+											border: '1px solid',
+											borderColor: 'divider',
+											bgcolor: 'grey.50',
+										}}
+									/>
+								) : (
+									<Typography variant="caption" color="text.secondary">
+										Required — upload a banner image
+									</Typography>
+								)}
+							</Stack>
+						</Box>
+					</Stack>
+				</DialogContent>
+				<DialogActions sx={{ px: 3, py: 2 }}>
+					<Button variant="outlined" color="inherit" onClick={closeAddBanner}>Cancel</Button>
+					<Button
+						type="submit"
+						form="hero-banner-form"
+						variant="contained"
+						disabled={!imageFile || uploading}
+						onClick={handleAddHeroBanner}
+					>
+						Create Banner
+					</Button>
+				</DialogActions>
+			</Dialog>
+
+			{/* Preview dialog */}
+			<Dialog
+				open={Boolean(previewBanner)}
+				onClose={() => setPreviewBanner(null)}
+				maxWidth="md"
+				fullWidth
+			>
+				<DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', py: 1.5 }}>
+					<Typography variant="subtitle1" fontWeight={600} noWrap sx={{ pr: 2 }}>
+						{previewBanner?.title}
+					</Typography>
+					<IconButton aria-label="Close preview" onClick={() => setPreviewBanner(null)} size="small">
+						<IconX size={18} />
+					</IconButton>
+				</DialogTitle>
+				<DialogContent
+					dividers
+					sx={{
+						display: 'flex',
+						justifyContent: 'center',
+						alignItems: 'center',
+						bgcolor: 'grey.50',
+						minHeight: 240,
+						py: 3,
+					}}
+				>
+					{previewBanner?.url && (
+						<Box
+							component={motion.img}
+							key={previewBanner.url}
+							src={previewBanner.url}
+							alt={previewBanner.title}
+							initial={{ opacity: 0, scale: 0.9 }}
+							animate={{ opacity: 1, scale: 1 }}
+							transition={transition.normal}
+							sx={{
+								maxWidth: '100%',
+								maxHeight: '70vh',
+								objectFit: 'contain',
+								borderRadius: 1,
+								boxShadow: 4,
+							}}
+						/>
+					)}
+				</DialogContent>
+			</Dialog>
 		</>
 	);
 }

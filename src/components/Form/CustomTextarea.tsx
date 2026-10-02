@@ -1,4 +1,6 @@
-import { Textarea } from '@mantine/core';
+import {
+	TextField,
+} from '@mui/material';
 import { Controller } from 'react-hook-form';
 
 type CustomTextareaProps = {
@@ -6,8 +8,8 @@ type CustomTextareaProps = {
 	name: string;
 	placeholder: string;
 	control: any;
-	error: string;
-	withAsterisk?: boolean;
+	error: string; required?: boolean;
+	minRows?: number;
 };
 
 export const CustomTextarea = ({
@@ -15,21 +17,26 @@ export const CustomTextarea = ({
 	name,
 	placeholder,
 	control,
-	error,
-	withAsterisk,
+	error, required = false,
+	minRows = 3,
 }: CustomTextareaProps) => {
 	return (
 		<Controller
 			name={name}
 			control={control}
 			render={({ field }) => (
-				<Textarea
+				<TextField
 					label={label}
 					placeholder={placeholder}
 					{...field}
-					error={error}
-					withAsterisk={withAsterisk}
-					resize="vertical"
+					value={field.value ?? ''}
+					error={Boolean(error)}
+					helperText={error || ' '}
+					required={required}
+					sx={{ width: "100%" }}
+					margin="normal"
+					multiline
+					minRows={minRows}
 				/>
 			)}
 		/>

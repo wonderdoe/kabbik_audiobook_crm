@@ -1,22 +1,26 @@
 'use client';
-import { ActionIcon, Box, Button, Drawer, Stack } from '@mantine/core';
-import { useDisclosure } from '@mantine/hooks';
-import { IconSettings } from '@tabler/icons-react';
-import classes from './AdminHeader.module.css';
-import { DirectionSwitcher } from '../DirectionSwitcher/DirectionSwitcher';
-import { Logo } from '../Logo/Logo';
-import { ThemeSwitcher } from '../ThemeSwitcher/ThemeSwitcher';
 
+import {
+	Box,
+	Button,
+	Drawer,
+	IconButton,
+	Stack,
+	Toolbar,
+	Typography,
+} from '@mui/material';
+import SettingsOutlinedIcon from '@mui/icons-material/SettingsOutlined';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Cookies from 'js-cookie';
+import { Logo } from '../Logo/Logo';
 
 interface Props {
 	burger?: React.ReactNode;
 }
 
-export function AdminHeader({ burger }: Props, { cookieToken }: any) {
-	const [opened, { close, open }] = useDisclosure(false);
-
+export function AdminHeader({ burger }: Props) {
+	const [opened, setOpened] = useState(false);
 	const router = useRouter();
 
 	const handleLogout = () => {
@@ -28,29 +32,32 @@ export function AdminHeader({ burger }: Props, { cookieToken }: any) {
 	};
 
 	return (
-		<header className={classes.header}>
-			{burger && burger}
-			<Logo />
-			<Box style={{ flex: 1 }} />
+		<Toolbar sx={{ gap: 1, minHeight: { xs: 56, sm: 64 } }}>
+			{burger}
+			<Box sx={{ display: { xs: 'block', sm: 'none' } }}>
+				<Logo compact />
+			</Box>
+			<Box sx={{ flex: 1 }} />
+			<IconButton onClick={() => setOpened(true)} size="small" aria-label="settings">
+				<SettingsOutlinedIcon />
+			</IconButton>
+			<Button variant="outlined" size="small" onClick={handleLogout}>
+				Log out
+			</Button>
 
-			<ActionIcon onClick={open} variant="subtle">
-				<IconSettings size="1.25rem" />
-			</ActionIcon>
-
-			<Drawer
-				opened={opened}
-				onClose={close}
-				title="Settings"
-				position="right"
-				transitionProps={{ duration: 0 }}
-			>
-				<Stack gap="lg">
-					<ThemeSwitcher />
-					<DirectionSwitcher />
-				</Stack>
+			<Drawer anchor="right" open={opened} onClose={() => setOpened(false)}>
+				<Box sx={{ width: 280, p: 2 }}>
+					<Typography variant="h6" gutterBottom>
+						Settings
+					</Typography>
+					<Stack spacing={2}>
+						<Typography variant="body2" color="text.secondary">
+							Theme and direction options will return in a future update. CRM uses Mantis light
+							theme by default.
+						</Typography>
+					</Stack>
+				</Box>
 			</Drawer>
-
-			<Button onClick={handleLogout}>Log out</Button>
-		</header>
+		</Toolbar>
 	);
 }

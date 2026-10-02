@@ -1,25 +1,32 @@
+import {
+	FormControl,
+	FormControlLabel,
+	FormHelperText,
+	Switch,
+} from '@mui/material';
 import { Controller } from 'react-hook-form';
-import { Flex, Switch, Text } from '@mantine/core';
 
 type CustomSwitchProps = {
 	label: string;
 	name: string;
 	control: any;
+	error?: string;
 };
 
-export const CustomSwitch = ({ label, name, control }: CustomSwitchProps) => {
+export const CustomSwitch = ({ label, name, control, error }: CustomSwitchProps) => {
 	return (
 		<Controller
 			name={name}
 			control={control}
-			render={({ field }) => {
-				return (
-					<Flex justify={'space-between'}>
-						<Text size="sm">{label}</Text>
-						<Switch {...field} checked={field.value} />
-					</Flex>
-				);
-			}}
+			render={({ field }) => (
+				<FormControl error={Boolean(error)} margin="normal">
+					<FormControlLabel
+						control={<Switch checked={Boolean(field.value)} onChange={field.onChange} />}
+						label={label}
+					/>
+					{error ? <FormHelperText>{error}</FormHelperText> : null}
+				</FormControl>
+			)}
 		/>
 	);
 };

@@ -1,18 +1,26 @@
 'use client';
-
 import {
+	Box,
 	Button,
+	Dialog,
+	DialogContent,
+	DialogTitle,
 	Divider,
-	Modal,
 	Pagination,
 	Paper,
-	ScrollArea,
+	Tab,
 	Table,
-	Text,
-	Title,
-} from '@mantine/core';
+	TableBody,
+	TableCell,
+	TableContainer,
+	TableHead,
+	TableRow,
+	Typography,
+} from '@mui/material';
+import { PageContainer } from '@/components/PageContainer/PageContainer';
+import { MainCard } from '@/components/mantis/MainCard';
 
-import { useDisclosure } from '@mantine/hooks';
+import { useDisclosure } from '@/hooks/use-disclosure';
 import moment from 'moment';
 import { useCallback, useEffect, useState } from 'react';
 import Loader from '@/components/Loader';
@@ -57,16 +65,16 @@ export default function DayWisePromo() {
 
 	const rows = apiResponseData.map((element: any) => {
 		return (
-			<Table.Tr key={element.id}>
-				<Table.Td>{element.full_name || 'N/A'}</Table.Td>
-				<Table.Td>{element.promo_code || 'N/A'}</Table.Td>
-				<Table.Td>
-					<Text size="md" fw={900} c="green">
+			<TableRow key={element.id}>
+				<TableCell>{element.full_name || 'N/A'}</TableCell>
+				<TableCell>{element.promo_code || 'N/A'}</TableCell>
+				<TableCell>
+					<Typography variant="body1" fontWeight={900} color="green">
 						৳ {element.amount || 'N/A'}
-					</Text>
-				</Table.Td>
-				<Table.Td>{moment(element?.payment_time).format('Do MMM YYYY h:mma') || 'N/A'}</Table.Td>
-				<Table.Td>
+					</Typography>
+				</TableCell>
+				<TableCell>{moment(element?.payment_time).format('Do MMM YYYY h:mma') || 'N/A'}</TableCell>
+				<TableCell>
 					<Button
 						onClick={() => {
 							setModalData(element);
@@ -75,8 +83,8 @@ export default function DayWisePromo() {
 					>
 						Details
 					</Button>
-				</Table.Td>
-			</Table.Tr>
+				</TableCell>
+			</TableRow>
 		);
 	});
 
@@ -85,67 +93,64 @@ export default function DayWisePromo() {
 			{loading ? (
 				<Loader />
 			) : (
-				<>
-					<Title order={1} style={{ marginBottom: 20 }}>
-						Day Wise Promo Activation
-					</Title>
-					<Paper withBorder radius="md" p="md">
-						<ScrollArea>
+			<PageContainer title="Day Wise Promo Activation" items={[{ label: 'Day Wise Promo', href: '/dashboard/daywisepromo' }]}>
+
+<MainCard contentSX={{ p: 0 }}>
+						<Box sx={{ overflow: "auto" }}>
 							<Table>
-								<Table.Thead>
-									<Table.Tr>
-										<Table.Th>Name</Table.Th>
-										<Table.Th>Promo Code</Table.Th>
-										<Table.Th>Amount</Table.Th>
-										<Table.Th>Date</Table.Th>
-										<Table.Th>Action</Table.Th>
-									</Table.Tr>
-								</Table.Thead>
-								<Table.Tbody>{rows}</Table.Tbody>
+								<TableHead>
+									<TableRow>
+										<TableCell component="th">Name</TableCell>
+										<TableCell component="th">Promo Code</TableCell>
+										<TableCell component="th">Amount</TableCell>
+										<TableCell component="th">Date</TableCell>
+										<TableCell component="th">Action</TableCell>
+									</TableRow>
+								</TableHead>
+								<TableBody>{rows}</TableBody>
 							</Table>
-						</ScrollArea>
-						<Divider my="sm" />
-						<Pagination
-							value={currentPage}
+						</Box>
+						<Divider sx={{ my: 1 }} />
+						<Pagination page={currentPage}
 							onChange={handlePageChange}
-							total={total}
-							siblings={1}
+							count={total}
 						/>
-					</Paper>
-					<Modal
-						title="Promo Activation Details"
-						opened={isOpenedModal}
+					</MainCard>
+					<Dialog
+						
+						open={isOpenedModal}
 						onClose={closeModal}
-						size={'lg'}
-						centered
-						classNames={{ title: 'mantine-modal-title', close: 'mantine-modal-close' }}
+						maxWidth="lg" sx={{ width: "100%" }}
 					>
-						<Table.ScrollContainer minWidth={100}>
+<DialogTitle>Promo Activation Details</DialogTitle>
+<DialogContent>
+						<TableContainer sx={{ minWidth: 100 }}>
 							<Table>
-								<Table.Thead>
-									<Table.Tr>
-										<Table.Th>Id</Table.Th>
-										<Table.Th>Phone</Table.Th>
-										<Table.Th>Email</Table.Th>
-										<Table.Th>Source</Table.Th>
-										<Table.Th>Payment Mode</Table.Th>
-									</Table.Tr>
-								</Table.Thead>
-								<Table.Tbody>
-									<Table.Tr>
-										<Table.Td>{modalData?.id || 'N/A'}</Table.Td>
-										<Table.Td>
+								<TableHead>
+									<TableRow>
+										<TableCell component="th">Id</TableCell>
+										<TableCell component="th">Phone</TableCell>
+										<TableCell component="th">Email</TableCell>
+										<TableCell component="th">Source</TableCell>
+										<TableCell component="th">Payment Mode</TableCell>
+									</TableRow>
+								</TableHead>
+								<TableBody>
+									<TableRow>
+										<TableCell>{modalData?.id || 'N/A'}</TableCell>
+										<TableCell>
 											{modalData?.phone_no ? formatPhoneNumber(modalData?.phone_no) : 'N/A'}
-										</Table.Td>
-										<Table.Td>{modalData?.user_email || 'N/A'}</Table.Td>
-										<Table.Td>{modalData?.source || 'N/A'}</Table.Td>
-										<Table.Td>{modalData?.payment_mode || 'N/A'}</Table.Td>
-									</Table.Tr>
-								</Table.Tbody>
+										</TableCell>
+										<TableCell>{modalData?.user_email || 'N/A'}</TableCell>
+										<TableCell>{modalData?.source || 'N/A'}</TableCell>
+										<TableCell>{modalData?.payment_mode || 'N/A'}</TableCell>
+									</TableRow>
+								</TableBody>
 							</Table>
-						</Table.ScrollContainer>
-					</Modal>
-				</>
+						</TableContainer>
+					</DialogContent>
+</Dialog>
+			</PageContainer>
 			)}
 		</>
 	);

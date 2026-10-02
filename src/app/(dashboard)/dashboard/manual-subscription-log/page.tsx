@@ -1,25 +1,33 @@
 'use client';
-
 import {
+	Box,
 	Button,
-	Center,
+	CircularProgress,
+	Dialog,
+	DialogContent,
+	DialogTitle,
 	Divider,
-	Image,
-	Modal,
 	Pagination,
 	Paper,
-	Space,
+	Tab,
 	Table,
-	TextInput,
-	Title,
-} from '@mantine/core';
-import { Loader as MantineLoader } from '@mantine/core';
+	TableBody,
+	TableCell,
+	TableContainer,
+	TableHead,
+	TableRow,
+	TextField,
+	Typography,
+} from '@mui/material';
+import { PageContainer } from '@/components/PageContainer/PageContainer';
+import { MainCard } from '@/components/mantis/MainCard';
+import { TableThumbnail } from '@/components/mantis/TableThumbnail';
+
 import { IconSearch } from '@tabler/icons-react';
 import moment from 'moment';
 import { useEffect, useState } from 'react';
 import Loader from '@/components/Loader';
-import { useDisclosure } from '@mantine/hooks';
-
+import { useDisclosure } from '@/hooks/use-disclosure';
 export default function ManualSubscriptionLog() {
 	const limit = 10;
 	const [offset, setOffset] = useState(0);
@@ -106,20 +114,20 @@ export default function ManualSubscriptionLog() {
 	};
 
 	const manualRows = displayData?.map((element: any) => (
-		<Table.Tr key={element.id}>
-			<Table.Td>{element.user_id}</Table.Td>
-			<Table.Td>
+		<TableRow key={element.id}>
+			<TableCell>{element.user_id}</TableCell>
+			<TableCell>
 				{element.package_id === '1'
 					? 'Monthly'
 					: element.package_id === '2'
 						? 'Half Yearly'
 						: 'Yearly'}
-			</Table.Td>
-			<Table.Td>{element.payment_method}</Table.Td>
-			<Table.Td maw={300}>
-				<Image fit="contain" height={80} src={element.payment_proof} alt={element.payment_method} />
-			</Table.Td>
-			<Table.Td>
+			</TableCell>
+			<TableCell>{element.payment_method}</TableCell>
+			<TableCell sx={{ maxWidth: 300 }}>
+				<TableThumbnail src={element.payment_proof} alt={element.payment_method} objectFit="contain" />
+			</TableCell>
+			<TableCell>
 				<Button
 					onClick={() => {
 						setDetails(element);
@@ -128,85 +136,85 @@ export default function ManualSubscriptionLog() {
 				>
 					Details
 				</Button>
-			</Table.Td>
-		</Table.Tr>
+			</TableCell>
+		</TableRow>
 	));
 
 	return (
-		<div>
-			<Title order={1}>Manual Subscription</Title>
+		<PageContainer
+			title="Manual Subscription"
+			items={[{ label: 'Manual Subscription', href: '/dashboard/manual-subscription-log' }]}
+		>
 			<form style={{ display: 'flex' }} onSubmit={handleSubmit}>
-				<TextInput
+				<TextField
 					name="searchkey"
-					mt="md"
 					placeholder="Search by subscription id or transaction id..."
-					rightSection={<IconSearch size={16} />}
+					endIcon={<IconSearch size={16} />}
 					style={{ width: '100%' }}
 				/>
 			</form>
-			<Space h="md" />
-			<Paper withBorder radius="md" p="md">
+			<Box sx={{ height: 16 }} />
+			<MainCard contentSX={{ p: 0 }}>
 				{initialLoader ? (
 					<Loader />
 				) : loading ? (
-					<Center>
-						<MantineLoader size={24} />
-					</Center>
+					<Box display="flex" justifyContent="center" alignItems="center">
+						<CircularProgress size={24} />
+					</Box>
 				) : (
 					<>
-						<Table.ScrollContainer minWidth={800}>
+						<TableContainer sx={{ minWidth: 800 }}>
 							<Table verticalSpacing="xs" horizontalSpacing="xs" captionSide="top">
 								<Table.Caption>{displayData?.length === 0 ? 'No data found' : ''}</Table.Caption>
-								<Table.Thead>
-									<Table.Tr>
-										<Table.Th>User Id</Table.Th>
-										<Table.Th>Package Id</Table.Th>
-										<Table.Th>Payment Method</Table.Th>
-										<Table.Th>Proof Of Payment</Table.Th>
-										<Table.Th>Action</Table.Th>
-									</Table.Tr>
-								</Table.Thead>
-								<Table.Tbody>{displayData?.length > 0 ? manualRows : null}</Table.Tbody>
+								<TableHead>
+									<TableRow>
+										<TableCell component="th">User Id</TableCell>
+										<TableCell component="th">Package Id</TableCell>
+										<TableCell component="th">Payment Method</TableCell>
+										<TableCell component="th">Proof Of Payment</TableCell>
+										<TableCell component="th">Action</TableCell>
+									</TableRow>
+								</TableHead>
+								<TableBody>{displayData?.length > 0 ? manualRows : null}</TableBody>
 							</Table>
-						</Table.ScrollContainer>
-						<Divider my="sm" />
-						<Pagination
-							value={currentPage}
+						</TableContainer>
+						<Divider sx={{ my: 1 }} />
+						<Pagination page={currentPage}
 							onChange={handlePageChange}
-							total={totalPages}
-							siblings={1}
+							count={totalPages}
 						/>
 					</>
 				)}
-			</Paper>
+			</MainCard>
 
-			<Modal
-				title="Details"
-				opened={detailsModalOpened}
+			<Dialog
+				
+				open={detailsModalOpened}
 				onClose={closeDetailsModal}
-				size="xl"
-				centered
-				classNames={{ title: 'mantine-modal-title', close: 'mantine-modal-close' }}
+				maxWidth="xl" sx={{ width: "100%" }}
 			>
-				<Table.ScrollContainer minWidth={200}>
+<DialogTitle>Details</DialogTitle>
+<DialogContent>
+				<TableContainer sx={{ minWidth: 200 }}>
 					<Table>
-						<Table.Thead>
-							<Table.Th>Subscription Id</Table.Th>
-							<Table.Th>Transaction Id</Table.Th>
-							<Table.Th>Subscription Date</Table.Th>
-							<Table.Th>Created At</Table.Th>
-							<Table.Th>Modified By</Table.Th>
-						</Table.Thead>
-						<Table.Tbody>
-							<Table.Td>{details?.subscription_id}</Table.Td>
-							<Table.Td>{details?.transaction_id}</Table.Td>
-							<Table.Td>{moment(details?.subscription_date).format('Do MMM YYYY h:mma')}</Table.Td>
-							<Table.Td>{moment(details?.created_at).format('Do MMM YYYY h:mma')}</Table.Td>
-							<Table.Td>{details?.modified_by}</Table.Td>
-						</Table.Tbody>
+						<TableHead>
+							<TableCell component="th">Subscription Id</TableCell>
+							<TableCell component="th">Transaction Id</TableCell>
+							<TableCell component="th">Subscription Date</TableCell>
+							<TableCell component="th">Created At</TableCell>
+							<TableCell component="th">Modified By</TableCell>
+						</TableHead>
+						<TableBody>
+							<TableCell>{details?.subscription_id}</TableCell>
+							<TableCell>{details?.transaction_id}</TableCell>
+							<TableCell>{moment(details?.subscription_date).format('Do MMM YYYY h:mma')}</TableCell>
+							<TableCell>{moment(details?.created_at).format('Do MMM YYYY h:mma')}</TableCell>
+							<TableCell>{details?.modified_by}</TableCell>
+						</TableBody>
 					</Table>
-				</Table.ScrollContainer>
-			</Modal>
-		</div>
+				</TableContainer>
+			</DialogContent>
+</Dialog>
+		</PageContainer>
 	);
 }

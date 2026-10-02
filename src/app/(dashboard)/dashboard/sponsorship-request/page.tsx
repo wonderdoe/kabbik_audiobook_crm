@@ -4,12 +4,12 @@ import { SimpleTable } from '@/components/Table/SimpleTable';
 import { SponsorTable } from '@/components/Table/SponsorTable';
 
 export default function TablePage() {
-    return (
-        <>
-        {/* <PageContainer title="Tables"> */}
-            {/* <SimpleTable /> */}
-            <SponsorTable />
-        {/*  </PageContainer> */}
-        </>
-    );
+	return (
+		<PageContainer
+			title="Sponsorship Request"
+			items={[{ label: 'Sponsorship Request', href: '/dashboard/sponsorship-request' }]}
+		>
+			<SponsorTable />
+		</PageContainer>
+	);
 }

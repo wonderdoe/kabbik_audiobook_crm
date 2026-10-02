@@ -1,26 +1,36 @@
 'use client';
 import {
 	Badge,
+	Box,
 	Button,
-	Center,
+	CircularProgress,
+	Dialog,
+	DialogContent,
+	DialogTitle,
 	Divider,
-	Flex,
-	Modal,
+	FormControl,
+	InputLabel,
+	MenuItem,
 	Paper,
 	Select,
-	Space,
+	Stack,
+	Tab,
 	Table,
-	Text,
-	Title,
-} from '@mantine/core';
-import { Loader as MantineLoader } from '@mantine/core';
-import { Image } from '@mantine/core';
+	TableBody,
+	TableCell,
+	TableContainer,
+	TableHead,
+	TableRow,
+	Typography,
+} from '@mui/material';
+import { PageContainer } from '@/components/PageContainer/PageContainer';
+import { MainCard } from '@/components/mantis/MainCard';
+import { DataSelect } from '@/components/Form/DataSelect';
 import { useCallback, useEffect, useState } from 'react';
 import Swal from 'sweetalert2';
 import { fetchProductOrders, updateDeliveryStatus } from '@/services/services';
 import { createToast, createToast2 } from 'helpers/SweetAlert';
-import { useDisclosure } from '@mantine/hooks';
-
+import { useDisclosure } from '@/hooks/use-disclosure';
 export default function ProductOrders() {
 	const [loading, setLoading] = useState(true);
 	const [displayData, setDisplayData] = useState<any>([]);
@@ -68,15 +78,15 @@ export default function ProductOrders() {
 
 	const rows = displayData?.map((element: any) => {
 		return (
-			<Table.Tr key={element.id}>
-				<Table.Td>{element.user_name}</Table.Td>
-				<Table.Td>{element.phone.slice(element.phone.indexOf('0'))}</Table.Td>
-				<Table.Td>{element.product_name}</Table.Td>
-				<Table.Td>
-					<Flex direction={'row'} gap={10} align={'center'}>
+			<TableRow key={element.id}>
+				<TableCell>{element.user_name}</TableCell>
+				<TableCell>{element.phone.slice(element.phone.indexOf('0'))}</TableCell>
+				<TableCell>{element.product_name}</TableCell>
+				<TableCell>
+					<Stack direction="row" flexWrap="wrap" direction={'row'} spacing={10} align={'center'}>
 						{JSON.parse(element.store_item).map((item: any, index: number) => (
-							<Flex key={index} align={'center'} direction={'column'}>
-								<Image
+							<Stack direction="row" flexWrap="wrap" key={index} align={'center'} direction={'column'}>
+								<Box component="img" 
 									key={index}
 									fit="contain"
 									height={50}
@@ -92,29 +102,25 @@ export default function ProductOrders() {
 											borderRadius: '7px',
 										}}
 									>
-										<Flex gap={10} justify={'space-evenly'}>
-											<span>Size</span> <Badge>{item.selected_size}</Badge>
-										</Flex>
-									</div>
+</div>
 								) : (
 									<></>
 								)}
-							</Flex>
+							</Stack>
 						))}
-					</Flex>
-				</Table.Td>
-				<Table.Td>
-					<Select
+					</Stack>
+				</TableCell>
+				<TableCell>
+					<DataSelect
 						value={element.delivery_status}
 						onChange={(evt: any) => handleUpdateDeliveryStatus(evt, element.order_id)}
 						data={['ordered', 'shipped', 'delivered']}
 						allowDeselect={false}
-						leftSection={null}
-						checkIconPosition="right"
+						startIcon={null}
 						style={{ width: '150px' }}
 					/>
-				</Table.Td>
-				<Table.Td>
+				</TableCell>
+				<TableCell>
 					<Button
 						onClick={() => {
 							setDetails(element);
@@ -123,75 +129,74 @@ export default function ProductOrders() {
 					>
 						Details
 					</Button>
-				</Table.Td>
-			</Table.Tr>
+				</TableCell>
+			</TableRow>
 		);
 	});
 
 	return (
-		<div>
-			<Title order={1}>Product Orders</Title>
-			<Space h="md" />
-			<Paper withBorder radius="md" p="md">
+		<PageContainer title="Product Orders" items={[{ label: 'Product Orders', href: '/dashboard/product-orders' }]}>
+			<MainCard contentSX={{ p: 0 }}>
 				{loading ? (
-					<Center>
-						<MantineLoader size={24} />
-					</Center>
+					<Box display="flex" justifyContent="center" alignItems="center">
+						<CircularProgress size={24} />
+					</Box>
 				) : (
 					<>
-						<Table.ScrollContainer minWidth={800}>
+						<TableContainer sx={{ minWidth: 800 }}>
 							<Table verticalSpacing="xs" horizontalSpacing="xs">
-								<Table.Thead>
-									<Table.Tr>
-										<Table.Th>User Name</Table.Th>
-										<Table.Th>Phone</Table.Th>
-										<Table.Th>Product Name</Table.Th>
-										<Table.Th>Store Item</Table.Th>
-										<Table.Th>Delivery Status</Table.Th>
-										<Table.Th>Action</Table.Th>
-									</Table.Tr>
-								</Table.Thead>
-								<Table.Tbody>
+								<TableHead>
+									<TableRow>
+										<TableCell component="th">User Name</TableCell>
+										<TableCell component="th">Phone</TableCell>
+										<TableCell component="th">Product Name</TableCell>
+										<TableCell component="th">Store Item</TableCell>
+										<TableCell component="th">Delivery Status</TableCell>
+										<TableCell component="th">Action</TableCell>
+									</TableRow>
+								</TableHead>
+								<TableBody>
 									{displayData?.length > 0 ? (
 										rows
 									) : (
-										<Center>
-											<Text>No Data Found</Text>
-										</Center>
+										<Box display="flex" justifyContent="center" alignItems="center">
+											<Typography>No Data Found</Typography>
+										</Box>
 									)}
-								</Table.Tbody>
+								</TableBody>
 							</Table>
-						</Table.ScrollContainer>
-						<Divider my="sm" />
+						</TableContainer>
+						<Divider sx={{ my: 1 }} />
 					</>
 				)}
-			</Paper>
+			</MainCard>
 
-			<Modal
-				title="Details"
-				size={'xl'}
-				opened={detailsModalOpened}
+			<Dialog
+				
+				maxWidth="xl" sx={{ width: "100%" }}
+				open={detailsModalOpened}
 				onClose={closeDetailsModal}
-				centered
-				classNames={{ title: 'mantine-modal-title', close: 'mantine-modal-close' }}
 			>
-				<Table.ScrollContainer minWidth={200}>
+<DialogTitle>Details</DialogTitle>
+<DialogContent>
+				<TableContainer sx={{ minWidth: 200 }}>
 					<Table>
-						<Table.Thead>
-							<Table.Th>User Id</Table.Th>
-							<Table.Th>Order Id</Table.Th>
-							<Table.Th>Address</Table.Th>
-						</Table.Thead>
-						<Table.Tbody>
-							<Table.Td>{details?.user_id}</Table.Td>
-							<Table.Td>{details?.order_id}</Table.Td>
-							<Table.Td>
+						<TableHead>
+							<TableCell component="th">User Id</TableCell>
+							<TableCell component="th">Order Id</TableCell>
+							<TableCell component="th">Address</TableCell>
+						</TableHead>
+						<TableBody>
+							<TableCell>{details?.user_id}</TableCell>
+							<TableCell>{details?.order_id}</TableCell>
+							<TableCell>
 								{details?.address.charAt(0).toUpperCase() + details?.address.slice(1)}
-							</Table.Td>
-						</Table.Tbody>
+							</TableCell>
+						</TableBody>
 					</Table>
-				</Table.ScrollContainer>
-			</Modal>
-		</div>
+				</TableContainer>
+			</DialogContent>
+</Dialog>
+		</PageContainer>
 	);
 }

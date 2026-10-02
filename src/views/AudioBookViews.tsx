@@ -1,33 +1,43 @@
 'use client';
 import {
-	Badge,
 	Box,
 	Button,
+	Chip,
 	Collapse,
-	CopyButton,
+	Dialog,
+	DialogActions,
+	DialogContent,
+	DialogTitle,
 	Divider,
-	Flex,
+	FormControl,
 	Grid,
-	Group,
-	Image,
-	Modal,
-	NumberInput,
+	IconButton,
+	InputAdornment,
+	InputLabel,
+	MenuItem,
 	Pagination,
 	Paper,
-	Select,
 	Stack,
 	Switch,
+	Tab,
 	Table,
+	TableBody,
+	TableCell,
+	TableContainer,
+	TableHead,
+	TableRow,
 	Tabs,
-	Text,
-	TextInput,
-	Title,
-} from '@mantine/core';
-import { DatePickerInput } from '@mantine/dates';
-import '@mantine/dates/styles.css';
-import { useDisclosure } from '@mantine/hooks';
+	TextField,
+	Tooltip,
+	Typography,
+} from '@mui/material';
+import { DataSelect } from '@/components/Form/DataSelect';
+import { DatePicker } from '@mui/x-date-pickers/DatePicker';
+import dayjs from 'dayjs';
+import { useDisclosure } from '@/hooks/use-disclosure';
 import {
 	IconBan,
+	IconCheck,
 	IconCheckbox,
 	IconCopy,
 	IconEdit,
@@ -36,6 +46,7 @@ import {
 	IconChevronUp,
 	IconDownload,
 	IconFilter,
+	IconHeadphones,
 	IconList,
 	IconPlus,
 	IconSearch,
@@ -51,6 +62,8 @@ import { AudiobookEditForm } from '@/components/Form/AudiobookEditForm';
 import { AudiobookUploadForm } from '@/components/Form/AudiobookUploadForm';
 import { EpisodesEditForm } from '@/components/Form/EpisodesEditForm';
 import Loader from '@/components/Loader';
+import { PageContainer } from '@/components/PageContainer/PageContainer';
+import { MainCard } from '@/components/mantis/MainCard';
 import {
 	deleteAudiobook,
 	getArtistList,
@@ -140,9 +153,9 @@ function countActiveFilters(filters: AudiobookFilterState) {
 }
 
 function approvalStatusMeta(status: number) {
-	if (status === 1) return { label: 'Approved', color: 'green' as const };
-	if (status === 2) return { label: 'Rejected', color: 'red' as const };
-	return { label: 'Pending', color: 'yellow' as const };
+	if (status === 1) return { label: 'Approved', color: 'success' as const };
+	if (status === 2) return { label: 'Rejected', color: 'error' as const };
+	return { label: 'Pending', color: 'warning' as const };
 }
 
 function buildAudiobookQueryParams(
@@ -181,6 +194,52 @@ function listEndpointForTab(tab: string | null) {
 		default:
 			return '/api/routes/audiobook';
 	}
+}
+
+function formatEpisodeDuration(seconds: number) {
+	if (!seconds || seconds <= 0) return '—';
+	const m = Math.floor(seconds / 60);
+	const s = Math.floor(seconds % 60);
+	return `${m}:${s.toString().padStart(2, '0')}`;
+}
+
+function PathCopyCell({ value }: { value: string }) {
+	const [copied, setCopied] = useState(false);
+	const copy = () => {
+		navigator.clipboard.writeText(value).then(() => {
+			setCopied(true);
+			setTimeout(() => setCopied(false), 1800);
+		});
+	};
+	return (
+		<Stack direction="row" alignItems="center" spacing={0.5}>
+			<Typography
+				variant="caption"
+				fontFamily="monospace"
+				sx={{
+					maxWidth: 160,
+					overflow: 'hidden',
+					textOverflow: 'ellipsis',
+					whiteSpace: 'nowrap',
+					display: 'block',
+					border: '1px solid',
+					borderColor: 'divider',
+					borderRadius: 0.5,
+					px: 0.75,
+					py: 0.25,
+					bgcolor: 'grey.50',
+				}}
+				title={value}
+			>
+				{value}
+			</Typography>
+			<Tooltip title={copied ? 'Copied!' : 'Copy path'}>
+				<IconButton size="small" onClick={copy} color={copied ? 'success' : 'default'}>
+					{copied ? <IconCheck size={14} /> : <IconCopy size={14} />}
+				</IconButton>
+			</Tooltip>
+		</Stack>
+	);
 }
 
 export default function AudiobookViews({ cookie }: any) {
@@ -296,10 +355,9 @@ export default function AudiobookViews({ cookie }: any) {
 
 	const totalPages = Math.ceil(totalData / itemsPerPage);
 
-	const handlePageChange = (e: any) => {
-		const offsetCount = (e - 1) * itemsPerPage;
-		setCurrentPage(e);
-		setOffset(offsetCount);
+	const handlePageChange = (_: any, p: number) => {
+		setCurrentPage(p);
+		setOffset((p - 1) * itemsPerPage);
 	};
 
 	const handleEpisodes = async (id: any) => {
@@ -622,181 +680,192 @@ export default function AudiobookViews({ cookie }: any) {
 		const approval = approvalStatusMeta(Number(element.approval_status));
 
 		return (
-		<Table.Tr key={element.id}>
-			<Table.Td>
-				<Text size="sm" c="dimmed" ff="monospace">#{element.id}</Text>
-			</Table.Td>
-			<Table.Td>
-				<Stack gap={4}>
-					<Text size="sm" fw={500} lineClamp={2} maw={220}>
-						{element.name}
-					</Text>
-					<Badge size="xs" variant="dot" color={approval.color}>
-						{approval.label}
-					</Badge>
+		<TableRow key={element.id} hover sx={{ '&:last-child td': { borderBottom: 0 } }}>
+			<TableCell sx={{ py: 1, px: 1.5, width: 56 }}>
+				<Typography variant="caption" color="text.secondary" fontFamily="monospace">
+					#{element.id}
+				</Typography>
+			</TableCell>
+			<TableCell sx={{ py: 1, px: 1.5, minWidth: 240, maxWidth: 320 }}>
+				<Stack direction="row" spacing={1.25} alignItems="flex-start">
+					<Box
+						component="img"
+						src={element.thumb_path}
+						alt=""
+						sx={{
+							width: 48,
+							height: 48,
+							flexShrink: 0,
+							objectFit: 'cover',
+							borderRadius: 1,
+							border: 1,
+							borderColor: 'divider',
+							bgcolor: 'grey.50',
+						}}
+					/>
+					<Stack spacing={0.5} sx={{ minWidth: 0, flex: 1 }}>
+						<Typography
+							variant="body2"
+							fontWeight={600}
+							sx={{
+								display: '-webkit-box',
+								WebkitLineClamp: 2,
+								WebkitBoxOrient: 'vertical',
+								overflow: 'hidden',
+								lineHeight: 1.35,
+							}}
+						>
+							{element.name}
+						</Typography>
+						<Chip
+							label={approval.label}
+							size="small"
+							color={approval.color}
+							sx={{ height: 20, fontSize: '0.65rem', fontWeight: 600, width: 'fit-content' }}
+						/>
+					</Stack>
 				</Stack>
-			</Table.Td>
-			<Table.Td>
-				<Text size="sm" c="dimmed" lineClamp={2} maw={180}>
-					{element.en_name || '—'}
-				</Text>
-			</Table.Td>
-			<Table.Td ta="center" style={{ whiteSpace: 'normal' }}>
-				<Flex direction="column" align="center" gap={4}>
-					<Badge
-						color={bgmCount > 0 ? 'green' : 'gray'}
-						variant="light"
-						size="md"
-						styles={{ root: { textTransform: 'none', whiteSpace: 'nowrap' } }}
-					>
-						{bgmCount > 0 ? 'Has BGM' : 'No BGM'}
-					</Badge>
-					<Text size="xs" c="dimmed">
-						({bgmCount}/{totalEpisodes})
-					</Text>
-				</Flex>
-			</Table.Td>
-			<Table.Td ta="center" style={{ whiteSpace: 'normal', minWidth: 100 }}>
-				<Text size="sm" fw={600} c="teal" style={{ whiteSpace: 'nowrap' }}>
-					Tk. {element.price}
-				</Text>
-			</Table.Td>
-			<Table.Td>
-				<Box
-					p={4}
-					style={{
-						borderRadius: 12,
-						border: '1px solid var(--mantine-color-gray-3)',
-						background: 'var(--mantine-color-gray-0)',
+			</TableCell>
+			<TableCell sx={{ py: 1, px: 1.5, maxWidth: 160 }}>
+				<Typography
+					variant="caption"
+					color="text.secondary"
+					sx={{
+						display: '-webkit-box',
+						WebkitLineClamp: 2,
+						WebkitBoxOrient: 'vertical',
+						overflow: 'hidden',
 					}}
 				>
-					<Image
-						h={120}
-						w={120}
-						fit="cover"
-						radius="md"
-						src={element.thumb_path}
-						alt={element.name || 'Audiobook cover'}
+					{element.en_name || '—'}
+				</Typography>
+			</TableCell>
+			<TableCell align="center" sx={{ py: 1, px: 1, whiteSpace: 'nowrap' }}>
+				<Stack direction="row" alignItems="center" justifyContent="center" spacing={0.5} flexWrap="nowrap">
+					<Chip
+						label={bgmCount > 0 ? 'BGM' : 'No BGM'}
+						size="small"
+						color={bgmCount > 0 ? 'success' : 'default'}
+						variant={bgmCount > 0 ? 'filled' : 'outlined'}
+						sx={{ height: 20, fontSize: '0.65rem', minWidth: 44 }}
 					/>
-				</Box>
-			</Table.Td>
-			<Table.Td>
-				<Text size="sm">{element.author_name || '—'}</Text>
-			</Table.Td>
-			<Table.Td>
-				<Text size="xs" c="dimmed">
-					{moment(element.created_at).format('Do MMM YYYY')}
-				</Text>
-				<Text size="xs" c="dimmed">
-					{moment(element.created_at).format('h:mma')}
-				</Text>
-			</Table.Td>
+					<Typography variant="caption" color="text.secondary">
+						{bgmCount}/{totalEpisodes}
+					</Typography>
+				</Stack>
+			</TableCell>
+			<TableCell align="center" sx={{ py: 1, px: 1.5, whiteSpace: 'nowrap' }}>
+				<Typography variant="body2" fontWeight={600} color="primary.main">
+					৳{element.price}
+				</Typography>
+			</TableCell>
+			<TableCell sx={{ py: 1, px: 1.5, maxWidth: 140 }}>
+				<Typography variant="caption" noWrap title={element.author_name}>
+					{element.author_name || '—'}
+				</Typography>
+			</TableCell>
+			<TableCell sx={{ py: 1, px: 1.5, whiteSpace: 'nowrap' }}>
+				<Typography variant="caption" color="text.secondary" display="block">
+					{moment(element.created_at).format('D MMM YYYY')}
+				</Typography>
+				<Typography variant="caption" color="text.disabled">
+					{moment(element.created_at).format('h:mm a')}
+				</Typography>
+			</TableCell>
 
-			<Table.Td style={{ textAlign: 'left', whiteSpace: 'normal' }}>
-				<Flex direction="column" align="flex-start" gap={6} w="100%">
+			<TableCell sx={{ py: 1, px: 1.5, minWidth: 200 }}>
+				<Stack direction="row" flexWrap="wrap" gap={0.5} sx={{ maxWidth: 320 }}>
 					<Button
-						size="compact-sm"
+						size="small"
 						onClick={() => handleEpisodes(element.id)}
-						leftSection={<IconList size={15} />}
-						variant="light"
-						color="blue"
+						startIcon={<IconList size={14} />}
+						variant="outlined"
+						color="primary"
+						sx={{ py: 0.25, fontSize: '0.75rem' }}
 					>
 						Episodes
 					</Button>
 					<Button
-						size="compact-sm"
-						variant="light"
-						color="indigo"
-						leftSection={<IconEdit size={15} />}
+						size="small"
+						variant="outlined"
+						color="primary"
+						startIcon={<IconEdit size={14} />}
 						onClick={() => handleEditAudiobook(element.id)}
+						sx={{ py: 0.25, fontSize: '0.75rem' }}
 					>
-						Edit audiobook
+						Edit
 					</Button>
 					<Button
-						size="compact-sm"
-						variant="light"
-						color="cyan"
-						leftSection={<IconEye size={15} />}
+						size="small"
+						variant="outlined"
+						color="info"
+						startIcon={<IconEye size={14} />}
 						onClick={() => handleViewAudiobook(element.id)}
+						sx={{ py: 0.25, fontSize: '0.75rem' }}
 					>
-						View details
+						View
 					</Button>
 					<Button
-						size="compact-sm"
-						variant="light"
-						color="red"
-						leftSection={<IconTrash size={15} />}
+						size="small"
+						variant="outlined"
+						color="error"
+						startIcon={<IconTrash size={14} />}
 						onClick={() => handleDeleteAudiobook(element.id)}
+						sx={{ py: 0.25, fontSize: '0.75rem' }}
 					>
 						Delete
 					</Button>
 					{Number(element.approval_status) === 1 ? (
 						<Button
-							size="compact-sm"
-							variant="light"
-							color="orange"
-							leftSection={<IconBan size={15} />}
+							size="small"
+							variant="outlined"
+							color="warning"
+							startIcon={<IconBan size={14} />}
 							onClick={() => handleApproveAudiobook(element.id, 'reject')}
+							sx={{ py: 0.25, fontSize: '0.75rem' }}
 						>
 							Reject
 						</Button>
 					) : (
 						<Button
-							size="compact-sm"
-							variant="light"
-							color="green"
-							leftSection={<IconCheckbox size={15} />}
+							size="small"
+							variant="outlined"
+							color="success"
+							startIcon={<IconCheckbox size={14} />}
 							onClick={() => handleApproveAudiobook(element.id, 'approve')}
+							sx={{ py: 0.25, fontSize: '0.75rem' }}
 						>
 							Approve
 						</Button>
 					)}
-				</Flex>
-			</Table.Td>
+				</Stack>
+			</TableCell>
 
-			<Table.Td>
-				<Flex justify="center">
-					<Switch
-						checked={element.premium === 1 ? true : false}
-						onChange={() => handlePremium(index)}
-						size="sm"
-						color="violet"
-					/>
-				</Flex>
-			</Table.Td>
+			<TableCell align="center" sx={{ py: 0.5, px: 0.5 }}>
+				<Switch
+					size="small"
+					checked={element.premium === 1}
+					onChange={() => handlePremium(index)}
+					color="secondary"
+				/>
+			</TableCell>
 
-			<Table.Td>
-				<Flex justify="center">
-					<Switch
-						checked={element.for_home === 1 ? true : false}
-						onChange={e => handleForHome(e, index)}
-						size="sm"
-						color="blue"
-					/>
-				</Flex>
-			</Table.Td>
-			<Table.Td>
-				<Flex justify="center">
-					<Switch
-						checked={element.isSubRestricted === 1 ? true : false}
-						onChange={e => handlePremium(index, 1)}
-						size="sm"
-						color="orange"
-					/>
-				</Flex>
-			</Table.Td>
+			<TableCell align="center" sx={{ py: 0.5, px: 0.5 }}>
+				<Switch size="small" checked={element.for_home === 1} onChange={e => handleForHome(e, index)} color="primary" />
+			</TableCell>
+			<TableCell align="center" sx={{ py: 0.5, px: 0.5 }}>
+				<Switch
+					size="small"
+					checked={element.isSubRestricted === 1}
+					onChange={e => handlePremium(index, 1)}
+					color="warning"
+				/>
+			</TableCell>
 
-			<Table.Td>
-				<Flex justify="center">
-					<Switch
-						checked={element.for_rent === 1 ? true : false}
-						onChange={e => handleForRent(e, index)}
-						size="sm"
-						color="teal"
-					/>
-				</Flex>
-			</Table.Td>
-		</Table.Tr>
+			<TableCell align="center" sx={{ py: 0.5, px: 0.5 }}>
+				<Switch size="small" checked={element.for_rent === 1} onChange={e => handleForRent(e, index)} color="primary" />
+			</TableCell>
+		</TableRow>
 		);
 	});
 
@@ -808,473 +877,679 @@ export default function AudiobookViews({ cookie }: any) {
 			{loading ? (
 				<Loader />
 			) : (
-				<Stack gap="lg" pb="xl">
-					<Flex justify="space-between" align="flex-end" wrap="wrap" gap="md">
-						<Stack gap={4}>
-							<Title order={2} fw={700}>Audiobooks</Title>
-							<Text size="sm" c="dimmed">
-								Manage catalog, episodes, and publishing flags
-							</Text>
-							<Group gap="xs">
-								<Badge variant="light" color="gray" size="lg" radius="sm">
-									{TAB_LABELS[activeTab ?? 'all']}: {totalData.toLocaleString()} items
-								</Badge>
-								{activeSearch ? (
-									<Badge variant="outline" color="blue" size="sm" radius="sm">
-										Search: {activeSearch}
-									</Badge>
-								) : null}
-							</Group>
-						</Stack>
-						<Group>
+				<PageContainer
+					title="Audiobooks"
+					items={[{ label: 'Audiobooks', href: '/dashboard/audiobook' }]}
+					subtitle={
+						<Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+							Manage catalog, episodes, and publishing flags · {TAB_LABELS[activeTab ?? 'all']}:{' '}
+							{totalData.toLocaleString()} items
+							{activeSearch ? ` · Search: ${activeSearch}` : ''}
+						</Typography>
+					}
+					actions={
+						<Stack direction="row" alignItems="center" spacing={1}>
 							<Button
-								variant="light"
-								color="gray"
-								leftSection={<IconDownload size={16} />}
+								variant="outlined"
+								color="inherit"
+								startIcon={<IconDownload size={16} />}
 								onClick={handleExportCsv}
-								loading={exporting}
+								disabled={exporting}
 							>
 								Export CSV
 							</Button>
-							<Button
-								onClick={openAddAudiobook}
-								leftSection={<IconPlus size={16} />}
-							>
+							<Button variant="contained" onClick={openAddAudiobook} startIcon={<IconPlus size={16} />}>
 								Add audiobook
 							</Button>
-						</Group>
-					</Flex>
-
-					<Paper shadow="xs" radius="lg" p="md" withBorder>
-						<Stack gap="md">
+						</Stack>
+					}
+				>
+				<Stack spacing={1.5} sx={{ pb: 2 }}>
+					<Paper variant="outlined" sx={{ p: 1.5, borderRadius: 2 }}>
+						<Stack spacing={1.5}>
 							<form onSubmit={!isSubmitted ? handleSearchResult : removeSearchInput}>
-								<Group align="flex-end" wrap="wrap" gap="sm">
-									<TextInput
-										style={{ flex: 1, minWidth: 280 }}
-										radius="md"
-										size="md"
-										leftSection={<IconSearch size={16} stroke={1.5} />}
+								<Stack direction="row" alignItems="center" flexWrap="wrap" spacing={1} useFlexGap>
+									<TextField
+										size="small"
+										variant="outlined"
+										sx={{ flex: 1, minWidth: 280 }}
 										value={searchInputValue}
 										onChange={e => setSearchInputValue(e.target.value)}
 										placeholder="Search name, English name, description, author, artists…"
+										InputProps={{
+											startAdornment: (
+												<InputAdornment position="start">
+													<IconSearch size={16} stroke={1.5} />
+												</InputAdornment>
+											),
+										}}
 									/>
 									<Button
 										type="submit"
-										variant={isSubmitted ? 'light' : 'filled'}
-										color={isSubmitted ? 'red' : 'blue'}
-										leftSection={isSubmitted ? <IconX size={16} /> : <IconSearch size={16} />}
+										size="small"
+										variant={isSubmitted ? 'outlined' : 'contained'}
+										color={isSubmitted ? 'error' : 'primary'}
+										startIcon={isSubmitted ? <IconX size={16} /> : <IconSearch size={16} />}
 									>
 										{isSubmitted ? 'Clear search' : 'Search'}
 									</Button>
 									<Button
 										type="button"
-										variant={filtersOpen ? 'light' : 'default'}
-										color="blue"
-										leftSection={<IconFilter size={16} />}
-										rightSection={filtersOpen ? <IconChevronUp size={14} /> : <IconChevronDown size={14} />}
+										size="small"
+										variant="outlined"
+										color="primary"
+										startIcon={<IconFilter size={16} />}
+										endIcon={filtersOpen ? <IconChevronUp size={14} /> : <IconChevronDown size={14} />}
 										onClick={() => setFiltersOpen(open => !open)}
 									>
 										Filters
 										{activeFilterCount > 0 ? ` (${activeFilterCount})` : ''}
 									</Button>
-								</Group>
+								</Stack>
 							</form>
 
-					<Collapse in={filtersOpen}>
-						<Paper
-							p="md"
-							radius="md"
-							bg="var(--mantine-color-gray-0)"
-							style={{ border: '1px solid var(--mantine-color-gray-2)' }}
-						>
-							<Text size="sm" fw={600} mb="sm">Refine results</Text>
-							<Grid>
-								<Grid.Col span={{ base: 12, sm: 6, md: 4 }}>
-									<Select
-										label="Category"
-										placeholder="All"
-										clearable
-										data={selectionList.categoryList}
-										value={filterDraft.category || null}
-										onChange={v => setFilterDraft(prev => ({ ...prev, category: v ?? '' }))}
-									/>
-								</Grid.Col>
-								<Grid.Col span={{ base: 12, sm: 6, md: 4 }}>
-									<Select
-										label="Author"
-										placeholder="All"
-										clearable
-										searchable
-										data={selectionList.authorList}
-										value={filterDraft.author || null}
-										onChange={v => setFilterDraft(prev => ({ ...prev, author: v ?? '' }))}
-									/>
-								</Grid.Col>
-								<Grid.Col span={{ base: 12, sm: 6, md: 4 }}>
-									<Select
-										label="Premium"
-										placeholder="All"
-										clearable
-										data={yesNoSelectData}
-										value={filterDraft.premium || null}
-										onChange={v => setFilterDraft(prev => ({ ...prev, premium: v ?? '' }))}
-									/>
-								</Grid.Col>
-								<Grid.Col span={{ base: 12, sm: 6, md: 4 }}>
-									<Select
-										label="For Rent"
-										placeholder="All"
-										clearable
-										data={yesNoSelectData}
-										value={filterDraft.for_rent || null}
-										onChange={v => setFilterDraft(prev => ({ ...prev, for_rent: v ?? '' }))}
-									/>
-								</Grid.Col>
-								<Grid.Col span={{ base: 12, sm: 6, md: 4 }}>
-									<Select
-										label="BGM"
-										placeholder="All"
-										clearable
-										data={bgmFilterSelectData}
-										value={filterDraft.has_bgm || null}
-										onChange={v => setFilterDraft(prev => ({ ...prev, has_bgm: v ?? '' }))}
-									/>
-								</Grid.Col>
-								<Grid.Col span={{ base: 12, sm: 6, md: 4 }}>
-									<Select
-										label="Approval status"
-										placeholder="All"
-										clearable
-										data={approvalStatusFilterData}
-										value={filterDraft.approval_status || null}
-										onChange={v =>
-											setFilterDraft(prev => ({ ...prev, approval_status: v ?? '' }))
-										}
-									/>
-								</Grid.Col>
-								<Grid.Col span={{ base: 12, sm: 6, md: 4 }}>
-									<NumberInput
-										label="Price min"
-										placeholder="Min"
-										min={0}
-										value={filterDraft.price_min === '' ? '' : Number(filterDraft.price_min)}
-										onChange={v =>
-											setFilterDraft(prev => ({
-												...prev,
-												price_min: v === '' || v === undefined ? '' : String(v),
-											}))
-										}
-									/>
-								</Grid.Col>
-								<Grid.Col span={{ base: 12, sm: 6, md: 4 }}>
-									<NumberInput
-										label="Price max"
-										placeholder="Max"
-										min={0}
-										value={filterDraft.price_max === '' ? '' : Number(filterDraft.price_max)}
-										onChange={v =>
-											setFilterDraft(prev => ({
-												...prev,
-												price_max: v === '' || v === undefined ? '' : String(v),
-											}))
-										}
-									/>
-								</Grid.Col>
-								<Grid.Col span={{ base: 12, sm: 6, md: 8 }}>
-									<DatePickerInput
-										type="range"
-										label="Created at"
-										placeholder="Select range"
-										value={[filterDraft.date_from, filterDraft.date_to]}
-										onChange={range =>
-											setFilterDraft(prev => ({
-												...prev,
-												date_from: range[0],
-												date_to: range[1],
-											}))
-										}
-										clearable
-									/>
-								</Grid.Col>
-							</Grid>
-							<Group mt="md">
-								<Button onClick={applyFilters}>Apply filters</Button>
-								<Button variant="default" onClick={clearFilters}>Reset</Button>
-							</Group>
-						</Paper>
-					</Collapse>
+							<Collapse in={filtersOpen}>
+								<Box
+									sx={{
+										pt: 1.5,
+										mt: 0.5,
+										borderTop: 1,
+										borderColor: 'divider',
+									}}
+								>
+									<Typography variant="subtitle2" fontWeight={600} sx={{ mb: 1.25, display: 'block' }}>
+										Refine results
+									</Typography>
+									<Grid container spacing={1.5}>
+										<Grid item xs={12} sm={6} md={4}>
+											<DataSelect
+												label="Category"
+												placeholder="All"
+												clearable
+												data={selectionList.categoryList}
+												value={filterDraft.category || null}
+												onChange={v => setFilterDraft(prev => ({ ...prev, category: v ?? '' }))}
+											/>
+										</Grid>
+										<Grid item xs={12} sm={6} md={4}>
+											<DataSelect
+												label="Author"
+												placeholder="All"
+												clearable
+												searchable
+												data={selectionList.authorList}
+												value={filterDraft.author || null}
+												onChange={v => setFilterDraft(prev => ({ ...prev, author: v ?? '' }))}
+											/>
+										</Grid>
+										<Grid item xs={12} sm={6} md={4}>
+											<DataSelect
+												label="Premium"
+												placeholder="All"
+												clearable
+												data={yesNoSelectData}
+												value={filterDraft.premium || null}
+												onChange={v => setFilterDraft(prev => ({ ...prev, premium: v ?? '' }))}
+											/>
+										</Grid>
+										<Grid item xs={12} sm={6} md={4}>
+											<DataSelect
+												label="For Rent"
+												placeholder="All"
+												clearable
+												data={yesNoSelectData}
+												value={filterDraft.for_rent || null}
+												onChange={v => setFilterDraft(prev => ({ ...prev, for_rent: v ?? '' }))}
+											/>
+										</Grid>
+										<Grid item xs={12} sm={6} md={4}>
+											<DataSelect
+												label="BGM"
+												placeholder="All"
+												clearable
+												data={bgmFilterSelectData}
+												value={filterDraft.has_bgm || null}
+												onChange={v => setFilterDraft(prev => ({ ...prev, has_bgm: v ?? '' }))}
+											/>
+										</Grid>
+										<Grid item xs={12} sm={6} md={4}>
+											<DataSelect
+												label="Approval status"
+												placeholder="All"
+												clearable
+												data={approvalStatusFilterData}
+												value={filterDraft.approval_status || null}
+												onChange={v =>
+													setFilterDraft(prev => ({ ...prev, approval_status: v ?? '' }))
+												}
+											/>
+										</Grid>
+										<Grid item xs={12} sm={6} md={4}>
+											<TextField
+												type="number"
+												label="Price min"
+												placeholder="Min"
+												inputProps={{ min: 0 }}
+												size="small"
+												fullWidth
+												value={filterDraft.price_min === '' ? '' : filterDraft.price_min}
+												onChange={e =>
+													setFilterDraft(prev => ({
+														...prev,
+														price_min: e.target.value,
+													}))
+												}
+											/>
+										</Grid>
+										<Grid item xs={12} sm={6} md={4}>
+											<TextField
+												type="number"
+												label="Price max"
+												placeholder="Max"
+												inputProps={{ min: 0 }}
+												size="small"
+												fullWidth
+												value={filterDraft.price_max === '' ? '' : filterDraft.price_max}
+												onChange={e =>
+													setFilterDraft(prev => ({
+														...prev,
+														price_max: e.target.value,
+													}))
+												}
+											/>
+										</Grid>
+										<Grid item xs={12} sm={6} md={4}>
+											<DatePicker
+												label="Created from"
+												value={filterDraft.date_from ? dayjs(filterDraft.date_from) : null}
+												onChange={d =>
+													setFilterDraft(prev => ({
+														...prev,
+														date_from: d?.toDate() ?? null,
+													}))
+												}
+												slotProps={{ textField: { size: 'small', fullWidth: true } }}
+											/>
+										</Grid>
+										<Grid item xs={12} sm={6} md={4}>
+											<DatePicker
+												label="Created to"
+												value={filterDraft.date_to ? dayjs(filterDraft.date_to) : null}
+												onChange={d =>
+													setFilterDraft(prev => ({
+														...prev,
+														date_to: d?.toDate() ?? null,
+													}))
+												}
+												slotProps={{ textField: { size: 'small', fullWidth: true } }}
+											/>
+										</Grid>
+										<Grid
+											item
+											xs={12}
+											md={8}
+											sx={{
+												display: 'flex',
+												alignItems: 'flex-end',
+												justifyContent: { xs: 'flex-start', md: 'flex-end' },
+											}}
+										>
+											<Stack direction="row" spacing={1}>
+												<Button size="small" variant="contained" onClick={applyFilters}>
+													Apply filters
+												</Button>
+												<Button size="small" variant="outlined" onClick={clearFilters}>
+													Reset
+												</Button>
+											</Stack>
+										</Grid>
+									</Grid>
+								</Box>
+							</Collapse>
 
 							<Tabs
 								value={activeTab}
-								onChange={tab => {
+								onChange={(_, tab) => {
 									setActiveTab(tab);
 									setCurrentPage(1);
 									setOffset(0);
 								}}
-								variant="pills"
-								radius="md"
+								variant="scrollable"
+								sx={{ borderRadius: 2 }}
 							>
-								<Tabs.List grow>
-									<Tabs.Tab value="all">All</Tabs.Tab>
-									<Tabs.Tab value="podcasts">Podcast</Tabs.Tab>
-									<Tabs.Tab value="rent">Rent</Tabs.Tab>
-									<Tabs.Tab value="pending">Pending</Tabs.Tab>
-									<Tabs.Tab value="rejected">Rejected</Tabs.Tab>
-								</Tabs.List>
+								<Tab label="All" value="all" />
+								<Tab label="Podcast" value="podcasts" />
+								<Tab label="Rent" value="rent" />
+								<Tab label="Pending" value="pending" />
+								<Tab label="Rejected" value="rejected" />
 							</Tabs>
 						</Stack>
 					</Paper>
 
-					<Paper shadow="xs" radius="lg" withBorder style={{ overflow: 'hidden' }}>
-						<Box px="md" py="sm" style={{ borderBottom: '1px solid var(--mantine-color-gray-2)' }}>
-							<Text size="sm" fw={600}>{tabLabel} catalog</Text>
-							<Text size="xs" c="dimmed">
-								Page {currentPage} of {totalPages || 1}
-							</Text>
-						</Box>
-						<Box w="100%" p="md" pt={0} style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
-							<Table.ScrollContainer minWidth={1500} type="native">
+					<MainCard
+						title={`${tabLabel} catalog`}
+						subtitle={`Page ${currentPage} of ${totalPages || 1}`}
+						contentSX={{ p: 0, pt: 0 }}
+					>
+						<Box sx={{ width: '100%', overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+							<TableContainer sx={{ minWidth: 1200 }}>
 								<Table
-									striped
-									highlightOnHover
-									withTableBorder
-									verticalSpacing="md"
-									horizontalSpacing="md"
-									style={{ tableLayout: 'auto', whiteSpace: 'nowrap' }}
+									size="small"
+									stickyHeader
+									sx={{
+										'& .MuiTableCell-head': {
+											py: 1,
+											px: 1.5,
+											fontWeight: 600,
+											bgcolor: 'grey.50',
+											borderBottom: 1,
+											borderColor: 'divider',
+										},
+										'& .MuiTableCell-root': {
+											borderColor: 'divider',
+										},
+									}}
 								>
-									<Table.Thead
-										style={{
-											position: 'sticky',
-											top: 0,
-											zIndex: 2,
-											background: 'var(--mantine-color-body)',
-										}}
-									>
-										<Table.Tr>
-											<Table.Th style={{ minWidth: 56 }}><Text size="xs" fw={700} tt="uppercase" c="dimmed">ID</Text></Table.Th>
-											<Table.Th style={{ minWidth: 200 }}><Text size="xs" fw={700} tt="uppercase" c="dimmed">Title</Text></Table.Th>
-											<Table.Th style={{ minWidth: 140 }}><Text size="xs" fw={700} tt="uppercase" c="dimmed">English</Text></Table.Th>
-											<Table.Th style={{ minWidth: 120, textAlign: 'center' }}><Text size="xs" fw={700} tt="uppercase" c="dimmed">BGM</Text></Table.Th>
-											<Table.Th style={{ minWidth: 110, textAlign: 'center' }}><Text size="xs" fw={700} tt="uppercase" c="dimmed">Price</Text></Table.Th>
-											<Table.Th style={{ minWidth: 140, textAlign: 'center' }}><Text size="xs" fw={700} tt="uppercase" c="dimmed">Cover</Text></Table.Th>
-											<Table.Th style={{ minWidth: 120 }}><Text size="xs" fw={700} tt="uppercase" c="dimmed">Author</Text></Table.Th>
-											<Table.Th style={{ minWidth: 120 }}><Text size="xs" fw={700} tt="uppercase" c="dimmed">Created</Text></Table.Th>
-											<Table.Th style={{ minWidth: 220 }}><Text size="xs" fw={700} tt="uppercase" c="dimmed">Actions</Text></Table.Th>
-											<Table.Th style={{ minWidth: 88, textAlign: 'center' }}><Text size="xs" fw={700} tt="uppercase" c="dimmed">Premium</Text></Table.Th>
-											<Table.Th style={{ minWidth: 100, textAlign: 'center' }}><Text size="xs" fw={700} tt="uppercase" c="dimmed">Home</Text></Table.Th>
-											<Table.Th style={{ minWidth: 100, textAlign: 'center' }}><Text size="xs" fw={700} tt="uppercase" c="dimmed">Rent only</Text></Table.Th>
-											<Table.Th style={{ minWidth: 100, textAlign: 'center' }}><Text size="xs" fw={700} tt="uppercase" c="dimmed">For rent</Text></Table.Th>
-										</Table.Tr>
-									</Table.Thead>
-									<Table.Tbody>
+									<TableHead>
+										<TableRow>
+											<TableCell component="th">
+												<Typography variant="overline" color="text.secondary" fontWeight={700}>
+													ID
+												</Typography>
+											</TableCell>
+											<TableCell component="th" sx={{ minWidth: 240 }}>
+												<Typography variant="overline" color="text.secondary" fontWeight={700}>
+													Audiobook
+												</Typography>
+											</TableCell>
+											<TableCell component="th">
+												<Typography variant="overline" color="text.secondary" fontWeight={700}>
+													English
+												</Typography>
+											</TableCell>
+											<TableCell component="th" align="center">
+												<Typography variant="overline" color="text.secondary" fontWeight={700}>
+													BGM
+												</Typography>
+											</TableCell>
+											<TableCell component="th" align="center">
+												<Typography variant="overline" color="text.secondary" fontWeight={700}>
+													Price
+												</Typography>
+											</TableCell>
+											<TableCell component="th">
+												<Typography variant="overline" color="text.secondary" fontWeight={700}>
+													Author
+												</Typography>
+											</TableCell>
+											<TableCell component="th">
+												<Typography variant="overline" color="text.secondary" fontWeight={700}>
+													Created
+												</Typography>
+											</TableCell>
+											<TableCell component="th" sx={{ minWidth: 200 }}>
+												<Typography variant="overline" color="text.secondary" fontWeight={700}>
+													Actions
+												</Typography>
+											</TableCell>
+											<TableCell component="th" align="center">
+												<Typography variant="overline" color="text.secondary" fontWeight={700}>
+													Premium
+												</Typography>
+											</TableCell>
+											<TableCell component="th" align="center">
+												<Typography variant="overline" color="text.secondary" fontWeight={700}>
+													Home
+												</Typography>
+											</TableCell>
+											<TableCell component="th" align="center">
+												<Typography variant="overline" color="text.secondary" fontWeight={700}>
+													Rent only
+												</Typography>
+											</TableCell>
+											<TableCell component="th" align="center">
+												<Typography variant="overline" color="text.secondary" fontWeight={700}>
+													For rent
+												</Typography>
+											</TableCell>
+										</TableRow>
+									</TableHead>
+									<TableBody>
 										{rows?.length ? rows : (
-											<Table.Tr>
-												<Table.Td colSpan={13}>
-													<Text ta="center" c="dimmed" py="xl" size="sm">
+											<TableRow>
+												<TableCell colSpan={12}>
+													<Typography textAlign="center" color="text.secondary" variant="body2">
 														No audiobooks match your filters. Try adjusting search or filters.
-													</Text>
-												</Table.Td>
-											</Table.Tr>
+													</Typography>
+												</TableCell>
+											</TableRow>
 										)}
-									</Table.Tbody>
+									</TableBody>
 								</Table>
-							</Table.ScrollContainer>
+							</TableContainer>
 						</Box>
 						<Divider />
-						<Flex justify="space-between" align="center" wrap="wrap" gap="sm" p="md">
-							<Text size="sm" c="dimmed">
+						<Stack direction="row" flexWrap="wrap" justifyContent="space-between" alignItems="center" sx={{ p: 2, gap: 1 }}>
+							<Typography variant="body2" color="text.secondary">
 								Showing {menuData.length} of {totalData.toLocaleString()}
-							</Text>
-							<Pagination
-								value={currentPage}
-								onChange={handlePageChange}
-								total={totalPages || 1}
-								siblings={1}
-								radius="md"
-							/>
-						</Flex>
-					</Paper>
+							</Typography>
+						<Pagination
+							page={currentPage}
+							onChange={handlePageChange}
+							count={totalPages || 1}
+							shape="rounded"
+							color="primary"
+						/>
+						</Stack>
+					</MainCard>
 				</Stack>
+				</PageContainer>
 			)}
 
-			<Modal
-				size={'xl'}
-				opened={addAudiobookOpened}
+			<Dialog
+				open={addAudiobookOpened}
 				onClose={closeAddAudiobook}
-				title="Add Audiobook"
-				centered
-				classNames={{ title: 'mantine-modal-title', close: 'mantine-modal-close' }}
+				maxWidth="lg"
+				fullWidth
+				scroll="paper"
+				PaperProps={{ sx: { borderRadius: 2, maxHeight: 'min(90vh, 920px)' } }}
 			>
-				<AudiobookUploadForm token={token} selectionList={selectionList} />
-			</Modal>
+				<DialogTitle
+					sx={{
+						display: 'flex',
+						alignItems: 'center',
+						justifyContent: 'space-between',
+						fontWeight: 600,
+						py: 1.5,
+					}}
+				>
+					Add audiobook
+					<IconButton aria-label="Close" size="small" onClick={closeAddAudiobook}>
+						<IconX size={18} />
+					</IconButton>
+				</DialogTitle>
+				<DialogContent dividers sx={{ px: { xs: 2, sm: 3 }, py: 2 }}>
+					<AudiobookUploadForm token={token} selectionList={selectionList} formId="audiobook-add-form" />
+				</DialogContent>
+				<DialogActions sx={{ px: 3, py: 2, gap: 1 }}>
+					<Button variant="outlined" color="inherit" onClick={closeAddAudiobook}>
+						Cancel
+					</Button>
+					<Button variant="contained" type="submit" form="audiobook-add-form">
+						Create audiobook
+					</Button>
+				</DialogActions>
+			</Dialog>
 
-			<Modal
-				size={'xl'}
-				opened={editAudiobookOpened}
+			<Dialog
+				open={editAudiobookOpened}
 				onClose={closeEditAudiobook}
-				title="Edit Audiobook"
-				centered
-				classNames={{ title: 'mantine-modal-title', close: 'mantine-modal-close' }}
+				maxWidth="lg"
+				fullWidth
+				scroll="paper"
+				PaperProps={{ sx: { borderRadius: 2, maxHeight: 'min(90vh, 920px)' } }}
 			>
-				<AudiobookEditForm audiobook={audiobookDetails} selectionList={selectionList} />
-			</Modal>
-
-			<Modal
-				size={'80%'}
-				opened={assignOpened}
-				onClose={closeAssign}
-				title="Episode List"
-				centered
-				classNames={{ title: 'mantine-modal-title', close: 'mantine-modal-close' }}
-			>
-				<EpisodesEditForm
-					audiobook={audiobookDetails}
-					episodes={episodes}
-					closeAssign={closeAssign}
-				/>
-			</Modal>
-			<Modal
-				size={'95%'}
-				opened={viewAudiobookOpened}
-				onClose={closeViewAudiobook}
-				title="Audiobook View"
-				centered
-				classNames={{ title: 'mantine-modal-title', close: 'mantine-modal-close' }}
-				style={{ fontSize: '12px' }}
-			>
-				<div style={{ display: 'flex', gap: 20 }}>
-					<div style={{ width: '33.33%' }}>
-						<Image
-							src={audiobookDetails?.thumb_path}
-							alt={audiobookDetails?.thumb_path}
-							radius={5}
+				<DialogTitle
+					sx={{
+						display: 'flex',
+						alignItems: 'center',
+						justifyContent: 'space-between',
+						fontWeight: 600,
+						py: 1.5,
+					}}
+				>
+					Edit audiobook
+					<IconButton aria-label="Close" size="small" onClick={closeEditAudiobook}>
+						<IconX size={18} />
+					</IconButton>
+				</DialogTitle>
+				<DialogContent dividers sx={{ px: { xs: 2, sm: 3 }, py: 2 }}>
+					{audiobookDetails ? (
+						<AudiobookEditForm
+							audiobook={audiobookDetails}
+							selectionList={selectionList}
+							formId="audiobook-edit-form"
 						/>
-					</div>
-					<div
-						style={{
-							display: 'flex',
-							flexDirection: 'column',
-							width: '66.67%',
-							gap: 10,
-						}}
-					>
-						<Text style={{ fontSize: 32, fontWeight: 100 }}>{audiobookDetails?.id}</Text>
-						<Text style={{ fontSize: 32, fontWeight: 100 }}>{audiobookDetails?.name}</Text>
-						<div
-							className="text-ellipsis"
-							style={{
-								maxHeight: '110px',
-								whiteSpace: 'wrap',
-								overflow: 'hidden',
-								textOverflow: 'ellipsis',
-								fontSize: '14px',
-								display: '-webkit-box',
+					) : null}
+				</DialogContent>
+				<DialogActions sx={{ px: 3, py: 2, gap: 1 }}>
+					<Button variant="outlined" color="inherit" onClick={closeEditAudiobook}>
+						Cancel
+					</Button>
+					<Button variant="contained" type="submit" form="audiobook-edit-form">
+						Save changes
+					</Button>
+				</DialogActions>
+			</Dialog>
+
+			<Dialog
+				maxWidth="md"
+				fullWidth
+				open={assignOpened}
+				onClose={closeAssign}
+				scroll="paper"
+				PaperProps={{ sx: { borderRadius: 2, maxHeight: 'min(90vh, 880px)' } }}
+			>
+				<DialogTitle
+					sx={{
+						display: 'flex',
+						alignItems: 'flex-start',
+						justifyContent: 'space-between',
+						fontWeight: 600,
+						py: 1.5,
+						gap: 1,
+					}}
+				>
+					<Box>
+						<Typography variant="h6" fontWeight={600} lineHeight={1.3}>
+							Episodes
+						</Typography>
+						<Typography variant="body2" color="text.secondary" noWrap title={audiobookDetails?.name}>
+							{audiobookDetails?.name ?? 'Audiobook'}
+						</Typography>
+					</Box>
+					<IconButton aria-label="Close" size="small" onClick={closeAssign}>
+						<IconX size={18} />
+					</IconButton>
+				</DialogTitle>
+				<DialogContent dividers sx={{ px: { xs: 2, sm: 3 }, py: 2 }}>
+					{audiobookDetails ? (
+						<EpisodesEditForm
+							audiobook={audiobookDetails}
+							episodes={episodes}
+							closeAssign={closeAssign}
+						/>
+					) : null}
+				</DialogContent>
+				<DialogActions sx={{ px: 3, py: 2 }}>
+					<Button variant="outlined" color="inherit" onClick={closeAssign}>
+						Close
+					</Button>
+				</DialogActions>
+			</Dialog>
+
+		<Dialog maxWidth="xl" fullWidth open={viewAudiobookOpened} onClose={closeViewAudiobook}>
+			<DialogTitle sx={{ fontWeight: 600, pb: 1 }}>
+				<Stack direction="row" alignItems="center" spacing={1}>
+					<Chip label={`#${audiobookDetails?.id}`} size="small" variant="outlined" sx={{ fontFamily: 'monospace' }} />
+					<Typography variant="h6" fontWeight={600} noWrap>{audiobookDetails?.name}</Typography>
+				</Stack>
+			</DialogTitle>
+			<DialogContent dividers>
+				{/* Hero section */}
+				<Grid container spacing={3} sx={{ mb: 3 }}>
+					<Grid item xs={12} sm="auto">
+						<Box
+							component="img"
+							src={audiobookDetails?.thumb_path}
+							alt={audiobookDetails?.name || 'Audiobook cover'}
+							sx={{
+								width: 180,
+								height: 220,
+								objectFit: 'cover',
+								borderRadius: 2,
+								border: '1px solid',
+								borderColor: 'divider',
+								display: 'block',
 							}}
-						>
-							{audiobookDetails?.description}
-						</div>
-						<Text>Price: {Number(audiobookDetails?.price)} Tk</Text>
-						<Text>
-							Publisher:{' '}
-							{audiobookDetails?.publisher_id
-								? (
-										selectionList.publisherList.find(
-											(p: { label: string; value: string }) =>
-												Number(p.value) === audiobookDetails.publisher_id,
-										) as any
-									)?.label
-								: 'BLANK'}
-						</Text>
-						<Text>
-							Artists:{' '}
-							<span>
-								{audiobookDetails?.contributing_artists
-									.split(',')
-									.map((n: string) => n.trim())
-									.join(', ')}
-							</span>
-						</Text>
-					</div>
-				</div>
-				<Table.ScrollContainer minWidth={800} style={{ marginTop: '30px' }}>
-					<Table>
-						<Table.Thead>
-							<Table.Tr>
-								<Table.Th>Id</Table.Th>
-								<Table.Th>Name</Table.Th>
-								<Table.Th>Free</Table.Th>
-								<Table.Th>Duration</Table.Th>
-								<Table.Th>Created At</Table.Th>
-								<Table.Th>Updated At</Table.Th>
-								<Table.Th>Audio Filepath</Table.Th>
-								<Table.Th>Background Music Filepath</Table.Th>
-							</Table.Tr>
-						</Table.Thead>
-						<Table.Tbody>
-							{episodes?.map((element: Episode) => (
-								<Table.Tr key={element.id}>
-									<Table.Td>{element.id}</Table.Td>
-									<Table.Td>{element.name}</Table.Td>
-									<Table.Td>
-										<Switch checked={element.isfree ? true : false} />
-									</Table.Td>
-									<Table.Td>{element.duration}s</Table.Td>
-									<Table.Td>{moment(element.created_at).format('DD MMMM YYYY')}</Table.Td>
-									<Table.Td>{moment(element.updated_at).format('DD MMMM YYYY')}</Table.Td>
-									<Table.Td>
-										<Flex>
-											<div
-												className="single-line-ellipsis"
-												style={{
-													border: '1px solid #5553',
-													width: '150px',
-													borderRadius: '5px',
-													padding: '5px 10px',
+						/>
+					</Grid>
+					<Grid item xs={12} sm>
+						<Stack spacing={1.5}>
+							<Box>
+								<Typography variant="caption" color="text.secondary" fontWeight={600} textTransform="uppercase">
+									Bengali Title
+								</Typography>
+								<Typography variant="h6" fontWeight={600} lineHeight={1.3}>
+									{audiobookDetails?.name}
+								</Typography>
+							</Box>
+							{audiobookDetails?.en_name && (
+								<Box>
+									<Typography variant="caption" color="text.secondary" fontWeight={600} textTransform="uppercase">
+										English Title
+									</Typography>
+									<Typography variant="body1">{audiobookDetails.en_name}</Typography>
+								</Box>
+							)}
+							<Stack direction="row" flexWrap="wrap" gap={2}>
+								<Box>
+									<Typography variant="caption" color="text.secondary" fontWeight={600} textTransform="uppercase">
+										Price
+									</Typography>
+									<Typography variant="body1" fontWeight={700} color="primary.main">
+										৳ {Number(audiobookDetails?.price)}
+									</Typography>
+								</Box>
+								<Box>
+									<Typography variant="caption" color="text.secondary" fontWeight={600} textTransform="uppercase">
+										Publisher
+									</Typography>
+									<Typography variant="body1">
+										{audiobookDetails?.publisher_id
+											? (
+													selectionList.publisherList.find(
+														(p: { label: string; value: string }) =>
+															Number(p.value) === audiobookDetails.publisher_id,
+													) as any
+												)?.label ?? '—'
+											: '—'}
+									</Typography>
+								</Box>
+							</Stack>
+							{audiobookDetails?.contributing_artists && (
+								<Box>
+									<Typography variant="caption" color="text.secondary" fontWeight={600} textTransform="uppercase">
+										Artists
+									</Typography>
+									<Stack direction="row" flexWrap="wrap" gap={0.5} mt={0.5}>
+										{audiobookDetails.contributing_artists
+											.split(',')
+											.map((n: string, i: number) => (
+												<Chip key={i} label={n.trim()} size="small" variant="outlined" />
+											))}
+									</Stack>
+								</Box>
+							)}
+							{audiobookDetails?.description && (
+								<Box>
+									<Typography variant="caption" color="text.secondary" fontWeight={600} textTransform="uppercase">
+										Description
+									</Typography>
+									<Typography
+										variant="body2"
+										color="text.secondary"
+										sx={{
+											display: '-webkit-box',
+											WebkitLineClamp: 4,
+											WebkitBoxOrient: 'vertical',
+											overflow: 'hidden',
+											mt: 0.25,
+										}}
+									>
+										{audiobookDetails.description}
+									</Typography>
+								</Box>
+							)}
+						</Stack>
+					</Grid>
+				</Grid>
+
+				<Divider sx={{ mb: 2 }} />
+				<Typography variant="subtitle2" fontWeight={700} sx={{ mb: 1.5 }}>
+					Episodes ({episodes?.length ?? 0})
+				</Typography>
+
+				{!episodes?.length ? (
+					<Paper variant="outlined" sx={{ py: 4, textAlign: 'center', borderRadius: 2, borderStyle: 'dashed' }}>
+						<Typography variant="body2" color="text.secondary">No episodes for this audiobook.</Typography>
+					</Paper>
+				) : (
+					<Grid container spacing={1.5}>
+						{episodes.map((element: Episode, index: number) => (
+							<Grid item xs={12} key={element.id}>
+								<Paper variant="outlined" sx={{ p: 1.5, borderRadius: 2 }}>
+									<Stack direction={{ xs: 'column', md: 'row' }} spacing={1.5} justifyContent="space-between">
+										<Stack direction="row" spacing={1.5} alignItems="flex-start" sx={{ minWidth: 0 }}>
+											<Box
+												sx={{
+													width: 32,
+													height: 32,
+													borderRadius: 1,
+													bgcolor: 'grey.100',
+													display: 'flex',
+													alignItems: 'center',
+													justifyContent: 'center',
+													fontWeight: 700,
+													fontSize: '0.7rem',
+													flexShrink: 0,
 												}}
 											>
-												{element.file_path}
-											</div>
-											<CopyButton value={element.file_path}>
-												{({ copied, copy }) => (
-													<Button style={{ padding: '5px' }} onClick={copy} variant="default">
-														{!copied ? <IconCopy /> : <IconCheckbox />}
-													</Button>
-												)}
-											</CopyButton>
-										</Flex>
-									</Table.Td>
-									<Table.Td>
-										{element.bgm_filepath ? (
-											<Flex>
-												<div
-													className="single-line-ellipsis"
-													style={{
-														border: '1px solid #5553',
-														width: '150px',
-														borderRadius: '5px',
-														padding: '5px 10px',
-													}}
-												>
-													{element.bgm_filepath}
-												</div>
-												<CopyButton value={element.bgm_filepath}>
-													{({ copied, copy }) => (
-														<Button style={{ padding: '5px' }} onClick={copy} variant="default">
-															{!copied ? <IconCopy /> : <IconCheckbox />}
-														</Button>
-													)}
-												</CopyButton>
-											</Flex>
-										) : (
-											'N/A'
-										)}
-									</Table.Td>
-								</Table.Tr>
-							))}
-						</Table.Tbody>
-					</Table>
-				</Table.ScrollContainer>
-			</Modal>
+												{index + 1}
+											</Box>
+											<Box sx={{ minWidth: 0 }}>
+												<Stack direction="row" alignItems="center" spacing={0.75} flexWrap="wrap">
+													<Typography variant="subtitle2" fontWeight={600}>{element.name}</Typography>
+													<Chip label={`#${element.id}`} size="small" variant="outlined" sx={{ height: 22, fontFamily: 'monospace', fontSize: '0.65rem' }} />
+													<Chip
+														label={element.isfree === 1 ? 'Free' : 'Premium'}
+														size="small"
+														color={element.isfree === 1 ? 'success' : 'default'}
+														sx={{ height: 22, fontWeight: 600, fontSize: '0.65rem' }}
+													/>
+												</Stack>
+												<Stack direction="row" alignItems="center" spacing={2} mt={0.5} flexWrap="wrap">
+													<Stack direction="row" alignItems="center" spacing={0.5} color="text.secondary">
+														<IconHeadphones size={14} />
+														<Typography variant="caption">{formatEpisodeDuration(element.duration)}</Typography>
+													</Stack>
+													<Typography variant="caption" color="text.disabled">
+														Created {moment(element.created_at).format('D MMM YYYY')}
+													</Typography>
+													<Typography variant="caption" color="text.disabled">
+														Updated {moment(element.updated_at).format('D MMM YYYY')}
+													</Typography>
+												</Stack>
+											</Box>
+										</Stack>
+										<Stack spacing={0.75} sx={{ minWidth: { md: 220 } }}>
+											<Typography variant="overline" color="text.secondary" lineHeight={1}>Audio</Typography>
+											<PathCopyCell value={element.file_path} />
+											<Typography variant="overline" color="text.secondary" lineHeight={1}>BGM</Typography>
+											{element.bgm_filepath ? (
+												<PathCopyCell value={element.bgm_filepath} />
+											) : (
+												<Typography variant="caption" color="text.disabled">N/A</Typography>
+											)}
+										</Stack>
+									</Stack>
+								</Paper>
+							</Grid>
+						))}
+					</Grid>
+				)}
+			</DialogContent>
+		</Dialog>
 		</>
 	);
 }

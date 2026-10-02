@@ -1,23 +1,40 @@
 'use client';
 
-import { zodResolver } from '@hookform/resolvers/zod';
 import {
+	Box,
 	Button,
+	Chip,
+	CircularProgress,
+	Dialog,
+	DialogContent,
+	DialogTitle,
 	Divider,
-	Flex,
-	Modal,
+	FormControlLabel,
+	Grid,
+	IconButton,
+	MenuItem,
 	Pagination,
 	Paper,
 	Select,
-	Space,
+	Stack,
 	Switch,
+	Tab,
 	Table,
+	TableBody,
+	TableCell,
+	TableContainer,
+	TableHead,
+	TableRow,
 	Tabs,
-	Text,
-	TextInput,
-	Title,
-} from '@mantine/core';
-import { useDisclosure } from '@mantine/hooks';
+	TextField,
+	Tooltip,
+	Typography,
+} from '@mui/material';
+import { PageContainer } from '@/components/PageContainer/PageContainer';
+import { MainCard } from '@/components/mantis/MainCard';
+import { DataSelect } from '@/components/Form/DataSelect';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { useDisclosure } from '@/hooks/use-disclosure';
 import moment from 'moment';
 import { useCallback, useEffect, useState } from 'react';
 import { FieldErrors, useFieldArray, useForm } from 'react-hook-form';
@@ -26,7 +43,6 @@ import { z } from 'zod';
 import { CustomDatePicker } from '@/components/Form/CustomDatePicker';
 import { CustomNumberInput } from '@/components/Form/CustomNumberInput';
 import { CustomSelect } from '@/components/Form/CustomSelect';
-import Loader from '@/components/Loader';
 import {
 	addBinMapping,
 	getAllPromocode,
@@ -113,8 +129,14 @@ const listOfBinsFormSchema = z.object({
 
 type ListOfBinsFormData = z.infer<typeof listOfBinsFormSchema>;
 
+const PACKAGE_LABEL: Record<string, string> = { '1': 'Monthly', '2': 'Half Yearly', '3': 'Yearly' };
+const PROMO_TYPE_COLOR: Record<string, 'default' | 'primary' | 'secondary'> = {
+	global: 'primary',
+	card: 'secondary',
+};
+
 export default function PromoCode() {
-	const [activeTab, setActiveTab] = useState<string | null>('all');
+	const [activeTab, setActiveTab] = useState<string>('all');
 	const [promocodeType, setPromocodeType] = useState<string>('all');
 	const [date, setDate] = useState({
 		startDate: moment(moment().dayOfYear(1)).format('YYYY-MM-DD'),
@@ -131,7 +153,7 @@ export default function PromoCode() {
 	const [promoType, setPromoType] = useState('');
 	const [bankName, setBankName] = useState('');
 	const [data, setData] = useState<{ promocodeList: any[]; total: number } | null>(null);
-	const [price, setPrice]: any = useState();
+	const [price, setPrice] = useState<any>();
 	const [value, setValue] = useState<any>();
 	const [allPromocode, setAllPromocode] = useState<{ label: string; value: string }[]>([]);
 	const [mapBinDetails, setMapBinDetails] = useState<any>(null);
@@ -162,10 +184,7 @@ export default function PromoCode() {
 		formState: { errors: errorsBinMap },
 	} = useForm<BinMapFormData>({
 		resolver: zodResolver(binMapFormSchema),
-		defaultValues: {
-			cardType: null,
-			binNumber: 0,
-		},
+		defaultValues: { cardType: null, binNumber: 0 },
 	});
 	const {
 		control: controlListOfBins,
@@ -174,14 +193,9 @@ export default function PromoCode() {
 		reset: resetListOfBins,
 	} = useForm<ListOfBinsFormData>({
 		resolver: zodResolver(listOfBinsFormSchema),
-		defaultValues: {
-			bins: [{ binNumber: 0 }],
-		},
+		defaultValues: { bins: [{ binNumber: 0 }] },
 	});
-	const { fields, append, remove } = useFieldArray({
-		name: 'bins',
-		control: controlListOfBins,
-	});
+	const { fields, append, remove } = useFieldArray({ name: 'bins', control: controlListOfBins });
 
 	const getPromoList = useCallback(async () => {
 		setLoading(true);
@@ -190,7 +204,7 @@ export default function PromoCode() {
 			offset,
 			startDate: date.startDate,
 			endDate: date.endDate,
-			promocode: promocode,
+			promocode,
 			promocodeType: promocodeType as 'all' | 'activated' | 'deactivated',
 		});
 		setData(data);
@@ -205,11 +219,9 @@ export default function PromoCode() {
 	const fetchAllPromocodes = useCallback(async () => {
 		setLoading(true);
 		const list = await getAllPromocode();
-		const allPromocode = list?.map((p: string) => ({
-			label: p,
-			value: p,
-		}));
-		setAllPromocode(allPromocode);
+		// Guard: API may return error object or null instead of array
+		const safeList = Array.isArray(list) ? list : [];
+		setAllPromocode(safeList.map((p: string) => ({ label: p, value: p })));
 		setLoading(false);
 	}, []);
 
@@ -232,47 +244,39 @@ export default function PromoCode() {
 		setLoading(false);
 	};
 
-	const handlePageChange = (e: any) => {
-		const offsetCount = (e - 1) * limit;
-		setCurrentPage(e);
-		setOffset(offsetCount);
+	const handlePageChange = (_: any, p: number) => {
+		setCurrentPage(p);
+		setOffset((p - 1) * limit);
 	};
 
 	const addPromoCode = async (e: any) => {
 		e.preventDefault();
-
 		try {
-			let data = {
+			const payload = {
 				promocode: addingPromo.trim() ?? '',
 				reduce_price: price ?? '',
 				for_package: value ?? '',
 				promo_type: promoType ?? '',
 				bank_name: bankName ?? '',
 			};
-
 			const response = await fetch(`/api/routes/addpromo`, {
 				method: 'POST',
-				body: JSON.stringify(data),
-				headers: {
-					'Content-Type': 'application/json',
-				},
+				body: JSON.stringify(payload),
+				headers: { 'Content-Type': 'application/json' },
 			});
-
-			let activityLogPayload = {
+			createActivityLog({
 				name: 'addPromoCode',
 				action_type: 'create',
-				payload: JSON.stringify({ data }),
+				payload: JSON.stringify({ data: payload }),
 				api_end_point: '/api/routes/addpromo',
-			};
-			createActivityLog(activityLogPayload);
+			});
 			const apidata = await response.json();
-
 			if (apidata?.statusCode === 201) {
 				createToast2(apidata?.message);
 				getPromoList();
 				fetchAllPromocodes();
 				closeAddPromo();
-				setPromocode('');
+				setAddingPromo('');
 				setPrice('');
 				setValue('');
 				setPromoType('');
@@ -329,18 +333,11 @@ export default function PromoCode() {
 			const data = await addBinMapping(refinedBinFormData);
 			if (data?.status === 200) {
 				createToast2(data?.message);
-				resetBinMap({
-					cardType: '',
-					binNumber: 0,
-				});
 				closeBinMappingModal();
 			} else {
 				createToast('Could not add bin mapping');
 			}
-			resetBinMap({
-				cardType: null,
-				binNumber: 0,
-			});
+			resetBinMap({ cardType: null, binNumber: 0 });
 		} catch (err) {
 			console.error(err);
 		}
@@ -357,9 +354,7 @@ export default function PromoCode() {
 			const data = await addBinMapping(refinedFormData, false);
 			if (data?.status === 200) {
 				createToast2(data?.message);
-				resetListOfBins({
-					bins: [{ binNumber: 0 }],
-				});
+				resetListOfBins({ bins: [{ binNumber: 0 }] });
 				closeBinMappingModal();
 			} else {
 				createToast(data?.message);
@@ -369,387 +364,377 @@ export default function PromoCode() {
 		}
 	};
 
-	const rows = data?.promocodeList?.map((element: any) => {
-		return (
-			<>
-				<Table.Tr key={element.id}>
-					<Table.Td>
-						<Text>{element.promo_code}</Text>
-					</Table.Td>
-					<Table.Td>
-						<Text>{element.promo_type.charAt(0).toUpperCase() + element.promo_type.slice(1)}</Text>
-					</Table.Td>
-
-					<Table.Td>
-						<Text>
-							{element.for_package === '1'
-								? 'Monthly'
-								: element.for_package === '2'
-									? 'Half Yearly'
-									: 'Yearly'}
-						</Text>
-					</Table.Td>
-					<Table.Td>BDT. {element.reduce_price}</Table.Td>
-					<Table.Td>{element.promo_count}</Table.Td>
-					<Table.Td>
-						<Switch
-							checked={element.status}
-							onChange={() => handleTogglePromocodeActivity(element)}
-							style={{ cursor: 'pointer' }}
-						/>
-					</Table.Td>
-					<Table.Td>
-						<Flex gap={10}>
-							<Button
-								onClick={() => {
-									setExtraDetails(element);
-									openExtraDetailsModal();
-								}}
-							>
-								Details
-							</Button>
-							{element.promo_type === 'card' ? (
-								<Button
-									onClick={() => {
-										setMapBinDetails(element);
-										openBinMappingModal();
-									}}
-								>
-									Map BIN
-								</Button>
-							) : (
-								<></>
-							)}
-						</Flex>
-					</Table.Td>
-				</Table.Tr>
-			</>
-		);
-	});
-
 	return (
-		<>
-			{loading ? (
-				<Loader />
-			) : (
-				<>
-					<Flex justify={'space-between'}>
-						<Title order={1} style={{ marginBottom: 20 }}>
-							Promo Code Details
-						</Title>
-						<Button onClick={openAddPromo} variant="filled">
-							Add Promo
-						</Button>
-					</Flex>
+		<PageContainer title="Promo Code Details" items={[{ label: 'Promocode', href: '/dashboard/promocode' }]}>
+			<Stack spacing={3}>
+				{/* Header */}
+				<Stack direction="row" justifyContent="space-between" alignItems="center">
+					<Typography variant="h5" fontWeight={600}>
+						Promo Codes
+					</Typography>
+					<Button onClick={openAddPromo} variant="contained" size="medium">
+						+ Add Promo
+					</Button>
+				</Stack>
+
+				{/* Filter Card */}
+				<Paper elevation={0} sx={{ p: 3, border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
+					<Typography variant="subtitle2" color="text.secondary" mb={2}>
+						Filter
+					</Typography>
 					<form onSubmit={handleSubmit(onSubmitDateRangeFilter, err => console.error(err))}>
-						<Flex direction={'column'} gap={20}>
-							<Flex gap={20} direction={{ base: 'column', sm: 'row' }}>
-								<div style={{ flexGrow: 1 }}>
-									<CustomDatePicker
-										label="Start Date"
-										name="startDate"
-										placeholder="Select a date"
-										control={control}
-										clearable
-										error={(errors.startDate && errors.startDate.message) as string}
-									/>
-								</div>
-								<div style={{ flexGrow: 1 }}>
-									<CustomDatePicker
-										label="End Date"
-										name="endDate"
-										placeholder="Select a date"
-										control={control}
-										clearable
-										error={(errors.endDate && errors.endDate.message) as string}
-									/>
-								</div>
-								<div style={{ flexGrow: 1 }}>
-									<CustomSelect
-										label="Promocode"
-										name="promocode"
-										control={control}
-										placeholder="Select a promocode"
-										data={allPromocode}
-										error={(errors.promocode && errors.promocode.message) as string}
-										clearable
-										searchable
-									/>
-								</div>
-							</Flex>
-							<Flex gap={20}>
-								<Button type="submit" disabled={isSubmitting}>
-									Filter
-								</Button>
-								<Button onClick={handleResetFilter}>Reset</Button>
-							</Flex>
-						</Flex>
+						<Grid container spacing={2} alignItems="flex-end">
+							<Grid item xs={12} sm={4}>
+								<CustomDatePicker
+									label="Start Date"
+									name="startDate"
+									placeholder="Select a date"
+									control={control}
+									clearable
+									error={(errors.startDate && errors.startDate.message) as string}
+								/>
+							</Grid>
+							<Grid item xs={12} sm={4}>
+								<CustomDatePicker
+									label="End Date"
+									name="endDate"
+									placeholder="Select a date"
+									control={control}
+									clearable
+									error={(errors.endDate && errors.endDate.message) as string}
+								/>
+							</Grid>
+							<Grid item xs={12} sm={4}>
+								<CustomSelect
+									label="Promocode"
+									name="promocode"
+									control={control}
+									placeholder="Select a promocode"
+									data={allPromocode}
+									error={(errors.promocode && errors.promocode.message) as string}
+									clearable
+									searchable
+								/>
+							</Grid>
+							<Grid item xs={12}>
+								<Stack direction="row" spacing={1}>
+									<Button type="submit" variant="contained" disabled={isSubmitting}>
+										Apply Filter
+									</Button>
+									<Button variant="outlined" onClick={handleResetFilter}>
+										Reset
+									</Button>
+								</Stack>
+							</Grid>
+						</Grid>
 					</form>
-					<Tabs value={activeTab} onChange={setActiveTab} mt={20}>
-						<Tabs.List>
-							<Tabs.Tab
-								value="all"
-								onClick={() => {
-									setPromocodeType('all');
-									setCurrentPage(1);
-									setOffset(0);
-								}}
-							>
-								All
-							</Tabs.Tab>
-							<Tabs.Tab
-								value="activated"
-								onClick={() => {
-									setPromocodeType('activated');
-									setCurrentPage(1);
-									setOffset(0);
-								}}
-							>
-								Activated
-							</Tabs.Tab>
-							<Tabs.Tab
-								value="deactivated"
-								onClick={() => {
-									setPromocodeType('deactivated');
-									setCurrentPage(1);
-									setOffset(0);
-								}}
-							>
-								Deactivated
-							</Tabs.Tab>
-						</Tabs.List>
-					</Tabs>
-					<Space h="md" />
-					<Paper withBorder radius="md" p="md">
-						<Table.ScrollContainer minWidth={800}>
-							<Table>
-								<Table.Thead>
-									<Table.Tr>
-										<Table.Th>Promo Code</Table.Th>
-										<Table.Th>Promo Type</Table.Th>
-										<Table.Th>Package</Table.Th>
-										<Table.Th>Discount Price</Table.Th>
-										<Table.Th>Count</Table.Th>
-										<Table.Th>Toggle Activity</Table.Th>
-										<Table.Th>Action</Table.Th>
-									</Table.Tr>
-								</Table.Thead>
-								<Table.Tbody>{rows}</Table.Tbody>
-							</Table>
-						</Table.ScrollContainer>
+				</Paper>
 
-						<Divider my="sm" />
-						<Pagination
-							value={currentPage}
-							total={getTotalPageNumber(data?.total!)}
-							onChange={handlePageChange}
-							siblings={1}
-						/>
-					</Paper>
+				{/* Tabs + Table */}
+				<Paper elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2, overflow: 'hidden' }}>
+					<Box sx={{ borderBottom: '1px solid', borderColor: 'divider', px: 2 }}>
+						<Tabs
+							value={activeTab}
+							onChange={(_, v) => {
+								setActiveTab(v);
+								setPromocodeType(v);
+								setCurrentPage(1);
+								setOffset(0);
+							}}
+						>
+							<Tab label="All" value="all" />
+							<Tab label="Activated" value="activated" />
+							<Tab label="Deactivated" value="deactivated" />
+						</Tabs>
+					</Box>
 
-					<Modal
-						opened={addPromoOpened}
-						onClose={closeAddPromo}
-						title="Add Promo Code"
-						centered
-						size="md"
-						classNames={{
-							title: 'mantine-modal-title',
-							close: 'mantine-modal-close',
-						}}
-					>
-						<form onSubmit={addPromoCode}>
-							<TextInput
+					{loading ? (
+						<Stack alignItems="center" sx={{ py: 8 }}>
+							<CircularProgress />
+						</Stack>
+					) : (
+						<>
+							<TableContainer>
+								<Table>
+									<TableHead>
+										<TableRow sx={{ '& th': { fontWeight: 600, bgcolor: 'grey.50' } }}>
+											<TableCell>Promo Code</TableCell>
+											<TableCell>Promo Type</TableCell>
+											<TableCell>Package</TableCell>
+											<TableCell>Discount Price</TableCell>
+											<TableCell align="center">Count</TableCell>
+											<TableCell align="center">Active</TableCell>
+											<TableCell align="center">Actions</TableCell>
+										</TableRow>
+									</TableHead>
+									<TableBody>
+										{data?.promocodeList?.length === 0 && (
+											<TableRow>
+												<TableCell colSpan={7} align="center" sx={{ py: 6, color: 'text.secondary' }}>
+													No promo codes found.
+												</TableCell>
+											</TableRow>
+										)}
+										{data?.promocodeList?.map((element: any) => (
+											<TableRow key={element.id} hover>
+												<TableCell>
+													<Typography variant="body2" fontWeight={500} fontFamily="monospace">
+														{element.promo_code}
+													</Typography>
+												</TableCell>
+												<TableCell>
+													<Chip
+														label={element.promo_type.charAt(0).toUpperCase() + element.promo_type.slice(1)}
+														color={PROMO_TYPE_COLOR[element.promo_type] ?? 'default'}
+														size="small"
+														variant="outlined"
+													/>
+												</TableCell>
+												<TableCell>
+													<Typography variant="body2">
+														{PACKAGE_LABEL[element.for_package] ?? element.for_package}
+													</Typography>
+												</TableCell>
+												<TableCell>
+													<Typography variant="body2" fontWeight={500}>
+														BDT {element.reduce_price}
+													</Typography>
+												</TableCell>
+												<TableCell align="center">
+													<Chip label={element.promo_count} size="small" />
+												</TableCell>
+												<TableCell align="center">
+													<Switch
+														checked={element.status}
+														onChange={() => handleTogglePromocodeActivity(element)}
+														size="small"
+													/>
+												</TableCell>
+												<TableCell align="center">
+													<Stack direction="row" spacing={1} justifyContent="center">
+														<Button
+															size="small"
+															variant="outlined"
+															onClick={() => {
+																setExtraDetails(element);
+																openExtraDetailsModal();
+															}}
+														>
+															Details
+														</Button>
+														{element.promo_type === 'card' && (
+															<Button
+																size="small"
+																variant="outlined"
+																color="secondary"
+																onClick={() => {
+																	setMapBinDetails(element);
+																	openBinMappingModal();
+																}}
+															>
+																Map BIN
+															</Button>
+														)}
+													</Stack>
+												</TableCell>
+											</TableRow>
+										))}
+									</TableBody>
+								</Table>
+							</TableContainer>
+
+							<Divider />
+							<Box sx={{ p: 2, display: 'flex', justifyContent: 'flex-end' }}>
+								<Pagination
+									page={currentPage}
+									count={getTotalPageNumber(data?.total!)}
+									onChange={handlePageChange}
+									shape="rounded"
+									color="primary"
+								/>
+							</Box>
+						</>
+					)}
+				</Paper>
+			</Stack>
+
+			{/* Add Promo Dialog */}
+			<Dialog open={addPromoOpened} onClose={closeAddPromo} maxWidth="sm" fullWidth>
+				<DialogTitle sx={{ fontWeight: 600 }}>Add Promo Code</DialogTitle>
+				<DialogContent>
+					<form onSubmit={addPromoCode}>
+						<Stack spacing={2} sx={{ mt: 1 }}>
+							<TextField
 								label="Promo Code"
 								value={addingPromo}
-								py={10}
 								onChange={e => setAddingPromo(e.target.value)}
 								required
-								placeholder="Promo Code"
+								fullWidth
+								size="small"
+								placeholder="e.g. SUMMER25"
 							/>
-
-							<Select
+							<DataSelect
 								label="Package Name"
 								required
-								py={10}
 								data={[
 									{ value: '1', label: 'Monthly' },
 									{ value: '2', label: 'Half Yearly' },
 									{ value: '3', label: 'Yearly' },
 								]}
-								placeholder="Pick a value"
+								placeholder="Pick a package"
 								value={value}
-								onChange={(option: any) => {
-									setValue(option);
-								}}
+								onChange={(option: any) => setValue(option)}
 							/>
-
-							<Select
+							<DataSelect
 								label="Promo Type"
-								py={10}
 								required
 								data={[
 									{ value: 'global', label: 'Global' },
 									{ value: 'card', label: 'Card' },
 								]}
-								placeholder="Pick a value"
+								placeholder="Pick a type"
 								value={promoType}
-								onChange={(option: any) => {
-									setPromoType(option);
-								}}
+								onChange={(option: any) => setPromoType(option)}
 							/>
-
 							{promoType === 'card' && (
-								<>
-									<TextInput
-										label="Bank Name"
-										py={10}
-										value={bankName}
-										onChange={e => setBankName(e.target.value)}
-										required
-										placeholder="Bank Name"
-									/>
-								</>
+								<TextField
+									label="Bank Name"
+									value={bankName}
+									onChange={e => setBankName(e.target.value)}
+									required
+									fullWidth
+									size="small"
+									placeholder="Bank Name"
+								/>
 							)}
-
-							<TextInput
+							<TextField
 								label="Discount Price"
-								py={10}
 								value={price}
 								onChange={e => setPrice(e.target.value)}
 								required
-								placeholder="Price"
+								fullWidth
+								size="small"
+								placeholder="e.g. 100"
+								type="number"
 							/>
-							<Button type="submit" py={10}>
-								Create
+							<Button type="submit" variant="contained" fullWidth>
+								Create Promo Code
 							</Button>
-						</form>
-					</Modal>
-					<Modal
-						title="Bin Mapping"
-						opened={binMappingModalOpened}
-						onClose={closeBinMappingModal}
-						size={'md'}
-						centered
-						classNames={{
-							title: 'mantine-modal-title',
-							close: 'mantine-modal-close',
-						}}
-					>
-						<Paper shadow="xs" p="xl">
-							<Switch
-								mb={'md'}
-								label="Map Bins without Card Type"
-								checked={binMapWithoutCardType}
-								onChange={() => setBinMapWithoutCardType(prev => !prev)}
-							/>
-							{!binMapWithoutCardType ? (
-								<form
-									onSubmit={handleSubmitBinMap(handleBinMapSubmitForm, err => console.error(err))}
-								>
-									<Flex gap="md" direction={'column'}>
-										<CustomSelect
-											label="Card Type"
-											name="cardType"
-											control={controlBinMap}
-											placeholder="Pick a value"
-											data={[
-												{ value: 'platinum', label: 'Platinum' },
-												{ value: 'gold', label: 'Gold' },
-												{ value: 'classic', label: 'Classic' },
-												{ value: 'prepaid', label: 'Prepaid' },
-												{ value: 'debit_card', label: 'Debit Card' },
-											]}
-											clearable
-											error={(errorsBinMap.cardType && errorsBinMap.cardType.message) as string}
-										/>
-										<CustomNumberInput
-											label="Bin Number"
-											name="binNumber"
-											control={controlBinMap}
-											placeholder="Bin Number"
-											error={(errorsBinMap.binNumber && errorsBinMap.binNumber.message) as string}
-										/>
-										<Button type="submit">Add</Button>
-									</Flex>
-								</form>
-							) : (
-								<form
-									onSubmit={handleSubmitListOfBins(handleSubmitBinListForm, err =>
-										console.error(err),
-									)}
-								>
-									<>
-										{fields.map((field, index) => {
-											return (
-												<Flex
-													key={field.id}
-													gap={'sm'}
-													mb={'md'}
-													align={'start'}
-													justify={'space-between'}
-												>
-													<CustomNumberInput
-														label="Bin Number"
-														name={`bins.${index}.binNumber`}
-														control={controlListOfBins}
-														placeholder="Bin Number"
-														error={
-															(errorsListOfBins?.bins as FieldErrors[] | undefined)?.[index]
-																?.binNumber?.message as string
-														}
-													/>
-													<Button mt={25} type="button" onClick={() => remove(index)}>
-														Remove
-													</Button>
-												</Flex>
-											);
-										})}
-									</>
-									<Flex justify={'end'} mb={'md'}>
-										<Button onClick={() => append({ binNumber: 0 })}>Append</Button>
-									</Flex>
-									<Button type="submit" fullWidth>
-										Submit
+						</Stack>
+					</form>
+				</DialogContent>
+			</Dialog>
+
+			{/* BIN Mapping Dialog */}
+			<Dialog open={binMappingModalOpened} onClose={closeBinMappingModal} maxWidth="sm" fullWidth>
+				<DialogTitle sx={{ fontWeight: 600 }}>BIN Mapping</DialogTitle>
+				<DialogContent>
+					<Stack spacing={2} sx={{ mt: 1 }}>
+						<FormControlLabel
+							control={
+								<Switch
+									checked={binMapWithoutCardType}
+									onChange={() => setBinMapWithoutCardType(prev => !prev)}
+								/>
+							}
+							label="Map without card type"
+						/>
+						{!binMapWithoutCardType ? (
+							<form onSubmit={handleSubmitBinMap(handleBinMapSubmitForm, err => console.error(err))}>
+								<Stack spacing={2}>
+									<CustomSelect
+										label="Card Type"
+										name="cardType"
+										control={controlBinMap}
+										placeholder="Pick a value"
+										data={[
+											{ value: 'platinum', label: 'Platinum' },
+											{ value: 'gold', label: 'Gold' },
+											{ value: 'classic', label: 'Classic' },
+											{ value: 'prepaid', label: 'Prepaid' },
+											{ value: 'debit_card', label: 'Debit Card' },
+										]}
+										clearable
+										error={(errorsBinMap.cardType && errorsBinMap.cardType.message) as string}
+									/>
+									<CustomNumberInput
+										label="BIN Number"
+										name="binNumber"
+										control={controlBinMap}
+										placeholder="6-digit BIN number"
+										error={(errorsBinMap.binNumber && errorsBinMap.binNumber.message) as string}
+									/>
+									<Button type="submit" variant="contained" fullWidth>
+										Add BIN
 									</Button>
-								</form>
-							)}
-						</Paper>
-					</Modal>
-					<Modal
-						title="Details"
-						opened={extraDetailsModalOpened}
-						onClose={closeExtraDetailsModal}
-						size="xl"
-						centered
-						classNames={{
-							title: 'mantine-modal-title',
-							close: 'mantine-modal-close',
-						}}
-					>
-						<Table.ScrollContainer minWidth={200}>
-							<Table>
-								<Table.Thead>
-									<Table.Tr>
-										<Table.Th>Promocode Id</Table.Th>
-										<Table.Th>Created At</Table.Th>
-										<Table.Th>Updated At</Table.Th>
-										<Table.Th>Bank Name</Table.Th>
-									</Table.Tr>
-								</Table.Thead>
-								<Table.Tbody>
-									<Table.Tr>
-										<Table.Td>{extraDetails?.id}</Table.Td>
-										<Table.Td>{moment(extraDetails?.created_at).format('Do MMM, YYYY')}</Table.Td>
-										<Table.Td>{moment(extraDetails?.updated_at).format('Do MMM, YYYY')}</Table.Td>
-										<Table.Td>{extraDetails?.bank_name || 'N/A'}</Table.Td>
-									</Table.Tr>
-								</Table.Tbody>
-							</Table>
-						</Table.ScrollContainer>
-					</Modal>
-				</>
-			)}
-		</>
+								</Stack>
+							</form>
+						) : (
+							<form onSubmit={handleSubmitListOfBins(handleSubmitBinListForm, err => console.error(err))}>
+								<Stack spacing={2}>
+									{fields.map((field, index) => (
+										<Stack key={field.id} direction="row" spacing={1} alignItems="flex-start">
+											<Box flex={1}>
+												<CustomNumberInput
+													label="BIN Number"
+													name={`bins.${index}.binNumber`}
+													control={controlListOfBins}
+													placeholder="6-digit BIN"
+													error={
+														(errorsListOfBins?.bins as FieldErrors[] | undefined)?.[index]
+															?.binNumber?.message as string
+													}
+												/>
+											</Box>
+											<Button
+												variant="outlined"
+												color="error"
+												onClick={() => remove(index)}
+												sx={{ mt: '22px' }}
+											>
+												Remove
+											</Button>
+										</Stack>
+									))}
+									<Button variant="outlined" onClick={() => append({ binNumber: 0 })}>
+										+ Add BIN
+									</Button>
+									<Button type="submit" variant="contained" fullWidth>
+										Submit All
+									</Button>
+								</Stack>
+							</form>
+						)}
+					</Stack>
+				</DialogContent>
+			</Dialog>
+
+			{/* Extra Details Dialog */}
+			<Dialog open={extraDetailsModalOpened} onClose={closeExtraDetailsModal} maxWidth="sm" fullWidth>
+				<DialogTitle sx={{ fontWeight: 600 }}>Promo Details</DialogTitle>
+				<DialogContent>
+					<TableContainer sx={{ mt: 1 }}>
+						<Table size="small">
+							<TableHead>
+								<TableRow sx={{ '& th': { fontWeight: 600, bgcolor: 'grey.50' } }}>
+									<TableCell>Promocode ID</TableCell>
+									<TableCell>Created At</TableCell>
+									<TableCell>Updated At</TableCell>
+									<TableCell>Bank Name</TableCell>
+								</TableRow>
+							</TableHead>
+							<TableBody>
+								<TableRow>
+									<TableCell>{extraDetails?.id}</TableCell>
+									<TableCell>{moment(extraDetails?.created_at).format('Do MMM, YYYY')}</TableCell>
+									<TableCell>{moment(extraDetails?.updated_at).format('Do MMM, YYYY')}</TableCell>
+									<TableCell>{extraDetails?.bank_name || 'N/A'}</TableCell>
+								</TableRow>
+							</TableBody>
+						</Table>
+					</TableContainer>
+				</DialogContent>
+			</Dialog>
+		</PageContainer>
 	);
 }

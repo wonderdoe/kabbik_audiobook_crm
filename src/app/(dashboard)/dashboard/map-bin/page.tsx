@@ -1,4 +1,5 @@
 'use client';
+import { PageContainer } from '@/components/PageContainer/PageContainer';
 import Loader from '@/components/Loader';
 import { useState } from 'react';
 import Cookies from 'js-cookie';
@@ -23,5 +24,9 @@ export default function MapBin({ searchParams }: any) {
 		setDummy(removeItem);
 	};
 
-	return <>{loading ? <Loader /> : <></>}</>;
+	return (
+		<PageContainer title="Map Bin" items={[{ label: 'Map Bin', href: '/dashboard/map-bin' }]}>
+			{loading ? <Loader /> : null}
+		</PageContainer>
+	);
 }

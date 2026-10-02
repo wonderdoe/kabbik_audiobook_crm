@@ -1,5 +1,4 @@
-import { DateValue } from "@mantine/dates";
-
+type DateValue = Date | null;
 export type tProps={
     label:string;
     placeholder:string;

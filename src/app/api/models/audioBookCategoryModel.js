@@ -9,7 +9,8 @@ class AudioBookCategoryModel {
 			const sqlRresponse = await DB.query(sql);
 			return sqlRresponse;
 		} catch (error) {
-			console.log(error);
+			console.error(error);
+			return [];
 		}
 	};
 

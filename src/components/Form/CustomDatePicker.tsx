@@ -1,6 +1,6 @@
-import { DatePickerInput } from '@mantine/dates';
+import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { Controller } from 'react-hook-form';
-import '@mantine/dates/styles.css';
+import dayjs, { Dayjs } from 'dayjs';
 
 type CustomDatePickerProps = {
 	label: string;
@@ -8,40 +8,39 @@ type CustomDatePickerProps = {
 	placeholder: string;
 	control: any;
 	error: string;
-	clearable?: boolean;
-	withAsterisk?: boolean;
-	defaultValue?:Date
+	clearable?: boolean; required?: boolean;
+	defaultValue?: Date;
 };
 
 export const CustomDatePicker = ({
 	label,
 	name,
-	placeholder,
 	control,
-	error,
-	clearable,
-	withAsterisk,
-	defaultValue
+	error, required,
+	defaultValue,
 }: CustomDatePickerProps) => {
-	console.log(defaultValue,"defaultValue");
-	
 	return (
 		<Controller
 			name={name}
 			control={control}
-			render={({ field }) => {
-				return (
-					<DatePickerInput
-						{...field}
-						label={label}
-						placeholder={placeholder}
-						error={error}
-						clearable={clearable}
-						withAsterisk={withAsterisk}
-						defaultValue={defaultValue ?? new Date()}
-					/>
-				);
-			}}
+			defaultValue={defaultValue ?? new Date()}
+			render={({ field }) => (
+				<DatePicker
+					label={label}
+					value={field.value ? dayjs(field.value) : null}
+					onChange={(date: Dayjs | null) => field.onChange(date?.toDate() ?? null)}
+					slotProps={{
+						textField: {
+							required: required,
+							error: Boolean(error),
+							helperText: error || ' ',
+							fullWidth: true,
+							margin: 'normal',
+							size: 'small',
+						},
+					}}
+				/>
+			)}
 		/>
 	);
 };
