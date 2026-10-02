@@ -1,8 +1,8 @@
 {
-  "name": "mantine-admin",
+  "name": "kabbik-audiobook-crm",
   "version": "1.0.0",
-  "author": "Joshua Lee <jotyy318@gmail.com>",
-  "description": "A Modern Admin Dashboard made with Mantine/React/NextJS!",
+  "author": "Kabbik",
+  "description": "Kabbik Audiobook CRM — Next.js admin dashboard (MUI).",
   "lint-staged": {
     "src/**/*.+(js|jsx|ts|tsx|json|md)": [
       "pnpm run lint:fix"
@@ -37,6 +37,11 @@
     "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build",
     "worker": "node scripts/worker.mjs",
+    "verify:worker-imports": "node scripts/verify-worker-imports.mjs",
+    "validate:user-report": "node scripts/validate-user-report-metrics.mjs",
+    "benchmark:package-wise": "node scripts/benchmark-package-wise.mjs",
+    "parity:package-wise": "node scripts/compare-package-wise-parity.mjs",
+    "backfill:package-wise": "node scripts/backfill-daily-package-revenue.mjs",
     "backfill:daily-payments": "node scripts/backfill-daily-payments.mjs",
     "backfill:subscription-revenue": "node scripts/backfill-daily-subscription-revenue.mjs",
     "backfill:pgw-revenue": "node scripts/backfill-daily-pgw-revenue.mjs"
@@ -51,6 +56,7 @@
     "@mui/material": "^5.16.1",
     "@mui/material-nextjs": "^5.18.0",
     "@mui/x-date-pickers": "^7.29.4",
+    "@mui/x-tree-view": "^7.29.10",
     "@tabler/icons-react": "^2.47.0",
     "@tanstack/react-query": "5.18.1",
     "@tanstack/react-table": "^8.11.8",
@@ -69,6 +75,7 @@
     "jsonwebtoken": "^9.0.2",
     "ky": "^1.2.0",
     "log4js": "^6.9.1",
+    "lottie-react": "^3.1.2",
     "material-react-table": "^3.2.1",
     "moment": "^2.30.1",
     "mysql2": "^3.9.2",
