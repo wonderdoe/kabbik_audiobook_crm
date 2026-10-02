@@ -1,11 +1,10 @@
 'use client';
+
 import {
+	Avatar,
 	Box,
-	Card,
-	FormControl,
-	InputLabel,
-	MenuItem,
-	Select,
+	Chip,
+	Stack,
 	Tab,
 	Table,
 	TableBody,
@@ -14,10 +13,11 @@ import {
 	TableHead,
 	TableRow,
 	Tabs,
+	Tooltip,
 	Typography,
 } from '@mui/material';
+import { MainCard } from '@/components/mantis/MainCard';
 import { DataSelect } from '@/components/Form/DataSelect';
-import { IconCheck, IconX } from '@tabler/icons-react';
 import { useCallback, useEffect, useState } from 'react';
 import Swal from 'sweetalert2';
 import {
@@ -27,14 +27,23 @@ import {
 } from '@/services/services';
 import { createToast, createToast2 } from 'helpers/SweetAlert';
 
+function initials(name: string) {
+	return name
+		.split(' ')
+		.filter(Boolean)
+		.slice(0, 2)
+		.map(p => p[0]?.toUpperCase())
+		.join('');
+}
+
 export const PublisherRequests = () => {
 	const [activeTab, setActiveTab] = useState<string>('pending');
 	const [requests, setRequests] = useState<any>([]);
 	const [publishers, setPublishers] = useState<any>([]);
 
 	const getRequests = useCallback(async () => {
-		const requests = await getPublisherRequests(activeTab);
-		setRequests(requests);
+		const data = await getPublisherRequests(activeTab);
+		setRequests(data);
 	}, [activeTab]);
 
 	useEffect(() => {
@@ -43,8 +52,8 @@ export const PublisherRequests = () => {
 
 	useEffect(() => {
 		const fetchPublishers = async () => {
-			const publishers = await getPublisherList();
-			setPublishers(publishers);
+			const list = await getPublisherList();
+			setPublishers(list);
 		};
 		fetchPublishers();
 	}, []);
@@ -83,59 +92,69 @@ export const PublisherRequests = () => {
 	};
 
 	return (
-		<>
-			<Typography variant="h4" component="h1">Request Access</Typography>
-			<Box sx={{ height: 16 }} />
-			<Tabs value={activeTab}>
-				<Box>
-					<Tab value="pending" onClick={() => setActiveTab('pending')}>
-						Pending
-					</Tab>
-					<Tab value="approved" onClick={() => setActiveTab('approved')}>
-						Approved
-					</Tab>
-				</Box>
-			</Tabs>
-			<Box sx={{ height: 16 }} />
-			<Card variant="outlined">
+		<Stack spacing={2}>
+			<MainCard
+				title="Request access"
+				secondary={
+					<Tabs value={activeTab} onChange={(_, v) => setActiveTab(v)}>
+						<Tab label="Pending" value="pending" />
+						<Tab label="Approved" value="approved" />
+					</Tabs>
+				}
+			>
 				{requests.length > 0 ? (
-					<TableContainer sx={{ minWidth: 200 }}>
-						<Table>
+					<TableContainer>
+						<Table size="small">
 							<TableHead>
-								<TableRow>
-									<TableCell component="th">Full Name</TableCell>
-									<TableCell component="th">Email</TableCell>
-									<TableCell component="th">Phone</TableCell>
-									<TableCell component="th">Publisher Name</TableCell>
-									<TableCell component="th">Designation</TableCell>
-									<TableCell component="th">Address</TableCell>
-									<TableCell component="th">Approved</TableCell>
-									<TableCell component="th">{activeTab !== 'pending' ? 'Publisher' : 'Assign Publisher'}</TableCell>
+								<TableRow sx={{ '& th': { fontWeight: 700, bgcolor: 'action.hover' } }}>
+									<TableCell>Contact</TableCell>
+									<TableCell>Publisher</TableCell>
+									<TableCell>Designation</TableCell>
+									<TableCell>Address</TableCell>
+									<TableCell>Status</TableCell>
+									<TableCell>{activeTab !== 'pending' ? 'Publisher' : 'Assign publisher'}</TableCell>
 								</TableRow>
 							</TableHead>
 							<TableBody>
 								{requests.map((item: any) => (
-									<TableRow key={item.id}>
-										<TableCell>{item.full_name}</TableCell>
-										<TableCell>{item.email}</TableCell>
-										<TableCell>{item.phone}</TableCell>
+									<TableRow key={item.id} hover>
+										<TableCell>
+											<Stack direction="row" spacing={1.5} alignItems="center">
+												<Tooltip title={item.full_name}>
+													<Avatar sx={{ width: 36, height: 36, bgcolor: 'primary.main', fontSize: 14 }}>
+														{initials(item.full_name || '?')}
+													</Avatar>
+												</Tooltip>
+												<Box>
+													<Typography variant="body2" fontWeight={600}>{item.full_name}</Typography>
+													<Typography variant="caption" color="text.secondary" display="block">
+														{item.email}
+													</Typography>
+													<Typography variant="caption" color="text.secondary">{item.phone}</Typography>
+												</Box>
+											</Stack>
+										</TableCell>
 										<TableCell>{item.publisher_name}</TableCell>
 										<TableCell>{item.role}</TableCell>
 										<TableCell>{item.address || 'N/A'}</TableCell>
-										<TableCell>{item.approved ? <IconCheck /> : <IconX />}</TableCell>
+										<TableCell>
+											<Chip
+												size="small"
+												variant="outlined"
+												color={item.approved ? 'success' : 'warning'}
+												label={item.approved ? 'Approved' : 'Pending'}
+											/>
+										</TableCell>
 										<TableCell>
 											{activeTab === 'pending' ? (
 												<DataSelect
-													sx={{ maxWidth: 200 }}
+													sx={{ maxWidth: 220 }}
 													data={[
-														...publishers.map((item: any) => ({
-															value: item.id.toString(),
-															label: item.full_name,
+														...publishers.map((p: any) => ({
+															value: p.id.toString(),
+															label: p.full_name,
 														})),
-														{
-															value: 'admin',
-															label: 'Admin',
-														},
+														{ value: 'admin', label: 'Admin' },
 													]}
 													onChange={e => handleChangePublisher(e!, item)}
 												/>
@@ -149,9 +168,9 @@ export const PublisherRequests = () => {
 						</Table>
 					</TableContainer>
 				) : (
-					<Typography textAlign={'center'}>No data</Typography>
+					<Typography textAlign="center" color="text.secondary" py={4}>No data</Typography>
 				)}
-			</Card>
-		</>
+			</MainCard>
+		</Stack>
 	);
 };

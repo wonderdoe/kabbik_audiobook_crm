@@ -1,10 +1,9 @@
 'use client';
 
+import { MainCard } from '@/components/mantis/MainCard';
 import {
-	Box,
 	Chip,
 	IconButton,
-	Paper,
 	Table,
 	TableBody,
 	TableCell,
@@ -41,10 +40,11 @@ function userDisplayName(row: RewardClaimRow) {
 
 export function RewardClaimsTable({ rows, onView }: Props) {
 	return (
-		<TableContainer component={Paper} variant="outlined" sx={{ maxHeight: 560 }}>
+		<MainCard title="Claims" contentSX={{ p: 0 }}>
+		<TableContainer sx={{ maxHeight: 560 }}>
 			<Table stickyHeader size="small">
 				<TableHead>
-					<TableRow>
+					<TableRow sx={{ '& th': { fontWeight: 700, bgcolor: 'action.hover' } }}>
 						<TableCell>User</TableCell>
 						<TableCell>Phone / City</TableCell>
 						<TableCell>Tier</TableCell>
@@ -116,5 +116,6 @@ export function RewardClaimsTable({ rows, onView }: Props) {
 				</TableBody>
 			</Table>
 		</TableContainer>
+		</MainCard>
 	);
 }

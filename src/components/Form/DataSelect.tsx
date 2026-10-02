@@ -25,6 +25,8 @@ type DataSelectProps = {
 	disabled?: boolean;
 	required?: boolean;
 	error?: string;
+	fullWidth?: boolean;
+	sx?: object;
 };
 
 /** Mantine-style Select (`data`, `clearable`, `searchable`) on MUI. */
@@ -39,9 +41,15 @@ export function DataSelect({
 	disabled,
 	required,
 	error,
+	fullWidth = false,
+	sx,
 }: DataSelectProps) {
 	const options = normalize(data);
 	const autocompleteId = useId();
+	const selectId = `${autocompleteId}-select`;
+	const labelId = `${autocompleteId}-label`;
+	const hasEmptyOption = options.some(o => o.value === '');
+	const showClearOption = clearable && !hasEmptyOption;
 
 	if (searchable) {
 		return (
@@ -70,45 +78,52 @@ export function DataSelect({
 		);
 	}
 
+	const selectedValue = value ?? '';
+
 	return (
 		<TextField
 			select
-			id={autocompleteId}
+			id={selectId}
 			label={label}
 			size="small"
-			fullWidth
+			fullWidth={fullWidth}
 			required={required}
 			disabled={disabled}
 			error={Boolean(error)}
 			helperText={error}
-			value={value ?? ''}
-			InputLabelProps={{ shrink: true }}
+			value={selectedValue}
+			sx={{ minWidth: fullWidth ? undefined : 200, ...sx }}
+			InputLabelProps={{
+				id: labelId,
+				shrink: true,
+			}}
 			onChange={e => {
 				const v = e.target.value as string;
 				onChange?.(v === '' ? null : v);
 			}}
 			SelectProps={{
+				labelId,
 				displayEmpty: true,
 				renderValue: selected => {
-					const selectedValue = selected as string;
-					if (!selectedValue) {
+					const v = selected as string;
+					if (!v) {
 						return (
-							<Box component="span" sx={{ color: 'text.disabled' }}>
-								{placeholder}
+							<Box component="span" sx={{ color: 'text.secondary' }}>
+								{options.find(o => o.value === '')?.label ?? placeholder}
 							</Box>
 						);
 					}
-					return options.find(o => o.value === selectedValue)?.label ?? selectedValue;
+					return options.find(o => o.value === v)?.label ?? v;
 				},
 			}}
 		>
-			{(clearable || (placeholder && !required)) && (
+			{showClearOption && (
 				<MenuItem value="">
 					<em>{placeholder}</em>
 				</MenuItem>
 			)}
 			{options.map(o => (
-				<MenuItem key={o.value} value={o.value}>
+				<MenuItem key={o.value === '' ? '__empty__' : o.value} value={o.value}>
 					{o.label}
 				</MenuItem>
 			))}

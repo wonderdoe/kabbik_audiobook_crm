@@ -68,3 +68,30 @@ export async function buildUserReport(date) {
 		rent: rentVariants.map((v, i) => ({ ...v, payload: rentPayloads[i] })),
 	};
 }
+
+function rentResultFromBuilt(built, isActive, isUnique) {
+	const entry = built.rent.find(
+		r =>
+			(r.isActive ?? null) === (isActive ?? null) && (r.isUnique ?? null) === (isUnique ?? null),
+	);
+	return entry?.payload?.result ?? [];
+}
+
+export function userReportSnapshotFromBuilt(built) {
+	return {
+		updatedAt: new Date().toISOString(),
+		userCount: built.userCount,
+		blSubscriber: built.blSubscriber,
+		subscribedUser: built.subscribedUser,
+		playCount: built.playCount,
+		rentTotal: rentResultFromBuilt(built, null, null),
+		rentActive: rentResultFromBuilt(built, 'true', null),
+		rentUniqueTotal: rentResultFromBuilt(built, null, 'true'),
+		rentActiveUnique: rentResultFromBuilt(built, 'true', 'true'),
+	};
+}
+
+/** Single payload for user-report page + snapshot cache. */
+export async function buildUserReportSnapshot(date) {
+	return userReportSnapshotFromBuilt(await buildUserReport(date));
+}

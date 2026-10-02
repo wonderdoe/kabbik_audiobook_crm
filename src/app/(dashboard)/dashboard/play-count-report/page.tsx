@@ -2,7 +2,6 @@
 
 import {
 	Box,
-	Paper,
 	Tab,
 	Table,
 	TableBody,
@@ -10,139 +9,52 @@ import {
 	TableContainer,
 	TableHead,
 	TableRow,
+	Tabs,
 	Typography,
 } from '@mui/material';
 import { PageContainer } from '@/components/PageContainer/PageContainer';
 import { MainCard } from '@/components/mantis/MainCard';
 import { MuiAreaChart } from '@/components/Charts/MuiAreaChart';
-import { IconArrowDown, IconArrowUp } from '@tabler/icons-react';
+import { TrendValue } from '@/components/ui/TrendValue';
 import moment from 'moment';
 import { useEffect, useState } from 'react';
 import Loader from '@/components/Loader';
+
+const KABBIK_LOGO = 'https://kabbik-space.sgp1.digitaloceanspaces.com/1713780521478.png';
+const BL_LOGO = 'https://kabbik-space.sgp1.digitaloceanspaces.com/1713780481387.png';
+
+type TabKey = 'playcount' | 'unique';
+
 export default function PageCountReport() {
 	const [loading, setLoading] = useState(true);
 	const [allData, setAllData] = useState<any>([]);
-
-	async function lastSevenDaysUserTrack() {
-		try {
-			const response = await fetch(`/api/routes/play-count-report`);
-			const apidata = await response.json();
-			setLoading(false);
-			setAllData(apidata);
-		} catch (error) {}
-	}
-
-	const compareKabbikPlayCount = (index: any) => {
-		if (index < 7) {
-			const currentElement: any = allData[index];
-			const previousElement: any = allData[index + 1];
-
-			if (currentElement.kabbik_playcount > previousElement.kabbik_playcount) {
-				return (
-					<span style={{ color: 'green' }}>
-						{currentElement.kabbik_playcount}
-						<IconArrowUp />
-					</span>
-				);
-			} else if (currentElement.kabbik_playcount < previousElement.kabbik_playcount) {
-				return (
-					<span style={{ color: 'red' }}>
-						{currentElement.kabbik_playcount}
-						<IconArrowDown />
-					</span>
-				);
-			} else {
-				return <span>{currentElement.kabbik_playcount}</span>;
-			}
-		} else {
-			return <span>{allData[index].kabbik_playcount}</span>;
-		}
-	};
-
-	const compareBlPlayCount = (index: any) => {
-		if (index < 7) {
-			const currentElement: any = allData[index];
-			const previousElement: any = allData[index + 1];
-
-			if (currentElement.mybl_playcount > previousElement.mybl_playcount) {
-				return (
-					<span style={{ color: 'green' }}>
-						{currentElement.mybl_playcount}
-						<IconArrowUp />
-					</span>
-				);
-			} else if (currentElement.mybl_playcount < previousElement.mybl_playcount) {
-				return (
-					<span style={{ color: 'red' }}>
-						{currentElement.mybl_playcount}
-						<IconArrowDown />
-					</span>
-				);
-			} else {
-				return <span>{currentElement.mybl_playcount}</span>;
-			}
-		} else {
-			return <span>{allData[index].mybl_playcount}</span>;
-		}
-	};
-
-	const compareKabbikUniqueListenerCount = (index: any) => {
-		if (index < 7) {
-			const currentElement: any = allData[index];
-			const previousElement: any = allData[index + 1];
-
-			if (currentElement.kabbik_uniquecount > previousElement.kabbik_uniquecount) {
-				return (
-					<span style={{ color: 'green' }}>
-						{currentElement.kabbik_uniquecount}
-						<IconArrowUp />
-					</span>
-				);
-			} else if (currentElement.kabbik_uniquecount < previousElement.kabbik_uniquecount) {
-				return (
-					<span style={{ color: 'red' }}>
-						{currentElement.kabbik_uniquecount}
-						<IconArrowDown />
-					</span>
-				);
-			} else {
-				return <span>{currentElement.kabbik_uniquecount}</span>;
-			}
-		} else {
-			return <span>{allData[index].kabbik_uniquecount}</span>;
-		}
-	};
-
-	const compareMyBlUniqueListenerCount = (index: any) => {
-		if (index < 7) {
-			const currentElement: any = allData[index];
-			const previousElement: any = allData[index + 1];
-
-			if (currentElement.mybl_uniquecount > previousElement.mybl_uniquecount) {
-				return (
-					<span style={{ color: 'green' }}>
-						{currentElement.mybl_uniquecount}
-						<IconArrowUp />
-					</span>
-				);
-			} else if (currentElement.mybl_uniquecount < previousElement.mybl_uniquecount) {
-				return (
-					<span style={{ color: 'red' }}>
-						{currentElement.mybl_uniquecount}
-						<IconArrowDown />
-					</span>
-				);
-			} else {
-				return <span>{currentElement.mybl_uniquecount}</span>;
-			}
-		} else {
-			return <span>{allData[index].mybl_uniquecount}</span>;
-		}
-	};
+	const [tab, setTab] = useState<TabKey>('playcount');
 
 	useEffect(() => {
-		lastSevenDaysUserTrack();
+		(async () => {
+			try {
+				const response = await fetch(`/api/routes/play-count-report`);
+				const apidata = await response.json();
+				setAllData(apidata);
+			} catch {
+				/* ignore */
+			} finally {
+				setLoading(false);
+			}
+		})();
 	}, []);
+
+	const week = allData.slice(0, 7);
+
+	const playRows = [
+		{ logo: KABBIK_LOGO, alt: 'Kabbik', key: 'kabbik_playcount' },
+		{ logo: BL_LOGO, alt: 'Banglalink', key: 'mybl_playcount' },
+	];
+	const uniqueRows = [
+		{ logo: KABBIK_LOGO, alt: 'Kabbik', key: 'kabbik_uniquecount' },
+		{ logo: BL_LOGO, alt: 'Banglalink', key: 'mybl_uniquecount' },
+	];
+	const activeRows = tab === 'playcount' ? playRows : uniqueRows;
 
 	return (
 		<PageContainer
@@ -153,16 +65,11 @@ export default function PageCountReport() {
 				<Loader />
 			) : (
 				<>
-					<Typography variant="h5" component="h2" mb={'md'}>
-						Overview
-					</Typography>
-					<Paper elevation={1} sx={{ p: 2 }}>
+					<MainCard title="Overview" subtitle="Last 7 days listening metrics" sx={{ mb: 3 }}>
 						<MuiAreaChart
 							h={300}
 							withLegend
-							data={allData
-								.slice(0, 7)
-								.map((v: any) => ({ ...v, date: moment(v.date).format('Do MMM, YYYY') }))}
+							data={week.map((v: any) => ({ ...v, date: moment(v.date).format('Do MMM, YYYY') }))}
 							dataKey="date"
 							series={[
 								{ name: 'kabbik_playcount', color: 'indigo.6', label: 'Kabbik Playcount' },
@@ -172,111 +79,59 @@ export default function PageCountReport() {
 							]}
 							curveType="linear"
 						/>
-					</Paper>
-					<Typography variant="h5" component="h2" mb={'md'}>
-						Play Count Report
-					</Typography>
-					<Paper elevation={1} sx={{ p: 2 }}>
-						<Table>
-							<TableBody>
-								<TableRow>
-									<TableCell>
-										<Typography variant="caption" color="text.secondary">
-											Date
-										</Typography>
-									</TableCell>
-									{allData.slice(0, 7).map((element: any) => (
-										<TableCell key={element.date}>
-											<Typography variant="caption" color="text.secondary">
-												{moment(element.date).format('Do MMM, YYYY')}
-											</Typography>
+					</MainCard>
+
+					<MainCard
+						title="Daily breakdown"
+						secondary={
+							<Tabs value={tab} onChange={(_, v) => setTab(v as TabKey)}>
+								<Tab label="Play count" value="playcount" />
+								<Tab label="Unique listeners" value="unique" />
+							</Tabs>
+						}
+					>
+						<TableContainer>
+							<Table size="small">
+								<TableHead>
+									<TableRow sx={{ '& th': { fontWeight: 700, bgcolor: 'action.hover' } }}>
+										<TableCell sx={{ position: 'sticky', left: 0, bgcolor: 'background.paper', zIndex: 1 }}>
+											Platform
 										</TableCell>
+										{week.map((element: any) => (
+											<TableCell key={element.date} align="center">
+												<Typography variant="caption" color="text.secondary">
+													{moment(element.date).format('Do MMM, YYYY')}
+												</Typography>
+											</TableCell>
+										))}
+									</TableRow>
+								</TableHead>
+								<TableBody>
+									{activeRows.map(row => (
+										<TableRow key={row.key} hover>
+											<TableCell sx={{ position: 'sticky', left: 0, bgcolor: 'background.paper' }}>
+												<Box
+													component="img"
+													src={row.logo}
+													alt={row.alt}
+													sx={{ width: 64, height: 64, objectFit: 'contain', borderRadius: 2 }}
+												/>
+											</TableCell>
+											{week.map((element: any, index: number) => {
+												const current = element[row.key] as number;
+												const previous = index < 7 ? week[index + 1]?.[row.key] : undefined;
+												return (
+													<TableCell key={element.date} align="center">
+														<TrendValue current={current} previous={previous} showTrend={index < 7} />
+													</TableCell>
+												);
+											})}
+										</TableRow>
 									))}
-								</TableRow>
-								<TableRow>
-									<TableCell>
-										<Box component="img" 
-											h={80}
-											w={80}
-											style={{ objectFit: 'contain' }}
-											sx={{ borderRadius: 2 }}
-											src={'https://kabbik-space.sgp1.digitaloceanspaces.com/1713780521478.png'}
-											alt="https://kabbik-space.sgp1.digitaloceanspaces.com/1713780521478.png"
-										/>
-									</TableCell>
-									{allData.slice(0, 7).map((element: any, index: any) => (
-										<TableCell key={element.date}>{compareKabbikPlayCount(index)}</TableCell>
-									))}
-								</TableRow>
-								<TableRow>
-									<TableCell>
-										<Box component="img" 
-											h={80}
-											w={80}
-											style={{ objectFit: 'contain' }}
-											sx={{ borderRadius: 2 }}
-											src={'https://kabbik-space.sgp1.digitaloceanspaces.com/1713780481387.png'}
-											alt="https://kabbik-space.sgp1.digitaloceanspaces.com/1713780481387.png"
-										/>
-									</TableCell>
-									{allData.slice(0, 7).map((element: any, index: any) => (
-										<TableCell key={element.date}>{compareBlPlayCount(index)}</TableCell>
-									))}
-								</TableRow>
-							</TableBody>
-						</Table>
-					</Paper>
-					<Typography variant="h5" component="h2" mb={'md'}>
-						Unique Listener Count
-					</Typography>
-					<Paper elevation={1} sx={{ p: 2 }}>
-						<Table>
-							<TableBody>
-								<TableRow>
-									<TableCell>Date</TableCell>
-									{allData.slice(0, 7).map((element: any) => (
-										<TableCell key={element.date}>
-											<Typography variant="caption" color="text.secondary">
-												{moment(element.date).format('Do MMM, YYYY')}
-											</Typography>
-										</TableCell>
-									))}
-								</TableRow>
-								<TableRow>
-									<TableCell>
-										<Box component="img" 
-											h={80}
-											w={80}
-											style={{ objectFit: 'contain' }}
-											sx={{ borderRadius: 2 }}
-											src={'https://kabbik-space.sgp1.digitaloceanspaces.com/1713780521478.png'}
-											alt="https://kabbik-space.sgp1.digitaloceanspaces.com/1713780521478.png"
-										/>
-									</TableCell>
-									{allData.slice(0, 7).map((element: any, index: any) => (
-										<TableCell key={element.date}>
-											{compareKabbikUniqueListenerCount(index)}
-										</TableCell>
-									))}
-								</TableRow>
-								<TableRow>
-									<TableCell>
-										<Box component="img" 
-											h={80}
-											w={80}
-											style={{ objectFit: 'contain' }}
-											sx={{ borderRadius: 2 }}
-											src={'https://kabbik-space.sgp1.digitaloceanspaces.com/1713780481387.png'}
-											alt="https://kabbik-space.sgp1.digitaloceanspaces.com/1713780481387.png"
-										/>
-									</TableCell>
-									{allData.slice(0, 7).map((element: any, index: any) => (
-										<TableCell key={index}>{compareMyBlUniqueListenerCount(index)}</TableCell>
-									))}
-								</TableRow>
-							</TableBody>
-						</Table>
-					</Paper>
+								</TableBody>
+							</Table>
+						</TableContainer>
+					</MainCard>
 				</>
 			)}
 		</PageContainer>
