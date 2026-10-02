@@ -5,6 +5,19 @@ const enabled = () => process.env.CACHE_ENABLED !== 'false';
 /** Redis key retention; logical freshness uses `freshUntil` inside the envelope. */
 export const CACHE_HARD_TTL_SECONDS = 86400;
 
+/** Holder lock TTL for cache miss / stale refresh (heavy report loaders can run minutes). */
+const LOCK_TTL_SECONDS = 300;
+const MISS_WAIT_ITERATIONS = 60;
+const MISS_WAIT_MS = 1000;
+
+export class CacheStampedeError extends Error {
+	constructor(key) {
+		super(`Cache populate in progress for ${key}`);
+		this.name = 'CacheStampedeError';
+		this.key = key;
+	}
+}
+
 const LOG_HITS = () => process.env.CACHE_LOG_HITS === '1';
 
 function sleep(ms) {
@@ -84,7 +97,7 @@ async function refreshUnderLock(key, freshTtlSeconds, loader) {
 	let locked = false;
 	try {
 		if (await ensureRedisReady()) {
-			locked = (await redis.set(`lock:${key}`, '1', 'EX', 120, 'NX')) === 'OK';
+			locked = (await redis.set(`lock:${key}`, '1', 'EX', LOCK_TTL_SECONDS, 'NX')) === 'OK';
 		}
 	} catch (e) {
 		console.warn('[cache] refresh lock failed', key, e?.message || e);
@@ -122,15 +135,21 @@ export async function getOrSetLocked(key, freshTtlSeconds, loader) {
 	let locked = false;
 	try {
 		if (await ensureRedisReady()) {
-			locked = (await redis.set(`lock:${key}`, '1', 'EX', 120, 'NX')) === 'OK';
+			locked = (await redis.set(`lock:${key}`, '1', 'EX', LOCK_TTL_SECONDS, 'NX')) === 'OK';
 		}
 	} catch (e) {
 		console.warn('[cache] lock failed', key, e?.message || e);
 	}
 
 	if (!locked) {
-		for (let i = 0; i < 10; i += 1) {
-			await sleep(500);
+		if (!(await ensureRedisReady())) {
+			console.warn('[cache] redis unavailable (loader)', key);
+			const fresh = await loader();
+			await cacheSet(key, fresh, freshTtlSeconds);
+			return fresh;
+		}
+		for (let i = 0; i < MISS_WAIT_ITERATIONS; i += 1) {
+			await sleep(MISS_WAIT_MS);
 			const retry = await cacheGetEntry(key);
 			if (retry?.isFresh) return retry.payload;
 			if (retry && !retry.isFresh) {
@@ -138,7 +157,14 @@ export async function getOrSetLocked(key, freshTtlSeconds, loader) {
 				return retry.payload;
 			}
 		}
-		console.warn('[cache] stampede fallback (loader)', key);
+		const lastChance = await cacheGetEntry(key);
+		if (lastChance?.isFresh) return lastChance.payload;
+		if (lastChance && !lastChance.isFresh) {
+			triggerStaleRefresh(key, freshTtlSeconds, loader);
+			return lastChance.payload;
+		}
+		console.warn('[cache] populate wait timeout', key);
+		throw new CacheStampedeError(key);
 	}
 
 	try {

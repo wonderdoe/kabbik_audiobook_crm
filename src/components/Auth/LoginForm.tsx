@@ -186,6 +186,7 @@ export function LoginForm() {
 								<Button
 									fullWidth
 									variant="contained"
+									color="primary"
 									size="large"
 									type="submit"
 									disabled={loading}
@@ -194,12 +195,6 @@ export function LoginForm() {
 										py: 1.25,
 										fontWeight: 700,
 										fontSize: '1rem',
-										background: 'linear-gradient(135deg, #e91e8c 0%, #4a0080 100%)',
-										boxShadow: '0 4px 14px rgba(233, 30, 140, 0.35)',
-										'&:hover': {
-											background: 'linear-gradient(135deg, #c41070 0%, #35005e 100%)',
-											boxShadow: '0 6px 20px rgba(233, 30, 140, 0.5)',
-										},
 									}}
 								>
 									Sign in

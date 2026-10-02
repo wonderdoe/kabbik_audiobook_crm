@@ -75,11 +75,11 @@ export const muiTheme = createTheme({
 			styleOverrides: {
 				root: { borderRadius: 4, fontWeight: 600 },
 				containedPrimary: {
-					background: `linear-gradient(135deg, ${primaryMain} 0%, ${primaryDark} 100%)`,
-					boxShadow: `0 4px 14px ${alpha(primaryMain, 0.32)}`,
+					backgroundColor: primaryMain,
+					boxShadow: `0 2px 8px ${alpha(primaryMain, 0.24)}`,
 					'&:hover': {
-						background: `linear-gradient(135deg, #c41070 0%, #35005e 100%)`,
-						boxShadow: `0 6px 20px ${alpha(primaryMain, 0.48)}`,
+						backgroundColor: '#c41070',
+						boxShadow: `0 4px 12px ${alpha(primaryMain, 0.32)}`,
 					},
 				},
 			},
