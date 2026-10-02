@@ -1,4 +1,5 @@
 import { cacheSet } from '../cache/index.js';
+import { ensureRedisReady, redis } from '../config/redis.js';
 import { dhakaMonthStartYmd, dhakaTodayYmd, parseYmd } from '../utils/dhaka-date.js';
 import { buildRentRevenueReport } from './rent-revenue.js';
 import { buildHomeSnapshot } from './dashboard.js';
@@ -11,11 +12,14 @@ import {
 	buildUserReport,
 	userReportSnapshotFromBuilt,
 } from './reports.js';
+import { buildPackageWiseReport } from './package-wise-report.js';
+import { buildDaywisePromoPage, defaultDaywisePromoRange } from './daywise-promo-query.js';
 
-// Logical freshness 60 min; worker warms home/revenue every 15 min (cron: Asia/Dhaka).
+// Home/revenue: 60 min refresh (scheduled-warm every 15 min). User report: daily 03:00 Dhaka only.
 export const DASH_HOME_TTL = 3600;
 export const REVENUE_CACHE_TTL = 3600;
-export const USER_REPORT_TTL = 3600;
+/** ~25h logical freshness — survives until next 03:00 Asia/Dhaka warm. */
+export const USER_REPORT_TTL = 90000;
 export const SIGNUP_REPORT_TTL = 3600;
 export const PLAYCOUNT_TTL = 3600;
 export const PACKAGE_WISE_TTL_LIVE = 1800;
@@ -77,10 +81,52 @@ export function rentRevenueCacheKey(startDate, endDate, limit, offset) {
 	return `report:rent-revenue:v1:${startDate}:${endDate}:${limit}:${offset}`;
 }
 
+export const DAYWISE_PROMO_DEFAULT_LIMIT = 50;
+
+export function daywisePromoCacheKey(startDate, endDate, offset, limit) {
+	return `report:daywise-promo:v1:${startDate}:${endDate}:${offset}:${limit}`;
+}
+
+export function daywisePromoCacheTtl(endDate) {
+	return reportRangeCacheTtl(endDate);
+}
+
 export function defaultRentReportRange(anchorYmd) {
 	const endDate = anchorYmd && parseYmd(anchorYmd).isValid() ? anchorYmd : dhakaTodayYmd();
 	const startDate = dhakaMonthStartYmd(endDate);
 	return { startDate, endDate };
+}
+
+export function defaultPackageWiseReportRange(anchorYmd) {
+	return defaultRentReportRange(anchorYmd);
+}
+
+export async function warmDefaultPackageWiseReport(anchorDate) {
+	const { startDate, endDate } = defaultPackageWiseReportRange(anchorDate);
+	const payload = await buildPackageWiseReport(startDate, endDate);
+	const ttl = packageWiseCacheTtl(endDate);
+	await cacheSet(packageWiseCacheKey(startDate, endDate), payload, ttl);
+	if (await ensureRedisReady()) {
+		await redis.set('warm:package-wise:last_ok', String(Date.now()), 'EX', 86400);
+	}
+	return { startDate, endDate, payload };
+}
+
+export async function warmDaywisePromoCache(anchorDate) {
+	const { startDate, endDate } = defaultDaywisePromoRange(anchorDate);
+	const limit = DAYWISE_PROMO_DEFAULT_LIMIT;
+	const payload = await buildDaywisePromoPage({
+		startDate,
+		endDate,
+		offset: 0,
+		limit,
+	});
+	const ttl = daywisePromoCacheTtl(endDate);
+	await cacheSet(daywisePromoCacheKey(startDate, endDate, 0, limit), payload, ttl);
+	if (await ensureRedisReady()) {
+		await redis.set('warm:daywise-promo:last_ok', String(Date.now()), 'EX', 86400);
+	}
+	return { startDate, endDate, payload };
 }
 
 export async function warmDefaultRentReport(anchorDate) {
@@ -132,6 +178,7 @@ export async function warmDefaultRevenueReports(anchorYmd) {
 
 export async function warmUserReport(anchorDate) {
 	const date = anchorDate || dhakaTodayYmd();
+	console.log(`[cache-warm] warmUserReport building for ${date}`);
 	const snapshot = await buildUserReport(date);
 	const pageSnapshot = userReportSnapshotFromBuilt(snapshot);
 	const rentCacheTargets = [
@@ -141,17 +188,19 @@ export async function warmUserReport(anchorDate) {
 		{ rentDate: null, isActive: 'true', isUnique: 'true', index: 3 },
 	];
 
+	const hardTtl = USER_REPORT_TTL;
 	await Promise.all([
-		cacheSet(userReportSnapshotCacheKey(date), pageSnapshot, USER_REPORT_TTL),
-		cacheSet(userCountCacheKey(date), snapshot.userCount, USER_REPORT_TTL),
-		cacheSet(blSubscriberCacheKey(date), snapshot.blSubscriber, USER_REPORT_TTL),
-		cacheSet(subscribedUserCacheKey(date), snapshot.subscribedUser, USER_REPORT_TTL),
-		cacheSet(playCountCacheKey(), snapshot.playCount, PLAYCOUNT_TTL),
+		cacheSet(userReportSnapshotCacheKey(date), pageSnapshot, USER_REPORT_TTL, hardTtl),
+		cacheSet(userCountCacheKey(date), snapshot.userCount, USER_REPORT_TTL, hardTtl),
+		cacheSet(blSubscriberCacheKey(date), snapshot.blSubscriber, USER_REPORT_TTL, hardTtl),
+		cacheSet(subscribedUserCacheKey(date), snapshot.subscribedUser, USER_REPORT_TTL, hardTtl),
+		cacheSet(playCountCacheKey(), snapshot.playCount, USER_REPORT_TTL, hardTtl),
 		...rentCacheTargets.map(({ rentDate, isActive, isUnique, index }) =>
 			cacheSet(
 				rentCountCacheKey(rentDate, isActive, isUnique),
 				snapshot.rent[index].payload,
 				USER_REPORT_TTL,
+				hardTtl,
 			),
 		),
 	]);
@@ -176,17 +225,28 @@ export async function warmPlayCountReport() {
 	return { playCount, playCountReport };
 }
 
+/** Sign-up, play-count, rent, package-wise — daywise promo has its own 02:00 Dhaka cron. */
+export async function warmSecondaryReportCaches(anchorDate) {
+	if (anchorDate && !parseYmd(anchorDate).isValid()) {
+		throw new Error('Invalid anchorDate');
+	}
+	const started = Date.now();
+	await warmSignUpReport();
+	await warmPlayCountReport();
+	await warmDefaultRentReport(anchorDate);
+	await warmDefaultPackageWiseReport(anchorDate);
+	console.log(`[cache-warm] warmSecondaryReportCaches ok ${Date.now() - started}ms`);
+}
+
 export async function warmAllDefaultCaches(anchorDate) {
 	if (anchorDate && !parseYmd(anchorDate).isValid()) {
 		throw new Error('Invalid anchorDate');
 	}
 	const started = Date.now();
-	// Report warms only; home/revenue have dedicated 15-min worker crons.
-	await Promise.all([
-		warmUserReport(anchorDate),
-		warmSignUpReport(),
-		warmPlayCountReport(),
-		warmDefaultRentReport(anchorDate),
-	]);
+	console.log('[cache-warm] warmUserReport start');
+	await warmUserReport(anchorDate);
+	console.log('[cache-warm] warmUserReport ok');
+	await warmSecondaryReportCaches(anchorDate);
+	await warmDaywisePromoCache(anchorDate);
 	console.log(`[cache-warm] warmAllDefaultCaches ok ${Date.now() - started}ms`);
 }

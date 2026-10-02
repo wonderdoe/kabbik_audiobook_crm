@@ -4,6 +4,8 @@ import TotalUserModel from '../../app/api/models/total-user-model.js';
 import RevenueModel from '../../app/api/models/revenue-model.js';
 import PromoModel from '../../app/api/models/promocode-model.js';
 import DailyPaymentStatsModel from '../../app/api/models/daily-payment-stats.model.js';
+import { cacheGet } from '../cache/index.js';
+import { userReportSnapshotCacheKey } from '../jobs/cache-warm.js';
 
 async function paymentTotalForDay(day, anchorDate) {
 	const liveForToday = day === anchorDate;
@@ -39,6 +41,40 @@ export async function buildDailyPaymentRollup(statDate) {
 	return { statDate: day, totalAmount: total };
 }
 
+/**
+ * Extracts top-level scalar totals from a user-report snapshot.
+ * Each of userCount / blSubscriber / subscribedUser is an array of
+ * { payment_source, is_recurring, count } rows — we just sum them.
+ */
+function sumReportRows(rows) {
+	if (!Array.isArray(rows)) return 0;
+	return rows.reduce((acc, r) => acc + Number(r?.count ?? 0), 0);
+}
+
+function extractReportSummary(snapshot) {
+	if (!snapshot) return null;
+	try {
+		const userCount = snapshot.userCount?.result ?? snapshot.userCount ?? null;
+		const subscribedUser = snapshot.subscribedUser?.result ?? snapshot.subscribedUser ?? null;
+		const blSubscriber = snapshot.blSubscriber?.result ?? snapshot.blSubscriber ?? null;
+		const rentActive = snapshot.rentActive ?? null;
+		const playCount = snapshot.playCount ?? null;
+		return {
+			lifetimeSubscribers: sumReportRows(userCount),
+			activeSubscribers: sumReportRows(subscribedUser),
+			blSubscribers: sumReportRows(blSubscriber),
+			activeRentCount: Array.isArray(rentActive)
+				? rentActive.reduce((a, r) => a + Number(r?.count ?? 0), 0)
+				: 0,
+			totalPlayCount: Array.isArray(playCount)
+				? playCount.reduce((a, r) => a + Number(r?.count ?? 0), 0)
+				: 0,
+		};
+	} catch {
+		return null;
+	}
+}
+
 export async function buildHomeSnapshot(anchorDate) {
 	const date = anchorDate || dhakaTodayYmd();
 	const yesterday = moment(date, 'YYYY-MM-DD').subtract(1, 'day').format('YYYY-MM-DD');
@@ -46,12 +82,14 @@ export async function buildHomeSnapshot(anchorDate) {
 		moment(date, 'YYYY-MM-DD').subtract(i, 'days').format('YYYY-MM-DD'),
 	);
 
-	const [dashboardData, topPromosToday, topPromosYesterday, paymentTotals] = await Promise.all([
-		TotalUserModel.getTotal(date),
-		PromoModel.getTopMostUsedPromocodes(date),
-		PromoModel.getTopMostUsedPromocodes(yesterday),
-		Promise.all(dayStrings.map(day => paymentTotalForDay(day, date))),
-	]);
+	const [dashboardData, topPromosToday, topPromosYesterday, paymentTotals, userReportSnapshot] =
+		await Promise.all([
+			TotalUserModel.getTotal(date),
+			PromoModel.getTopMostUsedPromocodes(date),
+			PromoModel.getTopMostUsedPromocodes(yesterday),
+			Promise.all(dayStrings.map(day => paymentTotalForDay(day, date))),
+			cacheGet(userReportSnapshotCacheKey(date)).catch(() => null),
+		]);
 
 	const recentTotalPayments = dayStrings.map((day, index) => ({
 		date: moment(day, 'YYYY-MM-DD').format('Do MMM, YYYY'),
@@ -73,5 +111,6 @@ export async function buildHomeSnapshot(anchorDate) {
 			today: promoRowsOrEmpty('today', topPromosToday),
 			yesterday: promoRowsOrEmpty('yesterday', topPromosYesterday),
 		},
+		reportSummary: extractReportSummary(userReportSnapshot),
 	};
 }

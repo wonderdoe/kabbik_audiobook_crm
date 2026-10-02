@@ -1,7 +1,8 @@
 import userCountModel from '../../app/api/models/user-count-model.js';
 import SubscriptionUserModel from '../../app/api/models/subscription-user-model.js';
 import TrackUserSignUpModel from '../../app/api/models/track-user-sign-up-model.js';
-import RevenueModel from '../../app/api/models/revenue-model.js';
+import { buildPackageWiseReport as buildPackageWiseReportFromRollup } from './package-wise-report.js';
+import { queryRentCountAllVariants } from './user-report-queries.js';
 
 export async function buildUserCountPayload(date) {
 	const result = await userCountModel.usercount(date);
@@ -40,7 +41,14 @@ export async function buildPlayCountReport() {
 }
 
 export async function buildPackageWiseReport(startDate, endDate) {
-	return RevenueModel.getPackageWiseRevenue(startDate, endDate);
+	return buildPackageWiseReportFromRollup(startDate, endDate);
+}
+
+async function timedUserReportStep(name, fn) {
+	const started = Date.now();
+	const result = await fn();
+	console.log(`[user-report] ${name} ${Date.now() - started}ms`);
+	return result;
 }
 
 /** All user-report endpoints for a single anchor date (cron warm). */
@@ -52,13 +60,20 @@ export async function buildUserReport(date) {
 		{ isActive: 'true', isUnique: 'true' },
 	];
 
-	const [userCount, blSubscriber, subscribedUser, playCount, ...rentPayloads] = await Promise.all([
-		buildUserCountPayload(date),
-		buildBlSubscriberCountPayload(date),
+	const userCount = await timedUserReportStep('lifetime', () => buildUserCountPayload(date));
+	const subscribedUser = await timedUserReportStep('active-kabbik', () =>
 		buildSubscribedUserPayload(date),
-		buildPlayCountPayload(),
-		...rentVariants.map(v => buildRentCountPayload(v)),
-	]);
+	);
+	const blSubscriber = await timedUserReportStep('active-bl', () => buildBlSubscriberCountPayload(date));
+	const playCount = await timedUserReportStep('play-count', () => buildPlayCountPayload());
+
+	const rentAll = await timedUserReportStep('rent-all-variants', () => queryRentCountAllVariants());
+	const rentPayloads = [
+		{ result: rentAll.total },
+		{ result: rentAll.activeTotal },
+		{ result: rentAll.uniqueTotal },
+		{ result: rentAll.activeUnique },
+	];
 
 	return {
 		userCount,
