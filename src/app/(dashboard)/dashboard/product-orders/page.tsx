@@ -4,12 +4,13 @@ import {
 	Box,
 	Button,
 	Chip,
-	CircularProgress,
 	Dialog,
-	DialogActions,
 	DialogContent,
 	DialogTitle,
 	FormControl,
+	Grid,
+	IconButton,
+	InputAdornment,
 	InputLabel,
 	MenuItem,
 	Select,
@@ -17,215 +18,488 @@ import {
 	Table,
 	TableBody,
 	TableCell,
-	TableContainer,
 	TableHead,
 	TableRow,
 	TextField,
 	Typography,
+	type SelectChangeEvent,
 } from '@mui/material';
+import {
+	DirectoryListCard,
+	directoryTableSx,
+} from '@/components/directory/directoryListUi';
 import { PageContainer } from '@/components/PageContainer/PageContainer';
 import { MainCard } from '@/components/mantis/MainCard';
-import { DataSelect } from '@/components/Form/DataSelect';
+import { TableThumbnail } from '@/components/mantis/TableThumbnail';
 import { DetailGrid } from '@/components/ui/DetailGrid';
+import { StatCard } from '@/components/ui/StatCard';
+import Loader from '@/components/Loader';
+import { useDisclosure } from '@/hooks/use-disclosure';
+import { useIsMobileSm } from '@/hooks/use-is-mobile-sm';
+import { fetchProductOrders, updateDeliveryStatus } from '@/services/services';
+import { formatPhoneNumber } from '@/utils/globalHelpers';
+import { createToast, createToast2 } from 'helpers/SweetAlert';
+import {
+	IconEye,
+	IconPackage,
+	IconSearch,
+	IconTruck,
+	IconTruckDelivery,
+	IconX,
+} from '@tabler/icons-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import Swal from 'sweetalert2';
-import { fetchProductOrders, updateDeliveryStatus } from '@/services/services';
-import { createToast, createToast2 } from 'helpers/SweetAlert';
-import { useDisclosure } from '@/hooks/use-disclosure';
 
-const deliveryChipColor: Record<string, 'default' | 'info' | 'success'> = {
+type DeliveryStatus = 'ordered' | 'shipped' | 'delivered';
+
+type StoreItem = { image_url?: string; name?: string };
+
+export type ProductOrderRow = {
+	id: number;
+	user_id: number;
+	user_name: string;
+	phone: string;
+	product_name: string;
+	order_id: string;
+	store_item: string;
+	delivery_status: DeliveryStatus;
+	address: string;
+};
+
+const PAGE_SIZE = 20;
+
+const deliveryChipColor: Record<DeliveryStatus, 'default' | 'info' | 'success'> = {
 	ordered: 'default',
 	shipped: 'info',
 	delivered: 'success',
 };
 
+const deliveryLabel: Record<DeliveryStatus, string> = {
+	ordered: 'Ordered',
+	shipped: 'Shipped',
+	delivered: 'Delivered',
+};
+
+function parseStoreItems(raw: unknown): StoreItem[] {
+	if (!raw) return [];
+	if (Array.isArray(raw)) return raw as StoreItem[];
+	try {
+		const parsed = JSON.parse(String(raw));
+		return Array.isArray(parsed) ? parsed : [];
+	} catch {
+		return [];
+	}
+}
+
+function formatPhone(phone: string | undefined | null) {
+	if (!phone) return '—';
+	const local = phone.includes('0') ? phone.slice(phone.indexOf('0')) : phone;
+	return formatPhoneNumber(local) || local;
+}
+
 export default function ProductOrders() {
+	const isMobileSm = useIsMobileSm();
 	const [loading, setLoading] = useState(true);
-	const [displayData, setDisplayData] = useState<any>([]);
-	const [details, setDetails] = useState<any>(null);
-	const [statusFilter, setStatusFilter] = useState<string>('');
-	const [search, setSearch] = useState('');
+	const [orders, setOrders] = useState<ProductOrderRow[]>([]);
+	const [details, setDetails] = useState<ProductOrderRow | null>(null);
+	const [statusFilter, setStatusFilter] = useState<DeliveryStatus | ''>('');
+	const [searchInput, setSearchInput] = useState('');
+	const [searchKey, setSearchKey] = useState('');
+	const [currentPage, setCurrentPage] = useState(1);
 
-	const [detailsModalOpened, { open: openDetailsModal, close: closeDetailsModal }] = useDisclosure(false);
+	const [detailsModalOpened, { open: openDetailsModal, close: closeDetailsModal }] =
+		useDisclosure(false);
 
-	const initFetchProductOrders = useCallback(async () => {
-		const fechedProductOrders = await fetchProductOrders();
-		if (Array.isArray(fechedProductOrders)) setDisplayData(fechedProductOrders);
-		else createToast('Please try again later');
-		setLoading(false);
+	const loadOrders = useCallback(async () => {
+		setLoading(true);
+		try {
+			const fetched = await fetchProductOrders();
+			if (Array.isArray(fetched)) setOrders(fetched as ProductOrderRow[]);
+			else createToast('Please try again later');
+		} finally {
+			setLoading(false);
+		}
 	}, []);
 
 	useEffect(() => {
-		initFetchProductOrders();
-	}, [initFetchProductOrders]);
+		void loadOrders();
+	}, [loadOrders]);
+
+	const statusCounts = useMemo(() => {
+		const counts = { ordered: 0, shipped: 0, delivered: 0 };
+		for (const row of orders) {
+			if (row.delivery_status in counts) counts[row.delivery_status as DeliveryStatus] += 1;
+		}
+		return counts;
+	}, [orders]);
 
 	const filtered = useMemo(() => {
-		const q = search.trim().toLowerCase();
-		return displayData.filter((element: any) => {
-			if (statusFilter && element.delivery_status !== statusFilter) return false;
+		const q = searchKey.trim().toLowerCase();
+		return orders.filter(row => {
+			if (statusFilter && row.delivery_status !== statusFilter) return false;
 			if (!q) return true;
 			return (
-				String(element.user_name ?? '').toLowerCase().includes(q) ||
-				String(element.product_name ?? '').toLowerCase().includes(q) ||
-				String(element.phone ?? '').includes(q)
+				String(row.user_name ?? '').toLowerCase().includes(q) ||
+				String(row.product_name ?? '').toLowerCase().includes(q) ||
+				String(row.phone ?? '').includes(q) ||
+				String(row.order_id ?? '').toLowerCase().includes(q)
 			);
 		});
-	}, [displayData, search, statusFilter]);
+	}, [orders, searchKey, statusFilter]);
+
+	const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+	const pageRows = useMemo(() => {
+		const start = (currentPage - 1) * PAGE_SIZE;
+		return filtered.slice(start, start + PAGE_SIZE);
+	}, [filtered, currentPage]);
+
+	useEffect(() => {
+		setCurrentPage(1);
+	}, [searchKey, statusFilter]);
+
+	const handleSearchSubmit = (e: React.FormEvent) => {
+		e.preventDefault();
+		setSearchKey(searchInput.trim());
+	};
+
+	const clearSearch = () => {
+		setSearchInput('');
+		setSearchKey('');
+	};
 
 	const handleUpdateDeliveryStatus = async (newDeliveryStatus: string, productId: string) => {
 		const swalResult = await Swal.fire({
-			title: 'Are you sure?',
+			title: 'Update delivery status?',
+			text: `Mark this order as “${deliveryLabel[newDeliveryStatus as DeliveryStatus] ?? newDeliveryStatus}”.`,
 			icon: 'warning',
 			showCancelButton: true,
 			confirmButtonColor: '#3085d6',
 			cancelButtonColor: '#d33',
-			confirmButtonText: 'Yes, Update it!',
+			confirmButtonText: 'Yes, update',
 		});
-		if (swalResult.isConfirmed) {
-			const result = await updateDeliveryStatus({ newDeliveryStatus, productId });
-			if (result.status === 200) {
-				createToast2(result.message);
-				initFetchProductOrders();
-			} else {
-				createToast(result.message);
-			}
+		if (!swalResult.isConfirmed) return;
+
+		const result = await updateDeliveryStatus({ newDeliveryStatus, productId });
+		if (result.status === 200) {
+			createToast2(result.message);
+			void loadOrders();
+		} else {
+			createToast(result.message);
 		}
 	};
 
+	const onStatusSelect = (orderId: string) => (e: SelectChangeEvent<string>) => {
+		const next = e.target.value;
+		if (!next) return;
+		void handleUpdateDeliveryStatus(next, orderId);
+	};
+
+	const openDetails = (row: ProductOrderRow) => {
+		setDetails(row);
+		openDetailsModal();
+	};
+
+	const detailStoreItems = parseStoreItems(details?.store_item);
+
 	return (
-		<PageContainer title="Product Orders" items={[{ label: 'Product Orders', href: '/dashboard/product-orders' }]}>
-			<Stack spacing={2}>
-				<MainCard title="Filters">
-					<Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
+		<PageContainer
+			title="Product Orders"
+			subtitle="Successful store redemptions and fulfillment status"
+			items={[{ label: 'Product Orders', href: '/dashboard/product-orders' }]}
+		>
+			<Stack spacing={2} sx={{ minWidth: 0, width: '100%' }}>
+				<Grid container spacing={2}>
+					<Grid item xs={12} sm={6} md={3} sx={{ display: 'flex' }}>
+						<StatCard
+							title="Total orders"
+							value={orders.length.toLocaleString()}
+							color="primary"
+							icon={<IconPackage size={22} />}
+							loading={loading}
+						/>
+					</Grid>
+					<Grid item xs={12} sm={6} md={3} sx={{ display: 'flex' }}>
+						<StatCard
+							title="Ordered"
+							value={statusCounts.ordered.toLocaleString()}
+							color="warning"
+							icon={<IconPackage size={22} />}
+							loading={loading}
+						/>
+					</Grid>
+					<Grid item xs={12} sm={6} md={3} sx={{ display: 'flex' }}>
+						<StatCard
+							title="Shipped"
+							value={statusCounts.shipped.toLocaleString()}
+							color="info"
+							icon={<IconTruck size={22} />}
+							loading={loading}
+						/>
+					</Grid>
+					<Grid item xs={12} sm={6} md={3} sx={{ display: 'flex' }}>
+						<StatCard
+							title="Delivered"
+							value={statusCounts.delivered.toLocaleString()}
+							color="success"
+							icon={<IconTruckDelivery size={22} />}
+							loading={loading}
+						/>
+					</Grid>
+				</Grid>
+
+				<MainCard title="Search & filter">
+					<Stack
+						component="form"
+						onSubmit={handleSearchSubmit}
+						direction={{ xs: 'column', md: 'row' }}
+						spacing={1.5}
+						alignItems={{ xs: 'stretch', md: 'center' }}
+						sx={{ width: '100%' }}
+					>
 						<TextField
 							size="small"
 							label="Search"
-							placeholder="User, product, or phone"
-							value={search}
-							onChange={e => setSearch(e.target.value)}
-							fullWidth
+							placeholder="User, product, phone, or order id…"
+							value={searchInput}
+							onChange={e => setSearchInput(e.target.value)}
+							sx={{ flex: 1, minWidth: 0 }}
+							InputProps={{
+								startAdornment: (
+									<InputAdornment position="start">
+										<IconSearch size={18} style={{ opacity: 0.55 }} />
+									</InputAdornment>
+								),
+							}}
 						/>
-						<FormControl size="small" sx={{ minWidth: 160 }}>
+						<FormControl
+							size="small"
+							sx={{
+								flexShrink: 0,
+								width: { xs: '100%', md: 200 },
+							}}
+						>
 							<InputLabel>Delivery status</InputLabel>
 							<Select
 								label="Delivery status"
 								value={statusFilter}
-								onChange={e => setStatusFilter(e.target.value)}
+								onChange={e => setStatusFilter(e.target.value as DeliveryStatus | '')}
 							>
-								<MenuItem value="">All</MenuItem>
+								<MenuItem value="">All statuses</MenuItem>
 								<MenuItem value="ordered">Ordered</MenuItem>
 								<MenuItem value="shipped">Shipped</MenuItem>
 								<MenuItem value="delivered">Delivered</MenuItem>
 							</Select>
 						</FormControl>
+						<Stack
+							direction="row"
+							spacing={1}
+							sx={{
+								flexShrink: 0,
+								width: { xs: '100%', md: 'auto' },
+							}}
+						>
+							<Button
+								type="submit"
+								variant="contained"
+								size="small"
+								sx={{ flex: { xs: 1, md: 'none' }, whiteSpace: 'nowrap' }}
+							>
+								Search
+							</Button>
+							{searchKey ? (
+								<Button
+									type="button"
+									variant="outlined"
+									size="small"
+									color="inherit"
+									onClick={clearSearch}
+									sx={{ flex: { xs: 1, md: 'none' }, whiteSpace: 'nowrap' }}
+								>
+									Clear
+								</Button>
+							) : null}
+						</Stack>
 					</Stack>
 				</MainCard>
 
-				<MainCard contentSX={{ p: 0 }}>
-					{loading ? (
-						<Box display="flex" justifyContent="center" alignItems="center" sx={{ py: 6 }}>
-							<CircularProgress size={24} />
-						</Box>
-					) : (
-						<TableContainer sx={{ minWidth: 800 }}>
-							<Table size="small">
-								<TableHead>
-									<TableRow sx={{ '& th': { fontWeight: 700, bgcolor: 'action.hover' } }}>
-										<TableCell>User Name</TableCell>
-										<TableCell>Phone</TableCell>
-										<TableCell>Product Name</TableCell>
-										<TableCell>Store Item</TableCell>
-										<TableCell>Delivery Status</TableCell>
-										<TableCell>Action</TableCell>
-									</TableRow>
-								</TableHead>
-								<TableBody>
-									{filtered.length === 0 ? (
-										<TableRow>
-											<TableCell colSpan={6}>
-												<Typography textAlign="center" color="text.secondary" py={4}>
-													No data found
+				{loading ? (
+					<Loader />
+				) : (
+					<DirectoryListCard
+						title="Orders"
+						subtitle={
+							searchKey || statusFilter
+								? `${filtered.length.toLocaleString()} matching`
+								: undefined
+						}
+						totalCount={filtered.length}
+						currentPage={currentPage}
+						totalPages={totalPages}
+						onPageChange={setCurrentPage}
+						isEmpty={filtered.length === 0}
+						emptyMessage={
+							searchKey || statusFilter
+								? 'No orders match your filters.'
+								: 'No product orders yet.'
+						}
+					>
+						<Table size="small" sx={directoryTableSx}>
+							<TableHead>
+								<TableRow>
+									<TableCell>Customer</TableCell>
+									<TableCell>Product</TableCell>
+									<TableCell>Items</TableCell>
+									<TableCell width={120}>Status</TableCell>
+									<TableCell align="right" sx={{ width: 240, minWidth: 240 }}>
+										Actions
+									</TableCell>
+								</TableRow>
+							</TableHead>
+							<TableBody>
+								{pageRows.map(row => {
+									const items = parseStoreItems(row.store_item);
+									return (
+										<TableRow key={row.id} hover sx={{ '&:last-child td': { borderBottom: 0 } }}>
+											<TableCell>
+												<Typography variant="body2" fontWeight={600}>
+													{row.user_name || '—'}
+												</Typography>
+												<Typography variant="caption" color="text.secondary" display="block">
+													{formatPhone(row.phone)}
 												</Typography>
 											</TableCell>
-										</TableRow>
-									) : (
-										filtered.map((element: any) => (
-											<TableRow key={element.id} hover>
-												<TableCell>{element.user_name}</TableCell>
-												<TableCell>{element.phone.slice(element.phone.indexOf('0'))}</TableCell>
-												<TableCell>{element.product_name}</TableCell>
-												<TableCell>
-													<Stack direction="row" flexWrap="wrap" spacing={1}>
-														{JSON.parse(element.store_item).map((item: any, index: number) => (
-															<Box
+											<TableCell>
+												<Typography variant="body2" fontWeight={500}>
+													{row.product_name || '—'}
+												</Typography>
+												<Typography variant="caption" color="text.secondary" display="block">
+													Order {row.order_id}
+												</Typography>
+											</TableCell>
+											<TableCell>
+												<Stack direction="row" spacing={0.75} flexWrap="wrap" useFlexGap>
+													{items.length === 0 ? (
+														<Typography variant="caption" color="text.secondary">—</Typography>
+													) : (
+														items.map((item, index) => (
+															<TableThumbnail
 																key={index}
-																component="img"
 																src={item.image_url}
-																alt=""
-																sx={{ height: 50, objectFit: 'contain', borderRadius: 1 }}
+																alt={item.name ?? 'Store item'}
+																objectFit="contain"
+																displaySize="sm"
 															/>
-														))}
-													</Stack>
-												</TableCell>
-												<TableCell>
-													<Stack spacing={1}>
-														<Chip
-															size="small"
-															variant="outlined"
-															color={deliveryChipColor[element.delivery_status] ?? 'default'}
-															label={element.delivery_status}
-														/>
-														<DataSelect
-															value={element.delivery_status}
-															onChange={(evt: any) => handleUpdateDeliveryStatus(evt, element.order_id)}
-															data={['ordered', 'shipped', 'delivered']}
-															allowDeselect={false}
-															startIcon={null}
-															style={{ width: '150px' }}
-														/>
-													</Stack>
-												</TableCell>
-												<TableCell>
+														))
+													)}
+												</Stack>
+											</TableCell>
+											<TableCell>
+												<Chip
+													size="small"
+													variant="outlined"
+													color={deliveryChipColor[row.delivery_status] ?? 'default'}
+													label={deliveryLabel[row.delivery_status] ?? row.delivery_status}
+												/>
+											</TableCell>
+											<TableCell align="right" sx={{ whiteSpace: 'nowrap' }}>
+												<Stack
+													direction="row"
+													spacing={1}
+													justifyContent="flex-end"
+													alignItems="center"
+												>
+													<FormControl size="small" sx={{ minWidth: 120 }}>
+														<Select
+															value={row.delivery_status}
+															onChange={onStatusSelect(row.order_id)}
+															displayEmpty
+															sx={{ fontSize: '0.8125rem' }}
+														>
+															<MenuItem value="ordered">Ordered</MenuItem>
+															<MenuItem value="shipped">Shipped</MenuItem>
+															<MenuItem value="delivered">Delivered</MenuItem>
+														</Select>
+													</FormControl>
 													<Button
 														size="small"
-														variant="outlined"
-														onClick={() => {
-															setDetails(element);
-															openDetailsModal();
-														}}
+														variant="text"
+														startIcon={<IconEye size={16} />}
+														onClick={() => openDetails(row)}
 													>
 														Details
 													</Button>
-												</TableCell>
-											</TableRow>
-										))
-									)}
-								</TableBody>
-							</Table>
-						</TableContainer>
-					)}
-				</MainCard>
+												</Stack>
+											</TableCell>
+										</TableRow>
+									);
+								})}
+							</TableBody>
+						</Table>
+					</DirectoryListCard>
+				)}
 			</Stack>
 
-			<Dialog open={detailsModalOpened} onClose={closeDetailsModal} maxWidth="md" fullWidth>
-				<DialogTitle>Order details</DialogTitle>
-				<DialogContent>
-					<DetailGrid
-						fields={[
-							{ label: 'User Id', value: details?.user_id },
-							{ label: 'Order Id', value: details?.order_id },
-							{
-								label: 'Address',
-								value: details?.address
-									? details.address.charAt(0).toUpperCase() + details.address.slice(1)
-									: '—',
-							},
-						]}
-					/>
+			<Dialog
+				open={detailsModalOpened}
+				onClose={closeDetailsModal}
+				maxWidth="md"
+				fullWidth
+				fullScreen={isMobileSm}
+				scroll="paper"
+			>
+				<DialogTitle sx={{ pr: 6 }}>
+					Order details
+					<Typography variant="body2" color="text.secondary" fontWeight={400}>
+						{details?.user_name ?? 'Customer'} · {details?.product_name ?? 'Product'}
+					</Typography>
+				</DialogTitle>
+				<IconButton
+					onClick={closeDetailsModal}
+					sx={{ position: 'absolute', right: 12, top: 12 }}
+					aria-label="Close"
+				>
+					<IconX size={20} />
+				</IconButton>
+				<DialogContent dividers>
+					<Stack spacing={3}>
+						<DetailGrid
+							fields={[
+								{ label: 'User ID', value: details?.user_id },
+								{ label: 'Order ID', value: details?.order_id },
+								{
+									label: 'Delivery status',
+									value: details?.delivery_status
+										? deliveryLabel[details.delivery_status]
+										: '—',
+								},
+								{
+									label: 'Address',
+									value: details?.address
+										? details.address.charAt(0).toUpperCase() + details.address.slice(1)
+										: '—',
+								},
+							]}
+						/>
+						{detailStoreItems.length > 0 ? (
+							<Box>
+								<Typography variant="subtitle2" gutterBottom>
+									Store items
+								</Typography>
+								<Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+									{detailStoreItems.map((item, index) => (
+										<TableThumbnail
+											key={index}
+											src={item.image_url}
+											alt={item.name ?? 'Store item'}
+											objectFit="contain"
+											displaySize="md"
+										/>
+									))}
+								</Stack>
+							</Box>
+						) : null}
+					</Stack>
 				</DialogContent>
-				<DialogActions>
-					<Button onClick={closeDetailsModal}>Close</Button>
-				</DialogActions>
 			</Dialog>
 		</PageContainer>
 	);

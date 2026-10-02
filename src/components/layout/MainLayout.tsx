@@ -8,12 +8,14 @@ import {
 	useMediaQuery,
 } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
+import { useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { Logo } from '@/components/Logo/Logo';
 import { Navbar } from '@/components/Navbar/Navbar';
 import { MantisHeader } from '@/components/layout/MantisHeader';
 import { PageTransition } from '@/components/layout/PageTransition';
 import { PageMetaProvider } from '@/contexts/PageMetaContext';
+import { flattenNavLinks } from '@/helper/flatten-nav-links';
 import { NavItem } from '@/types/nav-item';
 import { DRAWER_WIDTH, DRAWER_WIDTH_MINI, HEADER_HEIGHT } from '@/styles/muiTheme';
 import { transition } from '@/styles/motion';
@@ -30,10 +32,23 @@ export function MainLayout({ children, navData, drawerOpen, onToggleDrawer }: Ma
 	const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 	const mini = !drawerOpen && !isMobile;
 	const width = mini ? DRAWER_WIDTH_MINI : DRAWER_WIDTH;
+	const rewardsNotificationsEnabled = useMemo(
+		() => flattenNavLinks(navData).some(o => o.link === '/dashboard/rewards'),
+		[navData],
+	);
 
 	const drawerContent = (
 		<Box sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-			<Box sx={{ px: mini ? 1.5 : 2.5, py: 2, minHeight: HEADER_HEIGHT, display: 'flex', alignItems: 'center' }}>
+			<Box
+				sx={{
+					px: mini ? 1 : 2.5,
+					py: 2,
+					minHeight: HEADER_HEIGHT,
+					display: 'flex',
+					alignItems: 'center',
+					justifyContent: mini ? 'center' : 'flex-start',
+				}}
+			>
 				<Logo compact={mini} />
 			</Box>
 			<Box sx={{ flex: 1, overflow: 'auto' }}>
@@ -51,7 +66,16 @@ export function MainLayout({ children, navData, drawerOpen, onToggleDrawer }: Ma
 
 	return (
 		<PageMetaProvider>
-			<Box sx={{ display: 'flex', minHeight: '100vh', bgcolor: 'background.default' }}>
+			<Box
+				sx={{
+					display: 'flex',
+					minHeight: '100vh',
+					bgcolor: 'background.default',
+					width: '100%',
+					maxWidth: '100%',
+					overflowX: 'hidden',
+				}}
+			>
 				<Box
 					component={motion.nav}
 					animate={{ width }}
@@ -89,10 +113,14 @@ export function MainLayout({ children, navData, drawerOpen, onToggleDrawer }: Ma
 					component="main"
 					sx={{
 						flexGrow: 1,
+						flex: '1 1 0',
+						minWidth: 0,
+						maxWidth: '100%',
 						width: { md: `calc(100% - ${width}px)` },
 						minHeight: '100vh',
 						display: 'flex',
 						flexDirection: 'column',
+						overflowX: 'hidden',
 					}}
 				>
 					<Box
@@ -106,9 +134,21 @@ export function MainLayout({ children, navData, drawerOpen, onToggleDrawer }: Ma
 							borderColor: 'divider',
 						}}
 					>
-						<MantisHeader onToggleDrawer={onToggleDrawer} />
+						<MantisHeader
+							navData={navData}
+							rewardsNotificationsEnabled={rewardsNotificationsEnabled}
+							onToggleDrawer={onToggleDrawer}
+						/>
 					</Box>
-					<Box sx={{ flex: 1, p: 3 }}>
+					<Box
+						sx={{
+							flex: 1,
+							p: { xs: 1.5, sm: 2, md: 3 },
+							minWidth: 0,
+							maxWidth: '100%',
+							overflowX: 'hidden',
+						}}
+					>
 						<PageTransition>{children}</PageTransition>
 					</Box>
 				</Box>

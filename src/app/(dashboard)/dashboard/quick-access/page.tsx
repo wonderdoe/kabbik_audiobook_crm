@@ -39,6 +39,7 @@ import {
 import { notifications } from '@/components/providers/SnackbarProvider';
 import { useDisclosure } from '@/hooks/use-disclosure';
 import { IconArrowDown, IconArrowUp, IconPencil, IconTrash } from '@tabler/icons-react';
+import { useIsMobileSm } from '@/hooks/use-is-mobile-sm';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import Swal from 'sweetalert2';
 
@@ -78,6 +79,7 @@ const audienceChipColor: Record<
 };
 
 export default function QuickAccessPage() {
+	const isMobileSm = useIsMobileSm();
 	const [rows, setRows] = useState<QuickAccessRow[]>([]);
 	const [total, setTotal] = useState(0);
 	const [page, setPage] = useState(1);
@@ -326,8 +328,14 @@ export default function QuickAccessPage() {
 		>
 		<Stack spacing={2}>
 			<MainCard title="Filters">
-			<Stack direction="row" flexWrap="wrap" alignItems="flex-end" spacing={2} useFlexGap>
-				<Box sx={{ flex: '1 1 200px', maxWidth: 280 }}>
+			<Stack
+				direction={{ xs: 'column', sm: 'row' }}
+				flexWrap="wrap"
+				alignItems={{ xs: 'stretch', sm: 'flex-end' }}
+				spacing={2}
+				useFlexGap
+			>
+				<Box sx={{ flex: '1 1 200px', maxWidth: { xs: '100%', sm: 280 }, width: { xs: '100%', sm: 'auto' } }}>
 					<DataSelect
 						fullWidth
 						label="Audience"
@@ -344,7 +352,7 @@ export default function QuickAccessPage() {
 						}}
 					/>
 				</Box>
-				<Box sx={{ flex: '1 1 160px', maxWidth: 220 }}>
+				<Box sx={{ flex: '1 1 160px', maxWidth: { xs: '100%', sm: 220 }, width: { xs: '100%', sm: 'auto' } }}>
 					<DataSelect
 						fullWidth
 						label="Active"
@@ -362,7 +370,7 @@ export default function QuickAccessPage() {
 						}}
 					/>
 				</Box>
-				<Box sx={{ flex: '2 1 240px', minWidth: 200 }}>
+				<Box sx={{ flex: '2 1 240px', minWidth: { xs: 0, sm: 200 }, width: { xs: '100%', sm: 'auto' } }}>
 					<TextField
 						fullWidth
 						size="small"
@@ -495,6 +503,7 @@ export default function QuickAccessPage() {
 				}}
 				maxWidth="sm"
 				fullWidth
+				fullScreen={isMobileSm}
 			>
 				<DialogTitle>{editingId ? 'Edit Quick Access' : 'Add Quick Access'}</DialogTitle>
 				<DialogContent>

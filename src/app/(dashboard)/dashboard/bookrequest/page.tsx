@@ -23,18 +23,20 @@ import Loader from '@/components/Loader';
 import { useDisclosure } from '@/hooks/use-disclosure';
 import { IconBook, IconEye, IconLanguage, IconSearch, IconTag, IconUser, IconX } from '@tabler/icons-react';
 import moment from 'moment';
+import { useIsMobileSm } from '@/hooks/use-is-mobile-sm';
 import { useEffect, useState, type ReactNode } from 'react';
+import { cardShadow } from '@/styles/cardShadow';
 
 const cardHoverSx = {
-	borderRadius: 2,
+	borderRadius: 1,
 	height: '100%',
 	display: 'flex',
 	flexDirection: 'column',
-	boxShadow: '0 1px 2px rgba(0, 0, 0, 0.04)',
+	boxShadow: cardShadow.rest,
 	transition: 'box-shadow 0.2s ease, transform 0.2s ease',
 	'&:hover': {
-		boxShadow: '0 8px 24px rgba(0, 0, 0, 0.12)',
-		transform: 'translateY(-2px)',
+		boxShadow: cardShadow.hoverLift,
+		transform: 'translateY(-1px)',
 	},
 };
 
@@ -108,6 +110,7 @@ function MetaBadge({
 }
 
 export default function BookRequest() {
+	const isMobileSm = useIsMobileSm();
 	const [bookRequestList, setBookRequestList] = useState<any[]>([]);
 	const [totalData, setTotalData] = useState(0);
 	const [currentPage, setCurrentPage] = useState(1);
@@ -200,10 +203,14 @@ export default function BookRequest() {
 					<Stack spacing={3}>
 						<Paper variant="outlined" sx={{ p: 1.5, borderRadius: 2 }}>
 							<form onSubmit={!isSearchActive ? handleSearchSubmit : handleSearchClear}>
-								<Stack direction="row" alignItems="center" spacing={1}>
+								<Stack
+									direction={{ xs: 'column', sm: 'row' }}
+									alignItems={{ xs: 'stretch', sm: 'center' }}
+									spacing={1}
+								>
 									<TextField
 										size="small"
-										sx={{ flex: 1 }}
+										sx={{ flex: 1, width: '100%' }}
 										value={searchInput}
 										onChange={e => setSearchInput(e.target.value)}
 										placeholder="Search by requester, book, writer, language, or category…"
@@ -218,6 +225,8 @@ export default function BookRequest() {
 									<Button
 										type="submit"
 										size="small"
+										fullWidth
+										sx={{ width: { xs: '100%', sm: 'auto' } }}
 										variant={isSearchActive ? 'outlined' : 'contained'}
 										color={isSearchActive ? 'error' : 'primary'}
 										startIcon={isSearchActive ? <IconX size={16} /> : <IconSearch size={16} />}
@@ -345,7 +354,12 @@ export default function BookRequest() {
 						)}
 
 						{totalPage > 1 ? (
-							<Stack direction="row" justifyContent="space-between" alignItems="center">
+							<Stack
+								direction={{ xs: 'column', sm: 'row' }}
+								justifyContent="space-between"
+								alignItems="center"
+								gap={1}
+							>
 								<Typography variant="body2" color="text.secondary">
 									Page {currentPage} of {totalPage}
 								</Typography>
@@ -361,7 +375,13 @@ export default function BookRequest() {
 						) : null}
 					</Stack>
 
-					<Dialog open={detailsModalOpened} onClose={closeDetailsModal} maxWidth="sm" fullWidth>
+					<Dialog
+						open={detailsModalOpened}
+						onClose={closeDetailsModal}
+						maxWidth="sm"
+						fullWidth
+						fullScreen={isMobileSm}
+					>
 						<DialogTitle sx={{ fontWeight: 600 }}>Request details</DialogTitle>
 						<DialogContent dividers>
 							<Stack spacing={2} sx={{ pt: 0.5 }}>

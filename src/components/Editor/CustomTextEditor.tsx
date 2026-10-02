@@ -1,7 +1,4 @@
-import {
-	Stack,
-	Typography,
-} from '@mui/material';
+import { Box } from '@mui/material';
 import {
 	ContentBlock,
 	convertFromRaw,
@@ -78,7 +75,7 @@ const BlockStyleControls = ({ editorState, onToggle }: BlockStyleControlsProps) 
 		.getType();
 
 	return (
-		<div className="RichEditor-controls">
+		<div className="RichEditor-toolbarGroup RichEditor-controls">
 			{BLOCK_TYPES.map(type => (
 				<StyleButton
 					key={type.label}
@@ -108,7 +105,7 @@ const InlineStyleControls = ({ editorState, onToggle }: InlineStyleControlsProps
 	const currentStyle = editorState.getCurrentInlineStyle();
 
 	return (
-		<div className="RichEditor-controls">
+		<div className="RichEditor-toolbarGroup RichEditor-controls">
 			{INLINE_STYLES.map(type => (
 				<StyleButton
 					key={type.label}
@@ -126,15 +123,25 @@ export class CustomTextEditor extends React.Component<
 	{
 		rawBlogContent: any;
 		setBlog: Dispatch<SetStateAction<any>>;
+		/** When true, editor draws its own outer border (legacy). Blog modal uses embedded. */
+		standalone?: boolean;
 	},
 	TextEditorState
 > {
 	private editorRef: React.RefObject<Editor>;
 
-	constructor(props: { rawBlogContent: any; setBlog: Dispatch<SetStateAction<any>> }) {
+	constructor(props: {
+		rawBlogContent: any;
+		setBlog: Dispatch<SetStateAction<any>>;
+		standalone?: boolean;
+	}) {
 		super(props);
+		const raw = props.rawBlogContent ?? {
+			entityMap: {},
+			blocks: [{ text: '', key: 'init', type: 'unstyled', depth: 0, entityRanges: [], inlineStyleRanges: [] }],
+		};
 		this.state = {
-			editorState: EditorState.createWithContent(convertFromRaw(this.props.rawBlogContent)),
+			editorState: EditorState.createWithContent(convertFromRaw(raw)),
 			currentContentLength: 0,
 		};
 
@@ -225,36 +232,35 @@ export class CustomTextEditor extends React.Component<
 			}
 		}
 
+		const rootClass = this.props.standalone
+			? 'RichEditor-root RichEditor-root--standalone'
+			: 'RichEditor-root';
+
 		return (
-			<>
-				<Stack direction="row" alignItems="center" justifyContent="space-between" dir="row" mb={1}>
-					<Typography mb={-10} variant="body2" color={'#222222'} style={{ fontWeight: '600' }}>
-						Content
-					</Typography>
-					<Typography mb={-10} variant="body2" color={'#222222'} style={{ fontWeight: '600' }}>
-						{this.state.currentContentLength} / {MAX_ALLOWED_CONTENT_LENGTH}
-					</Typography>
-				</Stack>
-				<div className="RichEditor-root">
+			<Box className={rootClass}>
+				<div className="RichEditor-toolbar">
 					<BlockStyleControls editorState={editorState} onToggle={this.toggleBlockType} />
 					<InlineStyleControls editorState={editorState} onToggle={this.toggleInlineStyle} />
-					<div className={className} onClick={this.focus}>
-						<Editor
-							blockStyleFn={getBlockStyle}
-							customStyleMap={styleMap}
-							editorState={editorState}
-							handleKeyCommand={this.handleKeyCommand}
-							keyBindingFn={this.mapKeyToEditorCommand}
-							handleBeforeInput={this.handleBeforeInput}
-							handlePastedText={this.handlePastedText}
-							onChange={this.onChange}
-							placeholder="Write a blog..."
-							ref={this.editorRef}
-							spellCheck={true}
-						/>
-					</div>
+					<span className="RichEditor-charCount">
+						{this.state.currentContentLength} / {MAX_ALLOWED_CONTENT_LENGTH}
+					</span>
 				</div>
-			</>
+				<div className={className} onClick={this.focus} role="textbox" tabIndex={-1}>
+					<Editor
+						blockStyleFn={getBlockStyle}
+						customStyleMap={styleMap}
+						editorState={editorState}
+						handleKeyCommand={this.handleKeyCommand}
+						keyBindingFn={this.mapKeyToEditorCommand}
+						handleBeforeInput={this.handleBeforeInput}
+						handlePastedText={this.handlePastedText}
+						onChange={this.onChange}
+						placeholder="Write your article…"
+						ref={this.editorRef}
+						spellCheck={true}
+					/>
+				</div>
+			</Box>
 		);
 	}
 }

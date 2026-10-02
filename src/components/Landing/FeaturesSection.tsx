@@ -9,7 +9,7 @@ import {
 	Typography,
 } from '@mui/material';
 import {
-	IconBrandMantine,
+	IconPalette,
 	IconBrandNextjs,
 	IconBrandOauth,
 	IconBrandPlanetscale,
@@ -34,9 +34,9 @@ export const featuresData = [
 		description: 'ORM using Prisma and deployed on PlanetScale.',
 	},
 	{
-		icon: IconBrandMantine,
-		title: 'Components',
-		description: 'UI components built using Mantine UI.',
+		icon: IconPalette,
+		title: 'Material UI',
+		description: 'UI components built with MUI and Emotion.',
 	},
 	{
 		icon: IconBrandOauth,

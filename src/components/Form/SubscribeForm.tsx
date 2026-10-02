@@ -1,9 +1,14 @@
+'use client';
+
 import {
 	Box,
 	Button,
+	CircularProgress,
 	Grid,
-	Paper,
+	Stack,
 	Typography,
+	alpha,
+	useTheme,
 } from '@mui/material';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useEffect, useState } from 'react';
@@ -16,15 +21,6 @@ import { CustomInput } from './CustomInput';
 import { CustomSelect } from './CustomSelect';
 import moment from 'moment';
 import { createActivityLog } from '@/helper/Commonfunction';
-
-export const getLocalDate = () => {
-	const now = new Date();
-	const localDate = new Date(now.getTime() + 6 * 60 * 60 * 1000);
-	const year = localDate.getUTCFullYear();
-	const month = String(localDate.getUTCMonth() + 1).padStart(2, '0');
-	const day = String(localDate.getUTCDate()).padStart(2, '0');
-	return `${year}-${month}-${day}`;
-};
 
 export type SubscribeFormDataType = z.infer<typeof formSchema>;
 
@@ -40,11 +36,32 @@ const formSchema = z.object({
 	transactionId: z.string(),
 	subscriptionId: z.string(),
 	promocode: z.string(),
-	proofOfPayment: z.string(),
+	proofOfPayment: z.string().min(1, 'Proof of payment is required'),
 	modifiedBy: z.number(),
 });
 
-export const SubscribeForm = ({ userId, modifiedBy }: { userId: number; modifiedBy: number }) => {
+const fieldWrapSx = {
+	width: '100%',
+	minWidth: 0,
+	display: 'flex',
+	flexDirection: 'column',
+	'& .MuiFormControl-root': { mt: 0, mb: 0, width: '100%' },
+	'& .MuiFormHelperText-root': {
+		m: 0,
+		mt: 0.5,
+		minHeight: 20,
+	},
+};
+
+type SubscribeFormProps = {
+	userId: number;
+	modifiedBy: number;
+	onCancel?: () => void;
+	onSuccess?: () => void;
+};
+
+export const SubscribeForm = ({ userId, modifiedBy, onCancel, onSuccess }: SubscribeFormProps) => {
+	const theme = useTheme();
 	const [loading, setLoading] = useState(false);
 	const [resetImagePath, setResetImagePath] = useState(false);
 	const {
@@ -69,35 +86,51 @@ export const SubscribeForm = ({ userId, modifiedBy }: { userId: number; modified
 		},
 	});
 
-	const onSubmit = async (formData: SubscribeFormDataType) => {
-		const refinedFormData = {
-			...formData,
-			paymentMethod:
-				formData.paymentMethod === 'bKash' && formData.packageId === 'halfYearly'
-					? 'bKashOnetime'
-					: formData.paymentMethod,
-			packageId: formData.packageId === 'monthly' ? 1 : formData.packageId === 'yearly' ? 3 : 2,
-			subscriptionDate: moment(formData.subscriptionDate).format('YYYY-MM-DD'),
-		};
-		const result = await fetch('/api/routes/subscription', {
-			method: 'POST',
-			body: JSON.stringify(refinedFormData),
-		});
+	useEffect(() => {
+		setValue('userId', userId);
+		setValue('modifiedBy', modifiedBy);
+	}, [userId, modifiedBy, setValue]);
 
-		let activityLogPayload = {
-			name: 'createSubscription',
-			action_type: 'create',
-			payload:JSON.stringify({ refinedFormData }),
-			api_end_point: '/api/routes/subscription',
+	const onSubmit = async (formData: SubscribeFormDataType) => {
+		setLoading(true);
+		try {
+			const refinedFormData = {
+				...formData,
+				paymentMethod:
+					formData.paymentMethod === 'bKash' && formData.packageId === 'halfYearly'
+						? 'bKashOnetime'
+						: formData.paymentMethod,
+				packageId: formData.packageId === 'monthly' ? 1 : formData.packageId === 'yearly' ? 3 : 2,
+				subscriptionDate: moment(formData.subscriptionDate).format('YYYY-MM-DD'),
+			};
+			const result = await fetch('/api/routes/subscription', {
+				method: 'POST',
+				body: JSON.stringify(refinedFormData),
+			});
+
+			createActivityLog({
+				name: 'createSubscription',
+				action_type: 'create',
+				payload: JSON.stringify({ refinedFormData }),
+				api_end_point: '/api/routes/subscription',
+			});
+			const data = await result.json();
+			createToast2(data.message);
+			if (result.ok) {
+				onSuccess?.();
+			}
+		} catch (err) {
+			console.error(err);
+		} finally {
+			setLoading(false);
 		}
-		createActivityLog(activityLogPayload);
-		const data = await result.json();
-		createToast2(data.message);
 	};
 
 	useEffect(() => {
 		if (isSubmitSuccessful) {
 			reset({
+				userId,
+				modifiedBy,
 				packageId: 'monthly',
 				paymentMethod: 'bKash',
 				promocode: '',
@@ -108,106 +141,157 @@ export const SubscribeForm = ({ userId, modifiedBy }: { userId: number; modified
 			});
 			setResetImagePath(prev => !prev);
 		}
-	}, [isSubmitSuccessful, reset]);
+	}, [isSubmitSuccessful, modifiedBy, reset, userId]);
 
 	return (
-		<Paper elevation={3} sx={{ p: 2 }} pt="0">
-			<Box display="flex" justifyContent="center" alignItems="center">
-				<Typography variant="h5" component="h2">User Id: {userId}</Typography>
-			</Box>
-			<form
-				onSubmit={handleSubmit(onSubmit, e => console.error(e))}
-				style={{ marginTop: '20px', display: 'flex', flexDirection: 'column', gap: '20px' }}
+		<Box
+			component="form"
+			onSubmit={handleSubmit(onSubmit, e => console.error(e))}
+			sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}
+		>
+			<Box
+				sx={{
+					px: 2,
+					py: 1.25,
+					borderRadius: 2,
+					bgcolor: alpha(theme.palette.primary.main, 0.06),
+					border: `1px solid ${alpha(theme.palette.primary.main, 0.15)}`,
+				}}
 			>
-				<Grid container spacing={2}>
-					<Grid
-						item
-						xs={12}
-						sm={6}
-						style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}
-					>
+				<Typography variant="overline" color="text.secondary" fontWeight={700}>
+					User
+				</Typography>
+				<Typography variant="body1" fontWeight={700}>
+					ID {userId.toLocaleString()}
+				</Typography>
+			</Box>
+
+			<Box
+				sx={{
+					p: { xs: 1.5, sm: 2 },
+					borderRadius: 2,
+					border: 1,
+					borderColor: 'divider',
+					bgcolor: 'background.paper',
+				}}
+			>
+				<Grid container spacing={2} alignItems="flex-start">
+					<Grid item xs={12} sm={6} sx={fieldWrapSx}>
 						<CustomSelect
-							label="Package Type"
+							label="Package type"
 							name="packageId"
 							data={[
 								{ label: 'Monthly', value: 'monthly' },
 								{ label: 'Half yearly', value: 'halfYearly' },
-								{ label: 'Half yearly Recurring', value: 'halfYearlyR' },
+								{ label: 'Half yearly recurring', value: 'halfYearlyR' },
 								{ label: 'Yearly', value: 'yearly' },
 							]}
-							placeholder="Pick a package type ..."
+							placeholder="Select package"
 							control={control}
-							error={(errors.packageId && errors.packageId.message) as string}
-							clearable required
+							error={(errors.packageId?.message as string) ?? ''}
+							clearable
+							required
 						/>
+					</Grid>
+					<Grid item xs={12} sm={6} sx={fieldWrapSx}>
 						<CustomSelect
-							label="Payment Method"
+							label="Payment method"
 							name="paymentMethod"
 							data={[
 								{ label: 'bKash', value: 'bKash' },
-								{ label: 'robi', value: 'robi' },
-								{ label: 'nagad', value: 'nagad' },
-								{ label: 'upay', value: 'upay' },
-								{ label: 'surjoPay', value: 'surjoPay' },
-								{ label: 'googlePay', value: 'googlePay' },
-								{ label: 'applePay', value: 'applePay' },
+								{ label: 'Robi', value: 'robi' },
+								{ label: 'Nagad', value: 'nagad' },
+								{ label: 'Upay', value: 'upay' },
+								{ label: 'SurjoPay', value: 'surjoPay' },
+								{ label: 'Google Pay', value: 'googlePay' },
+								{ label: 'Apple Pay', value: 'applePay' },
 							]}
-							placeholder="Pick a payment method ..."
+							placeholder="Select method"
 							control={control}
-							error={(errors.paymentMethod && errors.paymentMethod.message) as string}
-							clearable required
+							error={(errors.paymentMethod?.message as string) ?? ''}
+							clearable
+							required
 						/>
+					</Grid>
+					<Grid item xs={12} sm={6} sx={fieldWrapSx}>
+						<CustomInput
+							label="Transaction ID"
+							name="transactionId"
+							placeholder="Enter transaction ID"
+							control={control}
+							error={(errors.transactionId?.message as string) ?? ''}
+							dense
+						/>
+					</Grid>
+					<Grid item xs={12} sm={6} sx={fieldWrapSx}>
+						<CustomInput
+							label="Subscription ID"
+							name="subscriptionId"
+							placeholder="Enter subscription ID"
+							control={control}
+							error={(errors.subscriptionId?.message as string) ?? ''}
+							dense
+						/>
+					</Grid>
+					<Grid item xs={12} sm={6} sx={fieldWrapSx}>
 						<CustomInput
 							label="Promocode"
 							name="promocode"
-							placeholder="place a promocode ..."
+							placeholder="Optional promocode"
 							control={control}
-							error={(errors.promocode && errors.promocode.message) as string}
-						/>
-						<CustomDatePicker
-							label="Subscription Date"
-							name="subscriptionDate"
-							placeholder="pick a date"
-							control={control}
-							error={(errors.subscriptionDate && errors.subscriptionDate.message) as string} required
+							error={(errors.promocode?.message as string) ?? ''}
+							dense
 						/>
 					</Grid>
-					<Grid
-						item
-						xs={12}
-						sm={6}
-						style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}
-					>
-						<CustomInput
-							label="Transaction Id"
-							name="transactionId"
-							placeholder="place transaction id ..."
+					<Grid item xs={12} sm={6} sx={fieldWrapSx}>
+						<CustomDatePicker
+							label="Subscription date"
+							name="subscriptionDate"
+							placeholder="Select date"
 							control={control}
-							error={(errors.transactionId && errors.transactionId.message) as string}
+							error={(errors.subscriptionDate?.message as string) ?? ''}
+							required
 						/>
-						<CustomInput
-							label="Subscription Id"
-							name="subscriptionId"
-							placeholder="place subscription id ..."
-							control={control}
-							error={(errors.subscriptionId && errors.subscriptionId?.message) as string}
-						/>
+					</Grid>
+					<Grid item xs={12} sx={fieldWrapSx}>
 						<CustomFileInput
-							label="Proof Of Payment"
+							label="Proof of payment"
 							name="proofOfPayment"
-							placeholder="upload an image ..."
-							multiple={true}
+							placeholder="Upload receipt or screenshot"
+							multiple={false}
 							register={register}
 							setValue={setValue}
 							setLoading={setLoading}
-							reset={resetImagePath} required
+							reset={resetImagePath}
+							required
+							accept="image/*"
+							error={(errors.proofOfPayment?.message as string) ?? ''}
 						/>
 					</Grid>
-					<Button m="xs" type="submit" sx={{ width: "100%" }} disabled={loading}>
-						Submit
-					</Button>
 				</Grid>
-			</form>
-		</Paper>
+			</Box>
+
+			<Stack
+				direction={{ xs: 'column-reverse', sm: 'row' }}
+				spacing={1.5}
+				justifyContent="flex-end"
+				alignItems={{ xs: 'stretch', sm: 'center' }}
+			>
+				{onCancel ? (
+					<Button type="button" variant="outlined" color="inherit" onClick={onCancel} disabled={loading}>
+						Cancel
+					</Button>
+				) : null}
+				<Button
+					type="submit"
+					variant="contained"
+					disabled={loading}
+					sx={{ minWidth: { sm: 140 } }}
+					startIcon={loading ? <CircularProgress size={16} color="inherit" /> : undefined}
+				>
+					{loading ? 'Saving…' : 'Grant subscription'}
+				</Button>
+			</Stack>
+		</Box>
 	);
 };

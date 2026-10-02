@@ -22,6 +22,7 @@ import { MainCard } from '@/components/mantis/MainCard';
 
 import { DataSelect } from '@/components/Form/DataSelect';
 import { useDisclosure } from '@/hooks/use-disclosure';
+import { useIsMobileSm } from '@/hooks/use-is-mobile-sm';
 import moment from 'moment';
 import { useEffect, useState } from 'react';
 import { createToast, createToast2 } from 'helpers/SweetAlert';
@@ -29,6 +30,7 @@ import Loader from '@/components/Loader';
 import { createActivityLog } from '@/helper/Commonfunction';
 
 export default function Roles() {
+	const isMobileSm = useIsMobileSm();
 	const [addUserOpened, { open: openAddUser, close: closeAddUser }] = useDisclosure(false);
 	const [details, setDetails] = useState<any>(null);
 	const [detailsModalOpened, { open: openDetailsModal, close: closeDetailsModal }] =
@@ -174,7 +176,7 @@ export default function Roles() {
 				<Divider sx={{ my: 1 }} />
 			</MainCard>
 
-			<Dialog open={addUserOpened} onClose={handleCloseAddUser} maxWidth="sm" fullWidth>
+			<Dialog open={addUserOpened} onClose={handleCloseAddUser} maxWidth="sm" fullWidth fullScreen={isMobileSm}>
 				<DialogTitle>Add User</DialogTitle>
 				<DialogContent dividers>
 					<Box component="form" id="add-user-form" onSubmit={handleAddUser} sx={{ pt: 0.5 }}>
@@ -268,7 +270,7 @@ export default function Roles() {
 					</Button>
 				</DialogActions>
 			</Dialog>
-			<Dialog open={detailsModalOpened} onClose={closeDetailsModal} maxWidth="md" fullWidth>
+			<Dialog open={detailsModalOpened} onClose={closeDetailsModal} maxWidth="md" fullWidth fullScreen={isMobileSm}>
 				<DialogTitle>Details</DialogTitle>
 				<DialogContent dividers>
 					<TableContainer>

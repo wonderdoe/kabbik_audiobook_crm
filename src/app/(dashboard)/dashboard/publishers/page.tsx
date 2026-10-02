@@ -4,26 +4,32 @@ import {
 	Box,
 	Button,
 	Dialog,
+	DialogActions,
 	DialogContent,
 	DialogTitle,
-	Divider,
-	Pagination,
-	Paper,
+	Grid,
 	Stack,
-	Tab,
 	Table,
 	TableBody,
 	TableCell,
-	TableContainer,
 	TableHead,
 	TableRow,
 	TextField,
 	Typography,
+	alpha,
+	useTheme,
 } from '@mui/material';
 import { PageContainer } from '@/components/PageContainer/PageContainer';
-import { MainCard } from '@/components/mantis/MainCard';
+import {
+	DirectoryAvatar,
+	DirectoryListCard,
+	directoryTableSx,
+} from '@/components/directory/directoryListUi';
+import { StatCard } from '@/components/ui/StatCard';
+import { IconBuilding, IconEye, IconPencil, IconPlus, IconUsers } from '@tabler/icons-react';
 
 import { useDisclosure } from '@/hooks/use-disclosure';
+import { useIsMobileSm } from '@/hooks/use-is-mobile-sm';
 import moment from 'moment';
 
 import { useEffect, useState } from 'react';
@@ -32,6 +38,8 @@ import { formatPhoneNumber } from '@/utils/globalHelpers';
 import { createActivityLog } from '@/helper/Commonfunction';
 
 export default function Publisher() {
+	const theme = useTheme();
+	const isMobileSm = useIsMobileSm();
 	const [isOpenedDetailsModal, { open: openDetailsModal, close: closeDetailsModal }] =
 		useDisclosure(false);
 	const [publisherModal, setPublisherModal] = useState<any>(null);
@@ -193,35 +201,58 @@ export default function Publisher() {
 	}, [offset]);
 
 	const rows = publisherList.map((element: any, index: any) => {
+		const phones =
+			element.phone
+				?.split(',')
+				.map((phone: string) => formatPhoneNumber(phone))
+				.join(', ') || 'N/A';
+
 		return (
-			<TableRow key={element.id}>
+			<TableRow key={element.id} hover sx={{ '&:last-child td': { borderBottom: 0 } }}>
 				<TableCell>
-					<Avatar
-						style={{ objectFit: 'contain' }}
-						src={element.imageUrl}
-						alt={element.imageUrl}
-						radius={'xs'}
-						size={'100px'}
-					/>
-					<Avatar
-						style={{ objectFit: 'contain' }}
-						src={element.imageUrl}
-						alt={element.imageUrl}
-						radius={'xs'}
-					/>
+					<DirectoryAvatar src={element.imageUrl} name={element.full_name} />
 				</TableCell>
-				<TableCell>{element.full_name || 'N/A'}</TableCell>
 				<TableCell>
-					{element.phone
-						.split(',')
-						.map((phone: string) => formatPhoneNumber(phone))
-						.join(', ') || 'N/A'}
+					<Typography variant="body2" fontWeight={600}>
+						{element.full_name || 'N/A'}
+					</Typography>
+					{element.en_name ? (
+						<Typography variant="caption" color="text.secondary" display="block">
+							{element.en_name}
+						</Typography>
+					) : null}
 				</TableCell>
-				<TableCell style={{ width: '300px' }}>{element.address || 'N/A'}</TableCell>
 				<TableCell>
-					<Stack direction="row" flexWrap="wrap" spacing={10}>
-						<Button onClick={event => handleEdit(event, index)}>Edit</Button>
+					<Typography variant="body2">{phones}</Typography>
+				</TableCell>
+				<TableCell sx={{ maxWidth: 280 }}>
+					<Typography
+						variant="body2"
+						color="text.secondary"
+						sx={{
+							display: '-webkit-box',
+							WebkitLineClamp: 2,
+							WebkitBoxOrient: 'vertical',
+							overflow: 'hidden',
+						}}
+					>
+						{element.address || 'N/A'}
+					</Typography>
+				</TableCell>
+				<TableCell align="right">
+					<Stack direction="row" spacing={0.75} justifyContent="flex-end" flexWrap="wrap">
 						<Button
+							size="small"
+							variant="outlined"
+							startIcon={<IconPencil size={16} />}
+							onClick={event => handleEdit(event, index)}
+						>
+							Edit
+						</Button>
+						<Button
+							size="small"
+							variant="text"
+							startIcon={<IconEye size={16} />}
 							onClick={() => {
 								setPublisherModal(element);
 								openDetailsModal();
@@ -240,180 +271,263 @@ export default function Publisher() {
 			{loading ? (
 				<Loader />
 			) : (
-			<PageContainer title="Publisher List" items={[{ label: 'Publishers', href: '/dashboard/publishers' }]}
+				<PageContainer
+				title="Publisher List"
+				subtitle="Manage publisher accounts and contact details"
+				items={[{ label: 'Publishers', href: '/dashboard/publishers' }]}
 				actions={
-					<Button onClick={openAddPublisher} variant="contained">
-							Add Publisher
-						</Button>
-				}>
+					<Button onClick={openAddPublisher} variant="contained" startIcon={<IconPlus size={18} />}>
+						Add publisher
+					</Button>
+				}
+			>
+				<Stack spacing={2}>
+					<Grid container spacing={2}>
+						<Grid item xs={12} sm={6} md={4}>
+							<StatCard
+								title="Total publishers"
+								value={totalData.toLocaleString()}
+								color="primary"
+								icon={<IconBuilding size={22} />}
+							/>
+						</Grid>
+						<Grid item xs={12} sm={6} md={4}>
+							<StatCard
+								title="On this page"
+								value={publisherList.length}
+								color="info"
+								icon={<IconUsers size={22} />}
+							/>
+						</Grid>
+					</Grid>
 
-<MainCard contentSX={{ p: 0 }}>
-						<TableContainer sx={{ minWidth: 100 }}>
-							<Table>
-								<TableHead>
-									<TableRow>
-										<TableCell component="th">Image</TableCell>
-										<TableCell component="th">Name</TableCell>
-										<TableCell component="th">Phone</TableCell>
-										<TableCell component="th">Address</TableCell>
-										<TableCell component="th">Action</TableCell>
-									</TableRow>
-								</TableHead>
-								<TableBody>{rows}</TableBody>
-							</Table>
-						</TableContainer>
-						<Divider sx={{ my: 1 }} />
-						<Pagination page={currentPage}
-							onChange={handlePageChange}
-							count={totalPage}
-						/>
-					</MainCard>
+					<DirectoryListCard
+						title="All publishers"
+						totalCount={totalData}
+						currentPage={currentPage}
+						totalPages={totalPage}
+						onPageChange={handlePageChange}
+						isEmpty={!loading && publisherList.length === 0}
+						emptyMessage="No publishers yet. Add your first publisher to get started."
+					>
+						<Table size="small" sx={directoryTableSx}>
+							<TableHead>
+								<TableRow>
+									<TableCell width={80}>Photo</TableCell>
+									<TableCell>Name</TableCell>
+									<TableCell>Phone</TableCell>
+									<TableCell>Address</TableCell>
+									<TableCell align="right">Actions</TableCell>
+								</TableRow>
+							</TableHead>
+							<TableBody>{rows}</TableBody>
+						</Table>
+					</DirectoryListCard>
 
-						<Dialog open={addPublisherOpened} onClose={closeAddPublisher} title="">
-							<Typography maxWidth="xl" sx={{ width: "100%" }} fontWeight={900} style={{ textAlign: 'center' }}>
-								Add Publisher
-							</Typography>
-							<Paper elevation={1} sx={{ p: 3 }}>
-								<form onSubmit={handleOpenAddPublisher} action="">
+						<Dialog open={addPublisherOpened} onClose={closeAddPublisher} maxWidth="sm" fullWidth fullScreen={isMobileSm}>
+							<DialogTitle>Add publisher</DialogTitle>
+							<DialogContent>
+								<Stack component="form" spacing={2} onSubmit={handleOpenAddPublisher} sx={{ pt: 0.5 }}>
 									<TextField
 										label="Name"
+										size="small"
+										fullWidth
 										onChange={e => setName(e.target.value)}
 										required
-										placeholder="Name"
 									/>
 									<TextField
-										label="En Name"
+										label="English name"
+										size="small"
+										fullWidth
 										onChange={e => setEnName(e.target.value)}
 										required
-										placeholder="En Name"
 									/>
 									<TextField
 										label="Email"
 										type="email"
+										size="small"
+										fullWidth
 										onChange={e => setEmail(e.target.value)}
 										required
-										placeholder="Email"
 									/>
 									<TextField
 										label="Password"
 										type="password"
+										size="small"
+										fullWidth
 										onChange={e => setPassword(e.target.value)}
 										required
-										placeholder="Password"
 									/>
 									<TextField
 										label="Phone"
+										size="small"
+										fullWidth
 										onChange={e => setPhone(e.target.value)}
 										required
-										placeholder="Phone"
 									/>
-
 									<TextField
 										label="Address"
+										size="small"
+										fullWidth
 										onChange={e => setAddress(e.target.value)}
 										required
-										placeholder="Address"
 									/>
-									<label htmlFor="Image">Image</label>
-									<input type="file" onChange={handleImage} />
-									{image && <Box component="img" src={image} height={200} width={200} alt="Uploaded" />}
-									<Button type="submit">
-										Create
-									</Button>
-								</form>
-							</Paper>
+									<Box>
+										<Typography variant="caption" color="text.secondary" fontWeight={600} display="block" sx={{ mb: 0.75 }}>
+											Photo
+										</Typography>
+										<input type="file" accept="image/*" onChange={handleImage} />
+										{image ? (
+											<Box
+												component="img"
+												src={image}
+												alt="Preview"
+												sx={{
+													mt: 1.5,
+													width: 120,
+													height: 120,
+													objectFit: 'cover',
+													borderRadius: 2,
+													border: 1,
+													borderColor: 'divider',
+												}}
+											/>
+										) : null}
+									</Box>
+									<DialogActions sx={{ px: 0, pb: 0 }}>
+										<Button onClick={closeAddPublisher}>Cancel</Button>
+										<Button type="submit" variant="contained">
+											Create
+										</Button>
+									</DialogActions>
+								</Stack>
+							</DialogContent>
 						</Dialog>
 
-						<Dialog
-							open={editOpened}
-							onClose={closeEdit}
-							variant="h6"
-						>
-<DialogTitle>Edit Publisher</DialogTitle>
-<DialogContent>
-							<Paper elevation={1} sx={{ p: 1 }}>
-								<form onSubmit={handleEditPublisher} action="">
+						<Dialog open={editOpened} onClose={closeEdit} maxWidth="sm" fullWidth fullScreen={isMobileSm}>
+							<DialogTitle>Edit publisher</DialogTitle>
+							<DialogContent>
+								<Stack component="form" spacing={2} onSubmit={handleEditPublisher} sx={{ pt: 0.5 }}>
 									<TextField
 										label="Name"
+										size="small"
+										fullWidth
 										value={name ? name : ''}
 										onChange={e => setName(e.target.value)}
 										required
-										placeholder="Name"
 									/>
 									<TextField
-										label="En Name"
+										label="English name"
+										size="small"
+										fullWidth
 										value={enName ? enName : ''}
 										onChange={e => setEnName(e.target.value)}
 										required
-										placeholder="En Name"
 									/>
 									<TextField
 										label="Email"
+										size="small"
+										fullWidth
 										value={email ? email : ''}
 										type="email"
 										onChange={e => setEmail(e.target.value)}
 										required
-										placeholder="Email"
 									/>
-
 									<TextField
 										label="Address"
+										size="small"
+										fullWidth
 										value={address ? address : ''}
 										onChange={e => setAddress(e.target.value)}
 										required
-										placeholder="Address"
 									/>
-									<Stack direction="row" flexWrap="wrap" direction={{ base: 'column', xs: 'row' }} justify={'space-between'}>
-										<Stack direction="row" flexWrap="wrap" direction={'column'} spacing={10}>
-											<Stack direction="row" flexWrap="wrap" direction={'column'}>
-												<label htmlFor="Image">Image</label>
-												<input type="file" onChange={handleImage} />
-											</Stack>
-											<div>
-												<Button type="submit">
-													Update
-												</Button>
-											</div>
-										</Stack>
-										<div>{image && <Avatar src={image} alt={image} size={'70px'} />}</div>
+									<Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems={{ sm: 'center' }}>
+										<Box sx={{ flex: 1 }}>
+											<Typography variant="caption" color="text.secondary" fontWeight={600} display="block" sx={{ mb: 0.75 }}>
+												Photo
+											</Typography>
+											<input type="file" accept="image/*" onChange={handleImage} />
+										</Box>
+										{image ? (
+											<Avatar
+												variant="rounded"
+												src={image}
+												alt={name || 'Publisher'}
+												sx={{ width: 72, height: 72, border: 1, borderColor: 'divider' }}
+											/>
+										) : null}
 									</Stack>
-								</form>
-							</Paper>
-						</DialogContent>
-</Dialog>
-						<Dialog
-							
-							open={isOpenedDetailsModal}
-							onClose={closeDetailsModal}
-							maxWidth="lg" sx={{ width: "100%" }}
-						>
-<DialogTitle>Publisher Details</DialogTitle>
-<DialogContent>
-							<TableContainer sx={{ minWidth: 100 }}>
-								<Table>
-									<TableHead>
-										<TableRow>
-											<TableCell component="th">Id</TableCell>
-											<TableCell component="th">English Name</TableCell>
-											<TableCell component="th">Email</TableCell>
-											<TableCell component="th">Created At</TableCell>
-										</TableRow>
-									</TableHead>
-									<TableBody>
-										<TableRow>
-											<TableCell>{publisherModal?.id}</TableCell>
-											<TableCell>{publisherModal?.en_name || 'N/A'}</TableCell>
-											<TableCell>{publisherModal?.email || 'N/A'}</TableCell>
-											<TableCell>
-												{moment(publisherModal?.created_at).format('Do MMM YYYY h:mma') || 'N/A'}
-											</TableCell>
-										</TableRow>
-									</TableBody>
-								</Table>
-							</TableContainer>
-						</DialogContent>
-</Dialog>
-			</PageContainer>
+									<DialogActions sx={{ px: 0, pb: 0 }}>
+										<Button onClick={closeEdit}>Cancel</Button>
+										<Button type="submit" variant="contained">
+											Update
+										</Button>
+									</DialogActions>
+								</Stack>
+							</DialogContent>
+						</Dialog>
+						<Dialog open={isOpenedDetailsModal} onClose={closeDetailsModal} maxWidth="md" fullWidth fullScreen={isMobileSm}>
+							<DialogTitle>Publisher details</DialogTitle>
+							<DialogContent>
+								<Stack spacing={2} sx={{ pt: 0.5 }}>
+									<Stack direction="row" spacing={2} alignItems="center">
+										<DirectoryAvatar src={publisherModal?.imageUrl} name={publisherModal?.full_name} />
+										<Box>
+											<Typography variant="h6" fontWeight={700}>
+												{publisherModal?.full_name || 'N/A'}
+											</Typography>
+											<Typography variant="body2" color="text.secondary">
+												{publisherModal?.en_name || '—'}
+											</Typography>
+										</Box>
+									</Stack>
+									<Box
+										sx={{
+											display: 'grid',
+											gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' },
+											gap: 2,
+											p: 2,
+											borderRadius: 2,
+											bgcolor: alpha(theme.palette.primary.main, 0.04),
+											border: 1,
+											borderColor: 'divider',
+										}}
+									>
+										<Box>
+											<Typography variant="overline" color="text.secondary">
+												ID
+											</Typography>
+											<Typography variant="body2" fontWeight={600}>
+												{publisherModal?.id ?? '—'}
+											</Typography>
+										</Box>
+										<Box>
+											<Typography variant="overline" color="text.secondary">
+												Email
+											</Typography>
+											<Typography variant="body2" fontWeight={600}>
+												{publisherModal?.email || 'N/A'}
+											</Typography>
+										</Box>
+										<Box sx={{ gridColumn: { sm: '1 / -1' } }}>
+											<Typography variant="overline" color="text.secondary">
+												Created
+											</Typography>
+											<Typography variant="body2" fontWeight={600}>
+												{publisherModal?.created_at
+													? moment(publisherModal.created_at).format('Do MMM YYYY, h:mm a')
+													: 'N/A'}
+											</Typography>
+										</Box>
+									</Box>
+								</Stack>
+							</DialogContent>
+							<DialogActions>
+								<Button onClick={closeDetailsModal}>Close</Button>
+							</DialogActions>
+						</Dialog>
+				</Stack>
+				</PageContainer>
 			)}
 		</>
 	);

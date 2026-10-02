@@ -21,6 +21,7 @@ import { CatalogMediaCard } from '@/components/mantis/CatalogMediaCard';
 import { PageContainer } from '@/components/PageContainer/PageContainer';
 import { DataSelect } from '@/components/Form/DataSelect';
 import { useDisclosure } from '@/hooks/use-disclosure';
+import { useIsMobileSm } from '@/hooks/use-is-mobile-sm';
 import { IconPlus, IconRefresh, IconTrash, IconX } from '@tabler/icons-react';
 import { motion } from 'framer-motion';
 import moment from 'moment';
@@ -34,6 +35,7 @@ const IMAGE_UPLOAD_URL = 'https://api.kabbik.com/v3/audiobooks/upload-image-in-s
 const ITEMS_PER_PAGE = 12;
 
 export default function HeroBanner() {
+	const isMobileSm = useIsMobileSm();
 	const [bannerData, setBannerData] = useState<any[]>([]);
 	const [currentPage, setCurrentPage] = useState(1);
 	const [offset, setOffset] = useState(0);
@@ -321,7 +323,7 @@ export default function HeroBanner() {
 			)}
 
 			{/* Add dialog */}
-			<Dialog open={addBannerOpened} onClose={closeAddBanner} maxWidth="sm" fullWidth>
+			<Dialog open={addBannerOpened} onClose={closeAddBanner} maxWidth="sm" fullWidth fullScreen={isMobileSm}>
 				<DialogTitle sx={{ fontWeight: 600 }}>Add Hero Banner</DialogTitle>
 				<DialogContent dividers>
 					<Stack component="form" id="hero-banner-form" spacing={2} onSubmit={handleAddHeroBanner} sx={{ pt: 0.5 }}>

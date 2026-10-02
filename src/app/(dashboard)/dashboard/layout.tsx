@@ -3,6 +3,7 @@
 import Cookies from 'js-cookie';
 import { useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
+import Loader from '@/components/Loader';
 import { MainLayout } from '@/components/layout/MainLayout';
 import { getNavLinks } from '@/config';
 
@@ -24,7 +25,7 @@ export default function DashboardLayout({ children }: Props) {
 	}, [router]);
 
 	if (loading) {
-		return null;
+		return <Loader variant="app" label="Kabbik CRM" />;
 	}
 
 	return (

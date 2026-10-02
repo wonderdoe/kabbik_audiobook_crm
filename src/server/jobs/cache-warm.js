@@ -15,10 +15,10 @@ import {
 import { buildPackageWiseReport } from './package-wise-report.js';
 import { buildDaywisePromoPage, defaultDaywisePromoRange } from './daywise-promo-query.js';
 
-// Home/revenue: 60 min refresh (scheduled-warm every 15 min). User report: daily 03:00 Dhaka only.
+// Home/revenue: 60 min refresh (scheduled-warm every 15 min). User report: daily 03:30 Dhaka only.
 export const DASH_HOME_TTL = 3600;
 export const REVENUE_CACHE_TTL = 3600;
-/** ~25h logical freshness — survives until next 03:00 Asia/Dhaka warm. */
+/** ~25h logical freshness — survives until next 03:30 Asia/Dhaka warm. */
 export const USER_REPORT_TTL = 90000;
 export const SIGNUP_REPORT_TTL = 3600;
 export const PLAYCOUNT_TTL = 3600;

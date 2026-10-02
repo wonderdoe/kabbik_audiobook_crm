@@ -4,12 +4,12 @@
 <!-- markdownlint-disable MD041 -->
 
 <h1 align="center">
-  Mantine Admin
+  Kabbik Audiobook CRM
 </h1>
 
 <!-- Banner Section -->
 <p align="center">
-  <img src="./public/static/images/og.png" alt="Mantine Admin Banner" width="600px" />
+  <img src="./public/static/images/og.png" alt="Kabbik CRM Banner" width="600px" />
 </p>
 <h3 align="center">
   💻 A Modern Dashboard with Next.js.!
@@ -52,14 +52,9 @@
 
 <!-- Link Demo Section -->
 
-## 🚀 [Demo →](https://mantine-admin.vercel.app)
+## 🚀 [CRM →](https://crm.kabbik.com)
 
-Deploy your own copy of this template in just a few clicks!
-
-<div>
- <a href="https://vercel.com/import/project?template=https://github.com/jotyy/mantine-admin" title="Deploy to Vercel">
-  <img src="https://vercel.com/button" alt="Deploy to Vercel" />
- </a>
+Run locally from the repo root: `npm install` then `npm run dev` (port 8090).
 
 <!-- Introduction Section -->
 
@@ -91,7 +86,7 @@ This project features all the latest tools and good practices in web development
 
 ### Design System and Animations
 
-- 🎨 **[Mantine-UI](https://mantine.dev)** – A simple, modular and accessible component library that gives you the building blocks to build your React applications
+- 🎨 **[MUI](https://mui.com)** – Material UI components and theming for the admin dashboard
 - ✨ **[Tabler Icons](https://tabler-icons-react.vercel.app)** – A collection of popular icons to React projects
 
 ### Form Validation
@@ -380,7 +375,7 @@ See below the file tree to understand the project structure.
 > Folders and files marked with (`**`) are optional, so you can delete then.
 
 ```txt
-📂 mantine-admin/
+📂 kabbik-audiobook-crm/
 ┣ 📂 .github/                   # GitHub's folder configs **
 ┣ 📂 .husky/                    # Husky's folder
 ┃ ┣ 📃 commit-msg               # Commitlint git hook
@@ -399,7 +394,7 @@ See below the file tree to understand the project structure.
 ┣ 📂 src/
 ┃ ┣ 📂 app/                   # App pages
 ┃ ┣ 📂 components/              # App Components
-┃ ┃ ┗ 📂 Motion/                # Mantine-UI components **
+┃ ┃ ┗ 📂 Motion/                # motion / layout helpers
 ┃ ┣ 📂 hooks/                   # React Hooks **
 ┃ ┃ ┗ 📃 useFetch.ts            # SWR fetch hook (optional) **
 ┃ ┣ 📂 interfaces/              # TypeScript Interfaces
@@ -413,7 +408,7 @@ See below the file tree to understand the project structure.
 ┃ ┣ 📂 stores/                  # Zustand stores
 ┃ ┣ 📂 styles/                  # Styles folder
 ┃ ┃ ┣ 📃 bgImages.ts            # SVG background images **
-┃ ┃ ┗ 📃 theme.ts               # Mantine-UI theme
+┃ ┃ ┗ 📃 muiTheme.ts            # MUI theme
 ┃ ┗ 📂 utils/                   # Useful functions **
 ┣ 📃 .babelrc                   # Default Babel config
 ┣ 📃 .editorconfig              # Editor config

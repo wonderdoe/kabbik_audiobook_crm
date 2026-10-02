@@ -11,6 +11,7 @@ import {
 import { motion } from 'framer-motion';
 import type { ReactNode } from 'react';
 import { fadeInUp, transition } from '@/styles/motion';
+import { cardShadow } from '@/styles/cardShadow';
 
 type StatCardProps = {
 	title: string;
@@ -37,13 +38,13 @@ export function StatCard({ title, value, icon, accent = 'primary', index = 0 }: 
 			initial={fadeInUp.initial}
 			animate={fadeInUp.animate}
 			transition={{ ...transition.normal, delay: index * 0.05 }}
-			whileHover={{ y: -3, boxShadow: '0 12px 28px rgba(0,0,0,0.08)' }}
+			whileHover={{ y: -1, boxShadow: cardShadow.hover }}
 			elevation={0}
 			sx={{
 				height: '100%',
-				borderRadius: 2,
+				borderRadius: 1,
 				border: `1px solid ${alpha(theme.palette.divider, 1)}`,
-				boxShadow: '0 1px 2px rgba(0,0,0,0.04)',
+				boxShadow: cardShadow.rest,
 				overflow: 'hidden',
 			}}
 		>
@@ -82,7 +83,7 @@ export function StatCard({ title, value, icon, accent = 'primary', index = 0 }: 
 							sx={{
 								width: 44,
 								height: 44,
-								borderRadius: 2,
+								borderRadius: 1,
 								display: 'flex',
 								alignItems: 'center',
 								justifyContent: 'center',
@@ -112,9 +113,9 @@ export function ChartSectionCard({ title, children }: ChartSectionProps) {
 		<Card
 			elevation={0}
 			sx={{
-				borderRadius: 2,
+				borderRadius: 1,
 				border: `1px solid ${alpha(theme.palette.divider, 1)}`,
-				boxShadow: '0 1px 2px rgba(0,0,0,0.04)',
+				boxShadow: cardShadow.rest,
 				overflow: 'hidden',
 			}}
 		>

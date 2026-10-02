@@ -35,8 +35,9 @@ export const CustomDatePicker = ({
 							error: Boolean(error),
 							helperText: error || ' ',
 							fullWidth: true,
-							margin: 'normal',
+							margin: 'none',
 							size: 'small',
+							InputLabelProps: { shrink: true },
 						},
 					}}
 				/>

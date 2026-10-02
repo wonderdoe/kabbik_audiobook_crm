@@ -3,6 +3,10 @@
   flex-direction: column;
   align-items: center;
   font-family: sans-serif;
+  width: 100%;
+  max-width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .parent {
@@ -77,6 +81,8 @@
 .children {
   display: flex;
   justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
   width: 100%;
   max-width: 100%;
   margin-top: 10px;
@@ -86,8 +92,32 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  flex: 1;
+  flex: 1 1 140px;
+  min-width: 0;
   position: relative;
   font-size: 14px;
   color: #6e7a87;
+}
+
+@media (max-width: 599.95px) {
+  .children {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .child {
+    flex: 1 1 auto;
+    width: 100%;
+  }
+
+  .childBoxFirst,
+  .childBoxLast {
+    display: none;
+  }
+
+  .horizontalLine,
+  .verticalLine,
+  .childLine {
+    display: none;
+  }
 }

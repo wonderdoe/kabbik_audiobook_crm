@@ -22,6 +22,7 @@ import { PageContainer } from '@/components/PageContainer/PageContainer';
 import Loader from '@/components/Loader';
 import { createActivityLog } from '@/helper/Commonfunction';
 import { useDisclosure } from '@/hooks/use-disclosure';
+import { useIsMobileSm } from '@/hooks/use-is-mobile-sm';
 import { transition } from '@/styles/motion';
 import { IconPlus, IconSearch, IconX } from '@tabler/icons-react';
 import { motion } from 'framer-motion';
@@ -29,6 +30,7 @@ import moment from 'moment';
 import { useEffect, useMemo, useState } from 'react';
 
 export default function FeaturedBook() {
+	const isMobileSm = useIsMobileSm();
 	const [featureList, setFeatureList] = useState<any[]>([]);
 	const [loading, setLoading] = useState(true);
 	const [audioBookId, setAudioBookId] = useState('');
@@ -260,7 +262,7 @@ export default function FeaturedBook() {
 						)}
 					</Stack>
 
-					<Dialog open={addFeaturedImage} onClose={closeAddModal} maxWidth="xs" fullWidth>
+					<Dialog open={addFeaturedImage} onClose={closeAddModal} maxWidth="xs" fullWidth fullScreen={isMobileSm}>
 						<DialogTitle sx={{ fontWeight: 600 }}>Add featured book</DialogTitle>
 						<DialogContent dividers>
 							<Stack
@@ -288,7 +290,7 @@ export default function FeaturedBook() {
 						</DialogActions>
 					</Dialog>
 
-					<Dialog open={Boolean(previewImage)} onClose={() => setPreviewImage(null)} maxWidth="md" fullWidth>
+					<Dialog open={Boolean(previewImage)} onClose={() => setPreviewImage(null)} maxWidth="md" fullWidth fullScreen={isMobileSm}>
 						<DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', py: 1.5 }}>
 							<Typography variant="subtitle1" fontWeight={600}>{previewImage?.title}</Typography>
 							<IconButton aria-label="Close preview" size="small" onClick={() => setPreviewImage(null)}>

@@ -20,6 +20,7 @@ import {
 	Typography,
 } from '@mui/material';
 import { useDisclosure } from '@/hooks/use-disclosure';
+import { useIsMobileSm } from '@/hooks/use-is-mobile-sm';
 import { IconEdit, IconPlus, IconSearch, IconX } from '@tabler/icons-react';
 import moment from 'moment';
 import { useCallback, useEffect, useState } from 'react';
@@ -99,6 +100,7 @@ function ContributorForm({
 }
 
 export default function ContributorsView() {
+	const isMobileSm = useIsMobileSm();
 	const [contributorList, setContributorList] = useState<Contributor[]>([]);
 	const [totalData, setTotalData] = useState(0);
 	const [offset, setOffset] = useState(0);
@@ -252,10 +254,14 @@ export default function ContributorsView() {
 						{/* Search bar */}
 						<Paper variant="outlined" sx={{ p: 1.5, borderRadius: 2 }}>
 							<form onSubmit={!isSubmitted ? handleSearchSubmit : handleSearchClear}>
-								<Stack direction="row" alignItems="center" spacing={1}>
+								<Stack
+									direction={{ xs: 'column', sm: 'row' }}
+									alignItems={{ xs: 'stretch', sm: 'center' }}
+									spacing={1}
+								>
 									<TextField
 										size="small"
-										sx={{ flex: 1 }}
+										sx={{ flex: 1, width: '100%' }}
 										value={searchInputValue}
 										onChange={e => setSearchInputValue(e.target.value)}
 										placeholder="Search by name or English name…"
@@ -270,6 +276,8 @@ export default function ContributorsView() {
 									<Button
 										type="submit"
 										size="small"
+										fullWidth
+										sx={{ width: { xs: '100%', sm: 'auto' } }}
 										variant={isSubmitted ? 'outlined' : 'contained'}
 										color={isSubmitted ? 'error' : 'primary'}
 										startIcon={isSubmitted ? <IconX size={16} /> : <IconSearch size={16} />}
@@ -304,7 +312,7 @@ export default function ContributorsView() {
 												alignItems: 'center',
 												borderRadius: 2,
 												transition: 'box-shadow 0.2s',
-												'&:hover': { boxShadow: 3 },
+												'&:hover': { boxShadow: 2 },
 											}}
 										>
 											<Box sx={{ pt: 2.5, pb: 1 }}>
@@ -353,8 +361,13 @@ export default function ContributorsView() {
 
 						{/* Pagination */}
 						{totalPages > 1 && (
-							<Stack direction="row" justifyContent="space-between" alignItems="center">
-								<Typography variant="body2" color="text.secondary">
+							<Stack
+								direction={{ xs: 'column', sm: 'row' }}
+								justifyContent="space-between"
+								alignItems="center"
+								gap={1}
+							>
+								<Typography variant="body2" color="text.secondary" textAlign={{ xs: 'center', sm: 'left' }}>
 									Showing {contributorList.length} of {totalData.toLocaleString()}
 								</Typography>
 								<Pagination
@@ -363,6 +376,8 @@ export default function ContributorsView() {
 									count={totalPages}
 									shape="rounded"
 									color="primary"
+									siblingCount={0}
+									sx={{ '& .MuiPagination-ul': { justifyContent: 'center', flexWrap: 'wrap' } }}
 								/>
 							</Stack>
 						)}
@@ -371,7 +386,7 @@ export default function ContributorsView() {
 			)}
 
 			{/* Add dialog */}
-			<Dialog open={addOpened} onClose={closeAdd} maxWidth="xs" fullWidth>
+			<Dialog open={addOpened} onClose={closeAdd} maxWidth="xs" fullWidth fullScreen={isMobileSm}>
 				<DialogTitle sx={{ fontWeight: 600 }}>Add Contributor</DialogTitle>
 				<DialogContent dividers>
 					<ContributorForm
@@ -390,7 +405,7 @@ export default function ContributorsView() {
 			</Dialog>
 
 			{/* Edit dialog */}
-			<Dialog open={editOpened} onClose={closeEdit} maxWidth="xs" fullWidth>
+			<Dialog open={editOpened} onClose={closeEdit} maxWidth="xs" fullWidth fullScreen={isMobileSm}>
 				<DialogTitle sx={{ fontWeight: 600 }}>Edit Contributor</DialogTitle>
 				<DialogContent dividers>
 					<ContributorForm

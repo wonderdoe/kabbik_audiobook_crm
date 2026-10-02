@@ -72,6 +72,15 @@ class SubscriptionUserController {
 		}
 	}
 
+	async getPaymentLogByPayerNo(payerNo) {
+		try {
+			const results = await SubscriptionUserModel.getPaymentLogByPayerNo(payerNo);
+			return { results, message: 'Payment log fetched', statusCode: 200 };
+		} catch (error) {
+			throw error;
+		}
+	}
+
 	async searchManuallySubscribedUsers(offset, limit, searchkey) {
 		try {
 			const results = await SubscriptionUserModel.searchManuallySubscribedUser(

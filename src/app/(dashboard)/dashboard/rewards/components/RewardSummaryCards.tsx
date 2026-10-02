@@ -38,7 +38,7 @@ export function RewardSummaryCards({ summary, loading }: Props) {
 	return (
 		<Grid container spacing={2}>
 			{cards.map(({ key, title, color, icon }) => (
-				<Grid item xs={12} sm={6} md={4} lg={3} xl={12 / 7} key={key}>
+				<Grid item xs={12} sm={6} md={4} lg={3} key={key}>
 					<StatCard
 						title={title}
 						color={color}

@@ -101,6 +101,19 @@ export const checkgetPermission=(accessName:string | undefined)=>{
   return payload.userPermissions.includes(accessName);
 }
 
+/** Nav/config: `a|b` means user needs any one permission slug. */
+export const checkNavPermission = (accessName?: string) => {
+  if (!accessName) return true;
+  if (accessName.includes('|')) {
+    return accessName
+      .split('|')
+      .map(s => s.trim())
+      .filter(Boolean)
+      .some(slug => checkgetPermission(slug));
+  }
+  return checkgetPermission(accessName);
+};
+
 export  function decodeWord(encodedStr:string) {
   return decodeURIComponent(encodedStr);
 }

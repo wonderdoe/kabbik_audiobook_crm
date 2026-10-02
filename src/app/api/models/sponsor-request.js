@@ -5,7 +5,6 @@ class SponsorModel {
 
     SponsorList = async (page=1,limit=20) => {
         try {
-            console.log("from model")
             const offset = (page - 1) * limit;
 
             const sql = `

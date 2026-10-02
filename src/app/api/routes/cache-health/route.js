@@ -3,7 +3,9 @@ import { ensureRedisReady, redis } from '../../../../server/config/redis.js';
 import {
 	DEFAULT_RENT_REPORT_LIMIT,
 	dashHomeCacheKey,
+	defaultPackageWiseReportRange,
 	defaultRentReportRange,
+	packageWiseCacheKey,
 	playCountReportCacheKey,
 	rentRevenueCacheKey,
 	signUpReportCacheKey,
@@ -29,6 +31,8 @@ export async function GET() {
 
 		const today = dhakaTodayYmd();
 		const { startDate: rentStart, endDate: rentEnd } = defaultRentReportRange();
+		const { startDate: pkgStart, endDate: pkgEnd } = defaultPackageWiseReportRange();
+		const defaultPackageWiseKey = packageWiseCacheKey(pkgStart, pkgEnd);
 		const defaultRentRevenueKey = rentRevenueCacheKey(
 			rentStart,
 			rentEnd,
@@ -39,23 +43,27 @@ export async function GET() {
 			heartbeat,
 			homeOk,
 			revenueOk,
-			reportWarmOk,
+			userReportDailyOk,
+			packageWiseOk,
 			dashTtl,
 			signupTtl,
 			playReportTtl,
 			userReportSnapshotTtl,
 			rentRevenueDefaultPageTtl,
+			packageWiseDefaultTtl,
 			redisStatus,
 		] = await Promise.all([
 			readTs('worker:heartbeat'),
 			readTs('warm:home:last_ok'),
 			readTs('warm:revenue-warm:last_ok'),
-			readTs('warm:report-warm:last_ok'),
+			readTs('warm:user-report-daily:last_ok'),
+			readTs('warm:package-wise:last_ok'),
 			redis.ttl(dashHomeCacheKey()),
 			redis.ttl(signUpReportCacheKey()),
 			redis.ttl(playCountReportCacheKey()),
 			redis.ttl(userReportSnapshotCacheKey(today)),
 			redis.ttl(defaultRentRevenueKey),
+			redis.ttl(defaultPackageWiseKey),
 			Promise.resolve(redis.status),
 		]);
 
@@ -74,7 +82,8 @@ export async function GET() {
 			warm: {
 				homeLastOk: homeOk,
 				revenueLastOk: revenueOk,
-				reportWarmLastOk: reportWarmOk,
+				userReportDailyLastOk: userReportDailyOk,
+				packageWiseLastOk: packageWiseOk,
 			},
 			keys: {
 				dashHomeTtlSeconds: dashTtl,
@@ -83,6 +92,8 @@ export async function GET() {
 				userReportSnapshotTtlSeconds: userReportSnapshotTtl,
 				rentRevenueDefaultPageTtlSeconds: rentRevenueDefaultPageTtl,
 				rentRevenueDefaultPageKey: defaultRentRevenueKey,
+				packageWiseDefaultTtlSeconds: packageWiseDefaultTtl,
+				packageWiseDefaultKey: defaultPackageWiseKey,
 			},
 			env: {
 				redisEnv: process.env.REDIS_ENV === 'production' ? 'production' : 'staging',
