@@ -3,27 +3,23 @@
 import {
 	Box,
 	Collapse,
-	em,
-	Group,
-	ThemeIcon,
-	UnstyledButton,
-	useDirection,
-	useMantineColorScheme,
-} from '@mantine/core';
-import { IconChevronLeft, IconChevronRight } from '@tabler/icons-react';
+	List,
+	ListItemButton,
+	ListItemIcon,
+	ListItemText,
+	Typography,
+} from '@mui/material';
 import Link from 'next/link';
+import ChevronRight from '@mui/icons-material/ChevronRight';
 import { usePathname } from 'next/navigation';
 import { useState } from 'react';
-import classes from './NavLinksGroup.module.css';
-import { useMediaQuery } from '@mantine/hooks';
+import useMediaQuery from '@mui/material/useMediaQuery';
+import { useTheme } from '@mui/material/styles';
+import { NavItem } from '@/types/nav-item';
 
-interface LinksGroupProps {
-	icon: React.FC<any>;
-	label: string;
-	link?: string;
-	initiallyOpened?: boolean;
-	links?: { label: string; link: string }[];
+interface NavLinksGroupProps extends NavItem {
 	toggle: () => void;
+	mini?: boolean;
 }
 
 export function NavLinksGroup({
@@ -33,97 +29,85 @@ export function NavLinksGroup({
 	initiallyOpened,
 	links,
 	toggle,
-}: LinksGroupProps) {
+	mini = false,
+}: NavLinksGroupProps) {
 	const pathname = usePathname();
-	const { dir } = useDirection();
-	const { colorScheme } = useMantineColorScheme();
-	const isLightTheme = colorScheme === 'light';
-	const hasLinks = Array.isArray(links);
+	const theme = useTheme();
+	const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+	const hasLinks = Array.isArray(links) && links.length > 0;
 	const [opened, setOpened] = useState(initiallyOpened || false);
-	const ChevronIcon = dir === 'ltr' ? IconChevronRight : IconChevronLeft;
-	const isMobile = useMediaQuery(`(max-width: ${em(750)})`);
+	const childActive = hasLinks && links.some(l => l.link === pathname);
+	const selfActive = link === pathname;
 
-	const items = (hasLinks ? links : []).map(link => {
+	const onNavClick = () => {
+		if (isMobile) toggle();
+	};
+
+	if (link && !hasLinks) {
 		return (
-			<Link
-				href={link.link}
-				key={link.label}
-				className={`${classes.link}`}
-				style={{
-					color:
-						link.link === pathname ? 'var(--mantine-color-white)' : 'var(--mantine-color-text)',
-					background:
-						link.link === pathname
-							? 'var(--mantine-primary-color-filled)'
-							: 'var(--mantine-color-body)',
-					borderTopLeftRadius: '10px',
-					borderBottomLeftRadius: '10px',
-				}}
-				onClick={isMobile ? toggle : () => {}}
+			<ListItemButton component={Link} href={link} selected={selfActive} onClick={onNavClick}>
+				<ListItemIcon sx={{ minWidth: 36 }}>
+					<Icon size={18} stroke={1.75} />
+				</ListItemIcon>
+				{!mini && <ListItemText primary={label} primaryTypographyProps={{ fontSize: 14 }} />}
+			</ListItemButton>
+		);
+	}
+
+	const items = (links ?? []).map(item => {
+		const selected = item.link === pathname;
+		return (
+			<ListItemButton
+				key={item.label}
+				component={Link}
+				href={item.link}
+				selected={selected}
+				onClick={onNavClick}
+				sx={{ pl: mini ? 1.5 : 4.5, py: 0.75 }}
 			>
-				{link.label}
-			</Link>
+				{!mini && (
+					<ListItemText
+						primary={item.label}
+						primaryTypographyProps={{ fontSize: 13, fontWeight: selected ? 600 : 400 }}
+					/>
+				)}
+			</ListItemButton>
 		);
 	});
 
 	return (
-		<>
-			{link ? (
-				<Link
-					href={link}
-					className={`${classes.control}`}
-					style={{
-						background:
-							link === pathname
-								? isLightTheme
-									? 'var(--mantine-color-gray-2)'
-									: 'var(--mantine-color-gray-7)'
-								: 'var(--mantine-color-body)',
-					}}
-				>
-					<Group gap={0} justify="space-between">
-						<Box style={{ display: 'flex', alignItems: 'center' }}>
-							<ThemeIcon variant="light" size={30}>
-								<Icon size="1.1rem" />
-							</ThemeIcon>
-							<Box ml="md">{label}</Box>
-						</Box>
-					</Group>
-				</Link>
-			) : (
-				<UnstyledButton
-					onClick={() => {
-						if (hasLinks) {
-							setOpened(o => !o);
-							return;
-						}
-					}}
-					className={classes.control}
-					style={{
-						color: isLightTheme ? 'var(--mantine-colors-white)' : 'var(--mantine-colors-black)',
-					}}
-				>
-					<Group gap={0} justify="space-between">
-						<Box style={{ display: 'flex', alignItems: 'center' }}>
-							<ThemeIcon variant="light" size={30}>
-								<Icon size="1.1rem" />
-							</ThemeIcon>
-							<Box ml="md">{label}</Box>
-						</Box>
+		<Box sx={{ mb: 0.5 }}>
+			<ListItemButton
+				onClick={() => hasLinks && setOpened(o => !o)}
+				selected={childActive && !opened}
+				sx={{ py: 0.75 }}
+			>
+				<ListItemIcon sx={{ minWidth: 36 }}>
+					<Icon size={18} stroke={1.75} />
+				</ListItemIcon>
+				{!mini && (
+					<>
+						<ListItemText primary={label} primaryTypographyProps={{ fontSize: 14, fontWeight: 500 }} />
 						{hasLinks && (
-							<ChevronIcon
-								className={classes.chevron}
-								size="1rem"
-								stroke={1.5}
-								style={{
-									transform: opened ? `rotate(${dir === 'rtl' ? -90 : 90}deg)` : 'none',
+							<ChevronRight
+								sx={{
+									fontSize: 18,
+									color: 'text.secondary',
+									transform: opened ? 'rotate(90deg)' : 'none',
+									transition: 'transform 0.2s',
 								}}
 							/>
 						)}
-					</Group>
-				</UnstyledButton>
+					</>
+				)}
+			</ListItemButton>
+			{hasLinks && !mini && (
+				<Collapse in={opened} timeout={200}>
+					<List disablePadding dense>
+						{items}
+					</List>
+				</Collapse>
 			)}
-			{hasLinks ? <Collapse in={opened}>{items}</Collapse> : null}
-		</>
+		</Box>
 	);
 }

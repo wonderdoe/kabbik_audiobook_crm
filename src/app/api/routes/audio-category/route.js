@@ -6,15 +6,9 @@ export const dynamic = 'force-dynamic';
 export async function GET() {
 	try {
 		const data = await AudioBookCategoryController.getCategory();
-		return NextResponse.json(data);
+		return NextResponse.json(Array.isArray(data) ? data : []);
 	} catch (error) {
-		return NextResponse.json(
-			{
-				message: error,
-			},
-			{
-				status: 500,
-			},
-		);
+		console.error(error);
+		return NextResponse.json([], { status: 500 });
 	}
 }

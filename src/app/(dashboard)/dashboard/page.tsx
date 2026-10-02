@@ -1,8 +1,12 @@
 'use client';
 
+import {
+	Button,
+	CircularProgress,
+	Typography,
+} from '@mui/material';
 import moment from 'moment';
 import { useCallback, useEffect, useState } from 'react';
-import { Button, Group, Text } from '@mantine/core';
 import { IconRefresh } from '@tabler/icons-react';
 import { DashboardContent } from '@/components/Dashboard/DashboardContent';
 import Loader from '@/components/Loader';
@@ -79,37 +83,38 @@ export default function Dashboard() {
 
 	return (
 		<>
-			<PageContainer title="Dashboard">
+			<PageContainer
+				title="Dashboard"
+				items={[{ label: 'Dashboard', href: '/dashboard' }]}
+				subtitle={
+					updatedLabel ? (
+						<Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+							{updatedLabel}
+						</Typography>
+					) : undefined
+				}
+				actions={
+					checkgetPermission('dashboard') ? (
+						<Button
+							variant="outlined"
+							size="small"
+							startIcon={refreshing ? <CircularProgress size={14} /> : <IconRefresh size={14} />}
+							disabled={refreshing}
+							onClick={handleRefresh}
+						>
+							Refresh
+						</Button>
+					) : undefined
+				}
+			>
 				{!loading ? (
-					<>
-						<Group justify="space-between" mb="sm">
-							{updatedLabel ? (
-								<Text size="sm" c="dimmed">
-									{updatedLabel}
-								</Text>
-							) : (
-								<span />
-							)}
-							{checkgetPermission('dashboard') ? (
-								<Button
-									variant="light"
-									size="xs"
-									leftSection={<IconRefresh size={14} />}
-									loading={refreshing}
-									onClick={handleRefresh}
-								>
-									Refresh
-								</Button>
-							) : null}
-						</Group>
-						{checkgetPermission('dashboard') && (
-							<DashboardContent
-								dashboardData={res}
-								recentTotalPayments={recentTotalPayments}
-								topMostUsedPromos={topMostUsedPromos}
-							/>
-						)}
-					</>
+					checkgetPermission('dashboard') ? (
+						<DashboardContent
+							dashboardData={res}
+							recentTotalPayments={recentTotalPayments}
+							topMostUsedPromos={topMostUsedPromos}
+						/>
+					) : null
 				) : (
 					<Loader />
 				)}

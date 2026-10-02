@@ -1,23 +1,32 @@
 'use client';
 
-import { Group, MantineColorScheme, Radio, useMantineColorScheme } from '@mantine/core';
+import {
+	FormControl,
+	FormControlLabel,
+	FormLabel,
+	Radio,
+	RadioGroup,
+	Stack,
+} from '@mui/material';
+import { useColorScheme } from '@mui/material/styles';
 
 export const ThemeSwitcher = () => {
-	const { colorScheme, setColorScheme } = useMantineColorScheme();
+	const { mode, setMode } = useColorScheme();
 
 	return (
-		<Radio.Group
-			value={colorScheme}
-			onChange={(value) => {
-				setColorScheme(value as MantineColorScheme);
-			}}
-			name="theme"
-			label="Theme Mode"
-		>
-			<Group mt="sm">
-				<Radio value="light" label="Light" />
-				<Radio value="dark" label="Dark" />
-			</Group>
-		</Radio.Group>
+		<FormControl>
+			<FormLabel>Theme Mode</FormLabel>
+			<RadioGroup
+				row
+				value={mode ?? 'light'}
+				onChange={e => setMode(e.target.value as 'light' | 'dark')}
+				name="theme"
+			>
+				<Stack direction="row" alignItems="center" spacing={2} sx={{ mt: 1 }}>
+					<FormControlLabel value="light" control={<Radio />} label="Light" />
+					<FormControlLabel value="dark" control={<Radio />} label="Dark" />
+				</Stack>
+			</RadioGroup>
+		</FormControl>
 	);
 };

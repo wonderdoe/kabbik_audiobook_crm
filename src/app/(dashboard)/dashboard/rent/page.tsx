@@ -1,19 +1,31 @@
 'use client';
 
 import {
+	Avatar,
 	Box,
 	Button,
-	Flex,
-	Image,
-	Modal,
+	Chip,
+	Dialog,
+	DialogActions,
+	DialogContent,
+	DialogTitle,
+	Grid,
 	Pagination,
-	Paper,
-	Space,
+	Stack,
 	Table,
-	Text,
-	Title,
-} from '@mantine/core';
-import { useDisclosure } from '@mantine/hooks';
+	TableBody,
+	TableCell,
+	TableContainer,
+	TableHead,
+	TableRow,
+	Typography,
+} from '@mui/material';
+import { PageContainer } from '@/components/PageContainer/PageContainer';
+import { MainCard } from '@/components/mantis/MainCard';
+import { StatCard } from '@/components/ui/StatCard';
+import { DetailGrid } from '@/components/ui/DetailGrid';
+import { useDisclosure } from '@/hooks/use-disclosure';
+import { IconBooks, IconCash, IconChartBar } from '@tabler/icons-react';
 import moment from 'moment';
 import { useCallback, useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
@@ -41,8 +53,7 @@ export default function Rent() {
 	const [offset, setOffset] = useState(0);
 	const [currentPage, setCurrentPage] = useState(1);
 	const [rentDetails, setRentDetails] = useState<any>();
-	const [isOpenDetailsModal, { open: openDetailsModal, close: closeDetailsModal }] =
-		useDisclosure(false);
+	const [isOpenDetailsModal, { open: openDetailsModal, close: closeDetailsModal }] = useDisclosure(false);
 	const {
 		control,
 		handleSubmit,
@@ -66,7 +77,7 @@ export default function Rent() {
 	}, [fetchData]);
 
 	const handleSubmitForm = async (formData: FormData) => {
-		setCurrentPage(1)
+		setCurrentPage(1);
 		setOffset(0);
 		setDate({
 			startDate: moment(formData.startDate).format('YYYY-MM-DD'),
@@ -74,182 +85,155 @@ export default function Rent() {
 		});
 	};
 
-	const handlePageChange = (e: any) => {
+	const handlePageChange = (e: number) => {
 		const offsetCount = (e - 1) * limit;
 		setCurrentPage(e);
 		setOffset(offsetCount);
 	};
 
+	if (isLoading && !rentData) return <Loader />;
+
 	return (
-		<>
-			{isLoading ? (
-				<Loader />
-			) : (
-				<>
-					<Title order={1} mb="md">
-						Rent Revenue Report
-					</Title>
-					<Paper shadow="xs" p="md" px={'lg'}>
-						<Flex
-							justify={'space-between'}
-							gap={'md'}
-							direction={{ base: 'column', xs: 'row' }}
-							align={'center'}
-						>
-							<Box>
-								<form onSubmit={handleSubmit(handleSubmitForm, err => console.error(err))}>
-									<Flex direction={'column'} align={'start'} gap={15}>
-										<div
-											style={{ width: '300px', display: 'flex', flexDirection: 'column', gap: 10 }}
-										>
-											<CustomDatePicker
-												label="Start Date"
-												name="startDate"
-												control={control}
-												placeholder="Select start date"
-												error={(errors.startDate && errors.startDate.message) as string}
-											/>
-											<CustomDatePicker
-												label="End Date"
-												name="endDate"
-												control={control}
-												placeholder="Select end date"
-												error={(errors.endDate && errors.endDate.message) as string}
-											/>
-										</div>
-										<Button type="submit">Filter</Button>
-									</Flex>
-								</form>
-							</Box>
-							<Flex display={'flex'} gap={30}>
-								<Flex direction={'column'} align={'end'} gap={8}>
-									<Text size="xl" fw={900} c="green">
-										Rent Revenue so far
-									</Text>
-									<Text size="md" fw={700} c={'gray'}>
-										Rent Revenue in between range
-									</Text>
-									<Text size="md" fw={700} c={'gray'}>
-										Count of rented books
-									</Text>
-								</Flex>
-								<Flex direction={'column'} gap={8}>
-									<Text size="xl" fw={900} c={'green'}>
-										{rentData?.total} Tk
-									</Text>
-									<Text size="md" fw={700} c={'gray'}>
-										{rentData?.totalAmountInRange} Tk
-									</Text>
-									<Text size="md" fw={700} c={'gray'}>
-										{rentData?.totalCountInRange}
-									</Text>
-								</Flex>
-							</Flex>
-						</Flex>
-					</Paper>
-					<Space h={'md'} />
-					<Paper shadow="xs" p="xl" style={{ padding: 25, marginBottom: '20px' }}>
-						<Table.ScrollContainer minWidth={'100%'}>
-							<Table>
-								<Table.Thead>
-									<Table.Tr>
-										<Table.Th>User Name</Table.Th>
-										<Table.Th>Thumbnail</Table.Th>
-										<Table.Th>Audiobook Name</Table.Th>
-										<Table.Th>Amount</Table.Th>
-										<Table.Th>Payment Date</Table.Th>
-										<Table.Th>Action</Table.Th>
-									</Table.Tr>
-								</Table.Thead>
-								<Table.Tbody>
-									{rentData?.data.map((element: any, index: any) => (
-										<Table.Tr key={index}>
-											<Table.Td> {element.name || 'N/A'} </Table.Td>
-											<Table.Td>
-												<Image
-													src={element.thumb_path}
-													alt={element.audiobook_name}
-													w={100}
-													h={'auto'}
-													radius={'md'}
-												/>
-											</Table.Td>
-											<Table.Td>{element.audiobook_name || 'N/A'}</Table.Td>
-											<Table.Td className="border border-indigo-600">
-												<Text size="sm" fw={700} ta="center" c="green">
-													৳ {element.amount || 'N/A'}
-												</Text>
-											</Table.Td>
-											<Table.Td>
-												{moment(element.created_at).format('Do MMM YYYY, h:mm:ss a') || 'N/A'}
-											</Table.Td>
-											<Table.Th>
-												<Button
-													onClick={() => {
-														openDetailsModal();
-														setRentDetails(element);
-													}}
-												>
-													Details
-												</Button>
-											</Table.Th>
-										</Table.Tr>
-									))}
-								</Table.Tbody>
-							</Table>
-						</Table.ScrollContainer>
+		<PageContainer title="Rent Revenue Report" items={[{ label: 'Rent', href: '/dashboard/rent' }]}>
+			<Stack spacing={2}>
+				<Grid container spacing={2}>
+					<Grid item xs={12} md={4}>
+						<StatCard
+							title="Rent revenue (all time)"
+							value={`${rentData?.total ?? 0} Tk`}
+							color="success"
+							icon={<IconCash size={22} />}
+							loading={isLoading}
+						/>
+					</Grid>
+					<Grid item xs={12} md={4}>
+						<StatCard
+							title="Revenue in range"
+							value={`${rentData?.totalAmountInRange ?? 0} Tk`}
+							color="primary"
+							icon={<IconChartBar size={22} />}
+							loading={isLoading}
+						/>
+					</Grid>
+					<Grid item xs={12} md={4}>
+						<StatCard
+							title="Rented books in range"
+							value={rentData?.totalCountInRange ?? 0}
+							color="info"
+							icon={<IconBooks size={22} />}
+							loading={isLoading}
+						/>
+					</Grid>
+				</Grid>
 
-						<Space h={'md'} />
+				<MainCard title="Date range">
+					<form onSubmit={handleSubmit(handleSubmitForm, err => console.error(err))}>
+						<Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems="flex-end">
+							<CustomDatePicker
+								label="Start Date"
+								name="startDate"
+								control={control}
+								placeholder="Select start date"
+								error={(errors.startDate && errors.startDate.message) as string}
+							/>
+							<CustomDatePicker
+								label="End Date"
+								name="endDate"
+								control={control}
+								placeholder="Select end date"
+								error={(errors.endDate && errors.endDate.message) as string}
+							/>
+							<Button type="submit" variant="contained">Apply filter</Button>
+						</Stack>
+					</form>
+				</MainCard>
 
+				<MainCard title="Transactions" contentSX={{ p: 0 }}>
+					<TableContainer>
+						<Table size="small">
+							<TableHead>
+								<TableRow sx={{ '& th': { fontWeight: 700, bgcolor: 'action.hover' } }}>
+									<TableCell>User Name</TableCell>
+									<TableCell>Thumbnail</TableCell>
+									<TableCell>Audiobook Name</TableCell>
+									<TableCell>Amount</TableCell>
+									<TableCell>Payment Date</TableCell>
+									<TableCell>Action</TableCell>
+								</TableRow>
+							</TableHead>
+							<TableBody>
+								{rentData?.data?.map((element: any, index: number) => (
+									<TableRow key={index} hover>
+										<TableCell>{element.name || 'N/A'}</TableCell>
+										<TableCell>
+											<Avatar
+												variant="rounded"
+												src={element.thumb_path}
+												alt={element.audiobook_name}
+												sx={{ width: 56, height: 56 }}
+											/>
+										</TableCell>
+										<TableCell>{element.audiobook_name || 'N/A'}</TableCell>
+										<TableCell>
+											<Chip
+												label={`৳ ${element.amount ?? 'N/A'}`}
+												color="success"
+												variant="outlined"
+												size="small"
+												sx={{ fontWeight: 700 }}
+											/>
+										</TableCell>
+										<TableCell>
+											{moment(element.created_at).format('Do MMM YYYY, h:mm:ss a') || 'N/A'}
+										</TableCell>
+										<TableCell>
+											<Button
+												size="small"
+												variant="outlined"
+												onClick={() => {
+													openDetailsModal();
+													setRentDetails(element);
+												}}
+											>
+												Details
+											</Button>
+										</TableCell>
+									</TableRow>
+								))}
+							</TableBody>
+						</Table>
+					</TableContainer>
+					<Box sx={{ p: 2, display: 'flex', justifyContent: 'center' }}>
 						<Pagination
-							value={currentPage}
-							total={getTotalPageNumber(rentData.totalCountInRange)}
-							onChange={handlePageChange}
+							page={currentPage}
+							count={getTotalPageNumber(rentData?.totalCountInRange ?? 0)}
+							onChange={(_, p) => handlePageChange(p)}
 							siblings={1}
 						/>
-					</Paper>
-					<Modal
-						title="Rent Details"
-						opened={isOpenDetailsModal}
-						onClose={closeDetailsModal}
-						centered
-						size={'80%'}
-						classNames={{
-							title: 'mantine-modal-title',
-							close: 'mantine-modal-close',
-						}}
-					>
-						<Table.ScrollContainer minWidth={'100%'}>
-							<Table>
-								<Table.Thead>
-									<Table.Tr>
-										<Table.Th>Audiobook ID</Table.Th>
-										<Table.Th>User ID</Table.Th>
-										<Table.Th>Email</Table.Th>
-										<Table.Th>Phone</Table.Th>
-										<Table.Th>Transaction ID</Table.Th>
-										<Table.Th>Platform</Table.Th>
-										<Table.Th>Source</Table.Th>
-										<Table.Th>Payment Method</Table.Th>
-									</Table.Tr>
-								</Table.Thead>
-								<Table.Tbody>
-									<Table.Tr>
-										<Table.Td>{rentDetails?.product_id || 'N/A'}</Table.Td>
-										<Table.Td> {rentDetails?.user_id || 'N/A'} </Table.Td>
-										<Table.Td> {rentDetails?.email || 'N/A'} </Table.Td>
-										<Table.Td> {formatPhoneNumber(rentDetails?.phone) || 'N/A'} </Table.Td>
-										<Table.Td> {rentDetails?.transaction_id || 'N/A'} </Table.Td>
-										<Table.Td> {rentDetails?.platform || 'N/A'} </Table.Td>
-										<Table.Td> {rentDetails?.source || 'N/A'} </Table.Td>
-										<Table.Td> {rentDetails?.payment_method || 'N/A'} </Table.Td>
-									</Table.Tr>
-								</Table.Tbody>
-							</Table>
-						</Table.ScrollContainer>
-					</Modal>
-				</>
-			)}
-		</>
+					</Box>
+				</MainCard>
+
+				<Dialog open={isOpenDetailsModal} onClose={closeDetailsModal} maxWidth="md" fullWidth>
+					<DialogTitle>Rent details</DialogTitle>
+					<DialogContent>
+						<DetailGrid
+							fields={[
+								{ label: 'Audiobook ID', value: rentDetails?.product_id },
+								{ label: 'User ID', value: rentDetails?.user_id },
+								{ label: 'Email', value: rentDetails?.email },
+								{ label: 'Phone', value: formatPhoneNumber(rentDetails?.phone) },
+								{ label: 'Transaction ID', value: rentDetails?.transaction_id },
+								{ label: 'Platform', value: rentDetails?.platform },
+								{ label: 'Source', value: rentDetails?.source },
+								{ label: 'Payment method', value: rentDetails?.payment_method },
+							]}
+						/>
+					</DialogContent>
+					<DialogActions>
+						<Button onClick={closeDetailsModal}>Close</Button>
+					</DialogActions>
+				</Dialog>
+			</Stack>
+		</PageContainer>
 	);
 }

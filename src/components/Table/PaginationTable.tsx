@@ -1,7 +1,13 @@
 'use client';
 
-import { Badge, Paper, Rating, Space, Title } from '@mantine/core';
-import { MantineReactTable, MRT_ColumnDef } from 'mantine-react-table';
+import {
+	Badge,
+	Box,
+	Paper,
+	Rating,
+	Typography,
+} from '@mui/material';
+import { MaterialReactTable, type MRT_ColumnDef } from 'material-react-table';
 import { useMemo } from 'react';
 import { useCustomTable } from '@/hooks/use-custom-table';
 import { useProducts } from '@/services/products';
@@ -42,16 +48,15 @@ export function PaginationTable() {
 					let color: 'red' | 'yellow' | 'green' = 'red';
 					if (status === 'INSTOCK') color = 'green';
 					else if (status === 'LOWSTOCK') color = 'yellow';
-					return <Badge color={color}>{status}</Badge>;
+					const muiColor = color === 'green' ? 'success' : color === 'yellow' ? 'warning' : 'error';
+					return <Badge color={muiColor}>{status}</Badge>;
 				},
 				filterVariant: 'select',
-				mantineFilterSelectProps: {
-					data: [
-						{ label: 'In Stock', value: 'INSTOCK' },
-						{ label: 'Out of Stock', value: 'OUTOFSTOCK' },
-						{ label: 'Low Stock', value: 'LOWSTOCK' },
-					] as any,
-				},
+				filterSelectOptions: [
+					{ label: 'In Stock', value: 'INSTOCK' },
+					{ label: 'Out of Stock', value: 'OUTOFSTOCK' },
+					{ label: 'Low Stock', value: 'LOWSTOCK' },
+				],
 			},
 		],
 		[],
@@ -69,10 +74,10 @@ export function PaginationTable() {
 	});
 
 	return (
-		<Paper withBorder radius="md" p="md" mt="lg">
-			<Title order={5}>Pagintion Example</Title>
-			<Space h="md" />
-			<MantineReactTable table={table} />
+		<Paper variant="outlined" sx={{ borderRadius: 2, p: 2, mt: 3 }}>
+			<Typography variant="subtitle2" component="h5">Pagintion Example</Typography>
+			<Box sx={{ height: 16 }} />
+			<MaterialReactTable table={table} />
 		</Paper>
 	);
 }

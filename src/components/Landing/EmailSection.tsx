@@ -1,32 +1,36 @@
 'use client';
 
-import { Button, Image, Text, TextInput, Title } from '@mantine/core';
+import {
+	Box,
+	Button,
+	TextField,
+	Typography,
+} from '@mui/material';
 import classes from './EmailSection.module.css';
 
 export function EmailSection() {
 	return (
 		<div className={classes.wrapper}>
 			<div className={classes.body}>
-				<Title order={3} className={classes.title}>
+				<Typography variant="h6" component="h3" className={classes.title}>
 					Wait a minute...
-				</Title>
-				<Text fw={500} fz="md" mb={5}>
+				</Typography>
+				<Typography fontWeight={500} fontSize="md" mb={5}>
 					Subscribe to our newsletter!
-				</Text>
-				<Text fz="sm" c="dimmed">
+				</Typography>
+				<Typography fontSize="sm" color="text.secondary">
 					You will never miss important product updates, latest news and community QA sessions. Our
 					newsletter is once a week, every Sunday.
-				</Text>
+				</Typography>
 
 				<div className={classes.controls}>
-					<TextInput
+					<TextField
 						placeholder="Your email"
-						classNames={{ input: classes.input, root: classes.inputWrapper }}
 					/>
 					<Button className={classes.control}>Subscribe</Button>
 				</div>
 			</div>
-			<Image src="/static/images/img-email.svg" className={classes.image} alt="email" />
+			<Box component="img" src="/static/images/img-email.svg" className={classes.image} alt="email" />
 		</div>
 	);
 }

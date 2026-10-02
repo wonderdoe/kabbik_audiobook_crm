@@ -1,25 +1,32 @@
 'use client';
-
 import {
-	ActionIcon,
+	Box,
 	Button,
-	Center,
+	Chip,
+	CircularProgress,
+	Dialog,
+	DialogContent,
+	DialogTitle,
 	Divider,
-	Flex,
-	Modal,
+	IconButton,
+	InputAdornment,
 	Pagination,
-	Paper,
-	Space,
+	Slide,
+	Stack,
 	Table,
-	Text,
-	TextInput,
-	Title,
-} from '@mantine/core';
+	TableBody,
+	TableCell,
+	TableContainer,
+	TableHead,
+	TableRow,
+	TextField,
+	Typography,
+} from '@mui/material';
+import { MainCard } from '@/components/mantis/MainCard';
+import { DetailGrid } from '@/components/ui/DetailGrid';
+import { PageContainer } from '@/components/PageContainer/PageContainer';
 
-import { Loader as MantineLoader } from '@mantine/core';
-import { useDisclosure } from '@mantine/hooks';
-
-import { CircularProgress, Dialog, Slide } from '@mui/material';
+import { useDisclosure } from '@/hooks/use-disclosure';
 import { TransitionProps } from '@mui/material/transitions';
 import { IconSearch, IconX } from '@tabler/icons-react';
 import moment from 'moment';
@@ -121,52 +128,59 @@ export default function Subscription() {
 	};
 	const detailsTable: any =isLoadingDetails?(
 		<div style={{margin:'20px auto',width:'100%'}}>
-			<CircularProgress/>
+			<Loader />
 		</div>
 	): detailsData?.length<=0?(
 		<p style={{color:'red',textAlign:'center'}}>No Subscription history found</p>
 	) :detailsData?.map((element: any) => (
-		<Table.Tr style={{ textAlign: 'center' }} key={element.userId}>
-			<Table.Td style={{ textAlign: 'center' }}>
+		<TableRow style={{ textAlign: 'center' }} key={element.userId}>
+			<TableCell style={{ textAlign: 'center' }}>
 				{moment(element.created_at).format('DD MMMM YYYY')}
-			</Table.Td>
+			</TableCell>
 
-			<Table.Td style={{ textAlign: 'center' }}>
+			<TableCell style={{ textAlign: 'center' }}>
 				{element.name}
-			</Table.Td>
-			<Table.Td style={{ textAlign: 'center' }}>
+			</TableCell>
+			<TableCell style={{ textAlign: 'center' }}>
 				{element.is_subscribed === 1 ? 'Yes' : 'No'}
-			</Table.Td>
+			</TableCell>
 
-			<Table.Td style={{ textAlign: 'center' }}>{element.payer || '-'}</Table.Td>
-			<Table.Td style={{ textAlign: 'center' }}>{element.payment_status || '-'}</Table.Td>
-			<Table.Td style={{ textAlign: 'center' }}>{element.is_first_payment || '-'}</Table.Td>
-			<Table.Td style={{ textAlign: 'center' }}>{element.payment_method || '-'}</Table.Td>
-			<Table.Td style={{ textAlign: 'center' }}>{element.sub_request_id || '-'}</Table.Td>
-			<Table.Td style={{ textAlign: 'center' }}>{element.amount || '-'}</Table.Td>
-			{/* <Table.Td style={{ textAlign: 'center' }}>{element.reverseTrxId || 'N/A'}</Table.Td> */}
-			<Table.Td style={{ textAlign: 'center' }}>{element.is_recurring || 'N/A'}</Table.Td>
+			<TableCell style={{ textAlign: 'center' }}>{element.payer || '-'}</TableCell>
+			<TableCell style={{ textAlign: 'center' }}>{element.payment_status || '-'}</TableCell>
+			<TableCell style={{ textAlign: 'center' }}>{element.is_first_payment || '-'}</TableCell>
+			<TableCell style={{ textAlign: 'center' }}>{element.payment_method || '-'}</TableCell>
+			<TableCell style={{ textAlign: 'center' }}>{element.sub_request_id || '-'}</TableCell>
+			<TableCell style={{ textAlign: 'center' }}>{element.amount || '-'}</TableCell>
+			{/* <TableCell style={{ textAlign: 'center' }}>{element.reverseTrxId || 'N/A'}</TableCell> */}
+			<TableCell style={{ textAlign: 'center' }}>{element.is_recurring || 'N/A'}</TableCell>
 
-			<Table.Td style={{ textAlign: 'center' }}>
+			<TableCell style={{ textAlign: 'center' }}>
 				{moment(element.nextPaymentDate).format('DD MMMM YYYY')}
-			</Table.Td>
-			{/* <Table.Td style={{ textAlign: 'center' }}>{element.type || 'N/A'}</Table.Td> */}
-		</Table.Tr>
+			</TableCell>
+			{/* <TableCell style={{ textAlign: 'center' }}>{element.type || 'N/A'}</TableCell> */}
+		</TableRow>
 	));
 
 	const rows = displayData?.map((element: any) => (
 		<>
-			<Table.Tr key={element.id}>
-				<Table.Td>{element.id || 'N/A'}</Table.Td>
-				<Table.Td>{element.user_name || 'N/A'}</Table.Td>
-				<Table.Td>{formatPhoneNumber(element.phone_no) || '-'}</Table.Td>
-				<Table.Td>{element.user_email|| '-'}</Table.Td>
-				<Table.Td>{element.is_subscribed === 1 ? 'Yes' : 'No'}</Table.Td>
-				<Table.Td>
-					<Flex gap={6}>
+			<TableRow key={element.id}>
+				<TableCell>{element.id || 'N/A'}</TableCell>
+				<TableCell>{element.user_name || 'N/A'}</TableCell>
+				<TableCell>{formatPhoneNumber(element.phone_no) || '-'}</TableCell>
+				<TableCell>{element.user_email|| '-'}</TableCell>
+				<TableCell>
+					<Chip
+						size="small"
+						variant="outlined"
+						color={element.is_subscribed === 1 ? 'success' : 'default'}
+						label={element.is_subscribed === 1 ? 'Subscribed' : 'Not subscribed'}
+					/>
+				</TableCell>
+				<TableCell>
+					<Stack direction="row" flexWrap="wrap" spacing={6}>
 						<Button
-							size="sm"
-							variant="light"
+							variant="body2"
+							variant="outlined"
 							color="red"
 							style={{ border: '1px solid #ff000099', fontSize: '12px' }}
 							onClick={() => handleSubscribe(element.id)}
@@ -174,16 +188,16 @@ export default function Subscription() {
 							Subscribe
 						</Button>
 						<Button
-							size="sm"
-							variant="light"
+							variant="body2"
+							variant="outlined"
 							style={{ border: '1px solid green', fontSize: '12px' }}
 							onClick={() => handleDetails(element)}
 						>
 							Details
 						</Button>
-					</Flex>
-				</Table.Td>
-			</Table.Tr>
+					</Stack>
+				</TableCell>
+			</TableRow>
 
 			<Dialog
 				fullScreen
@@ -191,73 +205,67 @@ export default function Subscription() {
 				onClose={closeDetailsModal}
 				TransitionComponent={Transition}
 			>
-				<ActionIcon
+				<IconButton
 					variant="white"
 					onClick={closeDetailsModal}
 					style={{ margin: '10px 0 0 10px', color: 'black' }}
 				>
 					<IconX />
-				</ActionIcon>
-				<Text mb={15} size="xl" fw={900} style={{ fontWeight: 'bold', textAlign: 'center' }}>
+				</IconButton>
+				<Typography mb={15} maxWidth="xl" sx={{ width: "100%" }} fontWeight={900} style={{ fontWeight: 'bold', textAlign: 'center' }}>
 					Extra Details
-				</Text>
-				<div style={{ display: 'flex', justifyContent: 'center', margin: '0 auto', width: '50%' }}>
-					<Table mb={50}>
-						<Table.Thead>
-							<Table.Th>Id</Table.Th>
-							<Table.Th>User Name</Table.Th>
-							<Table.Th>Email</Table.Th>
-							<Table.Th>Created At</Table.Th>
-						</Table.Thead>
-						<Table.Tbody>
-							<Table.Td>{details?.id || 'N/A'}</Table.Td>
-							<Table.Td>{details?.user_name || 'N/A'}</Table.Td>
-							<Table.Td>{details?.user_email || 'N/A'}</Table.Td>
-							<Table.Td>
-								{moment(details?.created_at).format('Do MMM YYYY h:mma') || 'N/A'}
-							</Table.Td>
-						</Table.Tbody>
-					</Table>
-				</div>
-				<Text mb={15} size="xl" fw={900} style={{ fontWeight: 'bold', textAlign: 'center' }}>
+				</Typography>
+				<Box sx={{ px: 3, maxWidth: 720, mx: 'auto' }}>
+					<DetailGrid
+						title="User"
+						fields={[
+							{ label: 'Id', value: details?.id },
+							{ label: 'User name', value: details?.user_name },
+							{ label: 'Email', value: details?.user_email },
+							{
+								label: 'Created at',
+								value: details?.created_at
+									? moment(details.created_at).format('Do MMM YYYY h:mma')
+									: 'N/A',
+							},
+						]}
+					/>
+				</Box>
+				<Typography mb={15} maxWidth="xl" sx={{ width: "100%" }} fontWeight={900} style={{ fontWeight: 'bold', textAlign: 'center' }}>
 					Subscription Details
-				</Text>
-				<Table.ScrollContainer minWidth={300}>
+				</Typography>
+				<TableContainer sx={{ minWidth: 300 }}>
 					<Table m={20}>
-						<Table.Thead>
-							<Table.Tr>
-								<Table.Th>Created At</Table.Th>
-								<Table.Th>Package</Table.Th>
-								<Table.Th>Is Subscribed</Table.Th>
-								<Table.Th>Payment Number</Table.Th>
-								<Table.Th>Payment Status</Table.Th>
-								<Table.Th>FirstPayment</Table.Th>
-								<Table.Th>Payment Method</Table.Th>
-								<Table.Th>Subscription RequestId</Table.Th>
-								<Table.Th>Amount</Table.Th>
-								<Table.Th>Recurring Payment</Table.Th>
-								{/* <Table.Th>ReversTrxDate</Table.Th> */}
-								<Table.Th>Next Payment Date</Table.Th>
-								{/* <Table.Th>Type</Table.Th> */}
-							</Table.Tr>
-						</Table.Thead>
-						<Table.Tbody>{detailsTable}</Table.Tbody>
+						<TableHead>
+							<TableRow>
+								<TableCell component="th">Created At</TableCell>
+								<TableCell component="th">Package</TableCell>
+								<TableCell component="th">Is Subscribed</TableCell>
+								<TableCell component="th">Payment Number</TableCell>
+								<TableCell component="th">Payment Status</TableCell>
+								<TableCell component="th">FirstPayment</TableCell>
+								<TableCell component="th">Payment Method</TableCell>
+								<TableCell component="th">Subscription RequestId</TableCell>
+								<TableCell component="th">Amount</TableCell>
+								<TableCell component="th">Recurring Payment</TableCell>
+								{/* <TableCell component="th">ReversTrxDate</TableCell> */}
+								<TableCell component="th">Next Payment Date</TableCell>
+								{/* <TableCell component="th">Type</TableCell> */}
+							</TableRow>
+						</TableHead>
+						<TableBody>{detailsTable}</TableBody>
 					</Table>
-				</Table.ScrollContainer>
+				</TableContainer>
 			</Dialog>
 
-			<Modal
-				overlayProps={{
-					backgroundOpacity: 0.1,
-					blur: 0,
-				}}
-				size={'80%'}
-				opened={subscribeModalOpened}
+			<Dialog
+				maxWidth="lg"
+				fullWidth
+				open={subscribeModalOpened}
 				onClose={closeSubscribeModal}
-				centered
 			>
 				<SubscribeForm userId={userId!} modifiedBy={modifiedBy!} />
-			</Modal>
+			</Dialog>
 		</>
 	));
 
@@ -305,60 +313,67 @@ export default function Subscription() {
 	};
 
 	return (
-		<div>
-			<Title order={1}>Subscription</Title>
-			<form style={{ display: 'flex' }} onSubmit={handleSubmit}>
-				<TextInput
+		<PageContainer title="Subscription" items={[{ label: 'Subscription', href: '/dashboard/subscription' }]}>
+			<MainCard title="Search users">
+			<form onSubmit={handleSubmit}>
+				<TextField
 					name="searchkey"
-					mt="md"
+					fullWidth
+					size="small"
 					placeholder="Search by name, email or number..."
-					rightSection={<IconSearch size={16} />}
-					style={{ width: '100%' }}
+					InputProps={{
+						endAdornment: (
+							<InputAdornment position="end">
+								<IconButton type="submit" edge="end" aria-label="Search">
+									<IconSearch size={18} />
+								</IconButton>
+							</InputAdornment>
+						),
+					}}
 				/>
 			</form>
-			<Space h="md" />
-			<Paper withBorder radius="md" p="md">
+			</MainCard>
+			<Box sx={{ height: 16 }} />
+			<MainCard contentSX={{ p: 0 }}>
 				{initialLoader ? (
 					<Loader />
 				) : loading ? (
-					<Center>
-						<MantineLoader size={24} />
-					</Center>
+					<Box display="flex" justifyContent="center" alignItems="center">
+						<CircularProgress size={24} />
+					</Box>
 				) : (
 					<>
-						<Table.ScrollContainer minWidth={800}>
-							<Table verticalSpacing="xs" horizontalSpacing="xs">
-								<Table.Thead>
-									<Table.Tr>
-										<Table.Th>ID</Table.Th>
-										<Table.Th>Login Id</Table.Th>
-										<Table.Th>User Phone</Table.Th>
-										<Table.Th>User Email</Table.Th>
-										<Table.Th>Subscription</Table.Th>
-										<Table.Th>Action</Table.Th>
-									</Table.Tr>
-								</Table.Thead>
-								<Table.Tbody>
+						<TableContainer sx={{ minWidth: 800 }}>
+							<Table size="small">
+								<TableHead>
+									<TableRow sx={{ '& th': { fontWeight: 700, bgcolor: 'action.hover' } }}>
+										<TableCell component="th">ID</TableCell>
+										<TableCell component="th">Login Id</TableCell>
+										<TableCell component="th">User Phone</TableCell>
+										<TableCell component="th">User Email</TableCell>
+										<TableCell component="th">Subscription</TableCell>
+										<TableCell component="th">Action</TableCell>
+									</TableRow>
+								</TableHead>
+								<TableBody>
 									{displayData?.length > 0 ? (
 										rows
 									) : (
-										<Center>
-											<Text>No Data Found</Text>
-										</Center>
+										<Box display="flex" justifyContent="center" alignItems="center">
+											<Typography>No Data Found</Typography>
+										</Box>
 									)}
-								</Table.Tbody>
+								</TableBody>
 							</Table>
-						</Table.ScrollContainer>
-						<Divider my="sm" />
-						<Pagination
-							value={currentPage}
+						</TableContainer>
+						<Divider sx={{ my: 1 }} />
+						<Pagination page={currentPage}
 							onChange={handlePageChange}
-							total={totalPages}
-							siblings={1}
+							count={totalPages}
 						/>
 					</>
 				)}
-			</Paper>
-		</div>
+			</MainCard>
+		</PageContainer>
 	);
 }

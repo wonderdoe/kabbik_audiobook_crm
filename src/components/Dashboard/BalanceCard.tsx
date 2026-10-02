@@ -1,41 +1,49 @@
 'use client';
 
-import { Button, Card, Group, rem, Select, Space, Stack, Text, Title } from '@mantine/core';
+import {
+	Box,
+	Button,
+	Card,
+	CardContent,
+	Stack,
+	Typography,
+} from '@mui/material';
+import { DataSelect } from '@/components/Form/DataSelect';
 import { IconArrowRight, IconArrowUp } from '@tabler/icons-react';
 import classes from './Dashboard.module.css';
 import { BalanceChart } from './BalanceChart';
 
 const BalanceLeftStack = () => (
-	<Stack gap="md" style={{ flex: 1 }}>
-		<Stack gap={4}>
-			<Text size="xs" c="gray.6">
+	<Stack spacing={2} style={{ flex: 1 }}>
+		<Stack spacing={4}>
+			<Typography variant="caption" color="gray.6">
 				Availabel Balance
-			</Text>
-			<Space h={2} />
-			<Title order={3}>$ 9572.23</Title>
-			<Text size="sm" c="gray.5">
+			</Typography>
+			<Box sx={{ height: 2 }} />
+			<Typography variant="h6" component="h3">$ 9572.23</Typography>
+			<Typography variant="body2" color="gray.5">
 				+ 0.0012.23(0.2%)
 				<span>
 					<IconArrowUp size={12} color="green" />
 				</span>
-			</Text>
+			</Typography>
 		</Stack>
 
-		<Group>
-			<Stack gap={2}>
-				<Text size="sm" c="gray.6">
+		<Stack direction="row" alignItems="center">
+			<Stack spacing={2}>
+				<Typography variant="body2" color="gray.6">
 					Income
-				</Text>
-				<Title order={5}>$ 5729.28</Title>
+				</Typography>
+				<Typography variant="subtitle2" component="h5">$ 5729.28</Typography>
 			</Stack>
-			<Stack gap={2}>
-				<Text size="sm" c="gray.6">
+			<Stack spacing={2}>
+				<Typography variant="body2" color="gray.6">
 					Expense
-				</Text>
-				<Title order={5}>$ 1329.89</Title>
+				</Typography>
+				<Typography variant="subtitle2" component="h5">$ 1329.89</Typography>
 			</Stack>
-		</Group>
-		<Button size="sm" w={rem(140)} rightSection={<IconArrowRight size={14} />}>
+		</Stack>
+		<Button size="small" sx={{ width: 140 }} endIcon={<IconArrowRight size={14} />}>
 			View more
 		</Button>
 	</Stack>
@@ -43,61 +51,58 @@ const BalanceLeftStack = () => (
 
 const BalanceRightStack = () => (
 	<Stack style={{ flex: 1 }}>
-		<Stack align="start" gap={2}>
-			<Text size="sm" c="gray.6">
+		<Stack alignItems="start" spacing={2}>
+			<Typography variant="body2" color="gray.6">
 				Etherum
-			</Text>
-			<Title order={5}>
+			</Typography>
+			<Typography variant="subtitle2" component="h5">
 				1.5236 ETH ={' '}
-				<Text component="span" size="md" fw="bold" c="gray.6">
+				<Typography component="span" variant="body1" fontWeight="bold" color="gray.6">
 					$1123.64
-				</Text>
-			</Title>
+				</Typography>
+			</Typography>
 		</Stack>
-		<Stack align="start" gap={2}>
-			<Text size="sm" c="gray.6">
+		<Stack alignItems="start" spacing={2}>
+			<Typography variant="body2" color="gray.6">
 				Bitcoin
-			</Text>
-			<Title order={5}>
+			</Typography>
+			<Typography variant="subtitle2" component="h5">
 				0.0236 BTC ={' '}
-				<Text component="span" size="md" fw="bold" c="gray.6">
+				<Typography component="span" variant="body1" fontWeight="bold" color="gray.6">
 					$923.64
-				</Text>
-			</Title>
+				</Typography>
+			</Typography>
 		</Stack>
-		<Stack align="start" gap={2}>
-			<Text size="sm" c="gray.6">
+		<Stack alignItems="start" spacing={2}>
+			<Typography variant="body2" color="gray.6">
 				Doge
-			</Text>
-			<Title order={5}>
+			</Typography>
+			<Typography variant="subtitle2" component="h5">
 				2210 DOGE ={' '}
-				<Text component="span" size="md" fw="bold" c="gray.6">
+				<Typography component="span" variant="body1" fontWeight="bold" color="gray.6">
 					$112.64
-				</Text>
-			</Title>
+				</Typography>
+			</Typography>
 		</Stack>
 	</Stack>
 );
 
 export function BalanceCard() {
 	return (
-		<Card radius="md">
-			<Card.Section className={classes.section}>
-				<Title order={5}>Wallet Balance</Title>
-				<Select
+		<Card sx={{ borderRadius: 2 }}>
+			<CardContent className={classes.section}>
+				<Typography variant="subtitle2" component="h5">Wallet Balance</Typography>
+				<DataSelect
 					value="march"
-					size="xs"
 					data={[
 						{ value: 'march', label: 'March' },
 						{ value: 'april', label: 'April' },
 					]}
 				/>
-			</Card.Section>
-			<Card.Section className={classes.section}>
-				{/* <BalanceLeftStack /> */}
+			</CardContent>
+			<CardContent className={classes.section}>
 				<BalanceChart />
-				{/* <BalanceRightStack /> */}
-			</Card.Section>
+			</CardContent>
 		</Card>
 	);
 }

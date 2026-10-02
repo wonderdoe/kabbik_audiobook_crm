@@ -1,4 +1,7 @@
-import { MultiSelect } from '@mantine/core';
+import {
+	Autocomplete,
+	TextField,
+} from '@mui/material';
 import { Controller } from 'react-hook-form';
 
 type CustomMultiSelectProps = {
@@ -8,8 +11,7 @@ type CustomMultiSelectProps = {
 	placeholder: string;
 	control: any;
 	clearable?: boolean;
-	error: string;
-	withAsterisk?: boolean;
+	error: string; required?: boolean;
 	searchable?: boolean;
 };
 
@@ -19,30 +21,33 @@ export const CustomMultiSelect = ({
 	data,
 	placeholder,
 	control,
-	clearable,
-	error,
-	withAsterisk,
-	searchable,
+	error, required,
 }: CustomMultiSelectProps) => {
 	return (
 		<Controller
 			name={name}
 			control={control}
-			render={({ field }) => {
-				return (
-					<MultiSelect
-						label={label}
-						placeholder={placeholder}
-						{...field}
-						data={data}
-						clearable={clearable}
-						searchable={searchable}
-						checkIconPosition="right"
-						error={error}
-						withAsterisk={withAsterisk}
-					/>
-				);
-			}}
+			render={({ field }) => (
+				<Autocomplete
+					multiple
+					options={data}
+					getOptionLabel={option => option.label}
+					isOptionEqualToValue={(a, b) => a.value === b.value}
+					value={data.filter(d => (field.value ?? []).includes(d.value))}
+					onChange={(_, newValue) => field.onChange(newValue.map(v => v.value))}
+					renderInput={params => (
+						<TextField
+							{...params}
+							label={label}
+							placeholder={placeholder}
+							error={Boolean(error)}
+							helperText={error || ' '}
+							required={required}
+							margin="normal"
+						/>
+					)}
+				/>
+			)}
 		/>
 	);
 };

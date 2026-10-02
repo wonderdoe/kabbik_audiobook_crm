@@ -1,30 +1,43 @@
 'use client';
 
+import {
+	Box,
+	Button,
+	Chip,
+	Dialog,
+	DialogActions,
+	DialogContent,
+	DialogTitle,
+	FormControl,
+	FormControlLabel,
+	FormLabel,
+	IconButton,
+	Pagination,
+	Radio,
+	RadioGroup,
+	Stack,
+	Switch,
+	Table,
+	TableBody,
+	TableCell,
+	TableContainer,
+	TableHead,
+	TableRow,
+	TextField,
+	Tooltip,
+	Typography,
+} from '@mui/material';
+import { PageContainer } from '@/components/PageContainer/PageContainer';
+import { MainCard } from '@/components/mantis/MainCard';
+import { DataSelect } from '@/components/Form/DataSelect';
 import Loader from '@/components/Loader';
 import { createActivityLog } from '@/helper/Commonfunction';
 import {
 	QUICK_ACCESS_AUDIENCE_OPTIONS,
 	type QuickAccessAudience,
 } from '@/constants/quickAccess';
-import {
-	ActionIcon,
-	Badge,
-	Button,
-	Flex,
-	Group,
-	Modal,
-	Pagination,
-	Radio,
-	Select,
-	Stack,
-	Switch,
-	Table,
-	Text,
-	TextInput,
-	Title,
-} from '@mantine/core';
-import { notifications } from '@mantine/notifications';
-import { useDisclosure } from '@mantine/hooks';
+import { notifications } from '@/components/providers/SnackbarProvider';
+import { useDisclosure } from '@/hooks/use-disclosure';
 import { IconArrowDown, IconArrowUp, IconPencil, IconTrash } from '@tabler/icons-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import Swal from 'sweetalert2';
@@ -55,10 +68,13 @@ const emptyForm: FormState = {
 	isActive: true,
 };
 
-const audienceBadgeColor: Record<QuickAccessAudience, string> = {
-	all: 'blue',
-	free: 'gray',
-	premium: 'yellow',
+const audienceChipColor: Record<
+	QuickAccessAudience,
+	'default' | 'primary' | 'warning'
+> = {
+	all: 'primary',
+	free: 'default',
+	premium: 'warning',
 };
 
 export default function QuickAccessPage() {
@@ -303,221 +319,265 @@ export default function QuickAccessPage() {
 	}
 
 	return (
-		<Stack gap="md">
-			<Flex justify="space-between" align="center" wrap="wrap" gap="sm">
-				<Title order={2}>Quick Access</Title>
-				<Button onClick={openCreate}>Add Quick Access</Button>
-			</Flex>
+		<PageContainer
+			title="Quick Access"
+			items={[{ label: 'Quick Access', href: '/dashboard/quick-access' }]}
+			actions={<Button onClick={openCreate}>Add Quick Access</Button>}
+		>
+		<Stack spacing={2}>
+			<MainCard title="Filters">
+			<Stack direction="row" flexWrap="wrap" alignItems="flex-end" spacing={2} useFlexGap>
+				<Box sx={{ flex: '1 1 200px', maxWidth: 280 }}>
+					<DataSelect
+						fullWidth
+						label="Audience"
+						placeholder="All audiences"
+						clearable
+						data={[
+							{ value: '', label: 'All audiences' },
+							...QUICK_ACCESS_AUDIENCE_OPTIONS.map(o => ({ value: o.value, label: o.label })),
+						]}
+						value={audienceFilter}
+						onChange={v => {
+							setAudienceFilter(v);
+							setPage(1);
+						}}
+					/>
+				</Box>
+				<Box sx={{ flex: '1 1 160px', maxWidth: 220 }}>
+					<DataSelect
+						fullWidth
+						label="Active"
+						placeholder="All"
+						clearable
+						data={[
+							{ value: '', label: 'All' },
+							{ value: 'true', label: 'Active' },
+							{ value: 'false', label: 'Inactive' },
+						]}
+						value={activeFilter}
+						onChange={v => {
+							setActiveFilter(v);
+							setPage(1);
+						}}
+					/>
+				</Box>
+				<Box sx={{ flex: '2 1 240px', minWidth: 200 }}>
+					<TextField
+						fullWidth
+						size="small"
+						label="Search"
+						placeholder="English or Bangla name"
+						value={search}
+						onChange={e => {
+							setSearch(e.currentTarget.value);
+							setPage(1);
+						}}
+					/>
+				</Box>
+			</Stack>
+			</MainCard>
 
-			<Group grow align="flex-end">
-				<Select
-					label="Audience"
-					placeholder="All audiences"
-					clearable
-					data={[
-						{ value: '', label: 'All audiences' },
-						...QUICK_ACCESS_AUDIENCE_OPTIONS.map(o => ({ value: o.value, label: o.label })),
-					]}
-					value={audienceFilter}
-					onChange={v => {
-						setAudienceFilter(v);
-						setPage(1);
-					}}
-				/>
-				<Select
-					label="Active"
-					placeholder="All"
-					clearable
-					data={[
-						{ value: '', label: 'All' },
-						{ value: 'true', label: 'Active' },
-						{ value: 'false', label: 'Inactive' },
-					]}
-					value={activeFilter}
-					onChange={v => {
-						setActiveFilter(v);
-						setPage(1);
-					}}
-				/>
-				<TextInput
-					label="Search"
-					placeholder="English or Bangla name"
-					value={search}
-					onChange={e => {
-						setSearch(e.currentTarget.value);
-						setPage(1);
-					}}
-				/>
-			</Group>
-
-			<Table striped highlightOnHover withTableBorder>
-				<Table.Thead>
-					<Table.Tr>
-						<Table.Th>Order</Table.Th>
-						<Table.Th>English name</Table.Th>
-						<Table.Th>Bangla name</Table.Th>
-						<Table.Th>Go to page</Table.Th>
-						<Table.Th>Audience</Table.Th>
-						<Table.Th>Active</Table.Th>
-						<Table.Th>Actions</Table.Th>
-					</Table.Tr>
-				</Table.Thead>
-				<Table.Tbody>
+			<MainCard contentSX={{ p: 0 }}>
+			<TableContainer>
+			<Table size="small">
+				<TableHead>
+					<TableRow sx={{ '& th': { fontWeight: 700, bgcolor: 'action.hover' } }}>
+						<TableCell component="th">Order</TableCell>
+						<TableCell component="th">English name</TableCell>
+						<TableCell component="th">Bangla name</TableCell>
+						<TableCell component="th">Go to page</TableCell>
+						<TableCell component="th">Audience</TableCell>
+						<TableCell component="th">Active</TableCell>
+						<TableCell component="th">Actions</TableCell>
+					</TableRow>
+				</TableHead>
+				<TableBody>
 					{rows.length === 0 ? (
-						<Table.Tr>
-							<Table.Td colSpan={7}>
-								<Text ta="center" c="dimmed">No items found</Text>
-							</Table.Td>
-						</Table.Tr>
+						<TableRow>
+							<TableCell colSpan={7}>
+								<Typography textAlign="center" color="text.secondary">No items found</Typography>
+							</TableCell>
+						</TableRow>
 					) : (
 						rows.map((row, index) => (
-							<Table.Tr key={row.id}>
-								<Table.Td>
-									<Group gap={4} wrap="nowrap">
+							<TableRow key={row.id} hover>
+								<TableCell>
+									<Stack direction="row" alignItems="center" spacing={4} wrap="nowrap">
 										{reorderVisible && (
 											<>
-												<ActionIcon
-													variant="subtle"
-													size="sm"
+												<Tooltip title="Move up">
+												<span>
+												<IconButton
+													size="small"
 													disabled={index === 0}
 													onClick={() => moveRow(index, 'up')}
 													aria-label="Move up"
 												>
 													<IconArrowUp size={14} />
-												</ActionIcon>
-												<ActionIcon
-													variant="subtle"
-													size="sm"
+												</IconButton>
+												</span>
+												</Tooltip>
+												<Tooltip title="Move down">
+												<span>
+												<IconButton
+													size="small"
 													disabled={index === rows.length - 1}
 													onClick={() => moveRow(index, 'down')}
 													aria-label="Move down"
 												>
 													<IconArrowDown size={14} />
-												</ActionIcon>
+												</IconButton>
+												</span>
+												</Tooltip>
 											</>
 										)}
-									</Group>
-								</Table.Td>
-								<Table.Td>{row.enName}</Table.Td>
-								<Table.Td>{row.bnName}</Table.Td>
-								<Table.Td>
-									<Text size="sm" ff="monospace">{row.gotoPage}</Text>
-								</Table.Td>
-								<Table.Td>
-									<Badge color={audienceBadgeColor[row.audience]} variant="light">
-										{audienceLabel(row.audience)}
-									</Badge>
-								</Table.Td>
-								<Table.Td>
+									</Stack>
+								</TableCell>
+								<TableCell>{row.enName}</TableCell>
+								<TableCell>{row.bnName}</TableCell>
+								<TableCell>
+									<Typography variant="body2" fontFamily="monospace">{row.gotoPage}</Typography>
+								</TableCell>
+								<TableCell>
+									<Chip
+										size="small"
+										variant="outlined"
+										color={audienceChipColor[row.audience]}
+										label={audienceLabel(row.audience)}
+									/>
+								</TableCell>
+								<TableCell>
 									<Switch
 										checked={row.isActive}
 										onChange={() => handleToggle(row)}
 										aria-label="Toggle active"
 									/>
-								</Table.Td>
-								<Table.Td>
-									<Group gap="xs">
-										<ActionIcon variant="light" onClick={() => openEdit(row)} aria-label="Edit">
-											<IconPencil size={16} />
-										</ActionIcon>
-										<ActionIcon
-											variant="light"
-											color="red"
-											onClick={() => handleDelete(row.id)}
-											aria-label="Delete"
-										>
-											<IconTrash size={16} />
-										</ActionIcon>
-									</Group>
-								</Table.Td>
-							</Table.Tr>
+								</TableCell>
+								<TableCell>
+									<Stack direction="row" alignItems="center" spacing={0.5}>
+										<Tooltip title="Edit">
+											<IconButton size="small" onClick={() => openEdit(row)} aria-label="Edit">
+												<IconPencil size={16} />
+											</IconButton>
+										</Tooltip>
+										<Tooltip title="Delete">
+											<IconButton
+												size="small"
+												color="error"
+												onClick={() => handleDelete(row.id)}
+												aria-label="Delete"
+											>
+												<IconTrash size={16} />
+											</IconButton>
+										</Tooltip>
+									</Stack>
+								</TableCell>
+							</TableRow>
 						))
 					)}
-				</Table.Tbody>
+				</TableBody>
 			</Table>
+			</TableContainer>
 
 			{totalPages > 1 && (
-				<Flex justify="center">
-					<Pagination value={page} onChange={setPage} total={totalPages} />
-				</Flex>
+				<Stack direction="row" flexWrap="wrap" justifyContent="center" sx={{ py: 2 }}>
+					<Pagination page={page} onChange={(_, p) => setPage(p)} count={totalPages} color="primary" />
+				</Stack>
 			)}
+			</MainCard>
 
-			<Modal
-				opened={modalOpened}
+			<Dialog
+				open={modalOpened}
 				onClose={() => {
 					closeModal();
 					resetForm();
 				}}
-				title={editingId ? 'Edit Quick Access' : 'Add Quick Access'}
-				size="lg"
+				maxWidth="sm"
+				fullWidth
 			>
-				<form onSubmit={handleSubmit}>
-					<Stack gap="sm">
-						<TextInput
+				<DialogTitle>{editingId ? 'Edit Quick Access' : 'Add Quick Access'}</DialogTitle>
+				<DialogContent>
+				<form id="quick-access-form" onSubmit={handleSubmit}>
+					<Stack spacing={2} sx={{ pt: 1 }}>
+						<TextField
 							label="English name"
 							required
 							value={form.enName}
-							error={fieldErrors.enName}
+							error={Boolean(fieldErrors.enName)}
+							helperText={fieldErrors.enName}
 							onChange={e => {
 								const enName = e.currentTarget.value;
 								setForm(f => ({ ...f, enName }));
 							}}
 						/>
-						<TextInput
+						<TextField
 							label="Bangla name"
 							required
 							lang="bn"
 							value={form.bnName}
-							error={fieldErrors.bnName}
+							error={Boolean(fieldErrors.bnName)}
+							helperText={fieldErrors.bnName}
 							onChange={e => {
 								const bnName = e.currentTarget.value;
 								setForm(f => ({ ...f, bnName }));
 							}}
 						/>
-						<TextInput
+						<TextField
 							label="Go to page"
 							required
 							placeholder="/your-route"
 							value={form.gotoPage}
-							error={fieldErrors.gotoPage}
+							error={Boolean(fieldErrors.gotoPage)}
+							helperText={fieldErrors.gotoPage}
 							onChange={e => {
 								const gotoPage = e.currentTarget.value;
 								setForm(f => ({ ...f, gotoPage }));
 							}}
 						/>
-						<Radio.Group
-							label="Audience"
-							value={form.audience}
-							onChange={v =>
-								setForm(f => ({ ...f, audience: (v as QuickAccessAudience) || 'all' }))
-							}
-						>
-							<Group mt="xs">
+						<FormControl>
+							<FormLabel>Audience</FormLabel>
+							<RadioGroup
+								row
+								value={form.audience}
+								onChange={e =>
+									setForm(f => ({
+										...f,
+										audience: (e.target.value as QuickAccessAudience) || 'all',
+									}))
+								}
+							>
 								{QUICK_ACCESS_AUDIENCE_OPTIONS.map(o => (
-									<Radio key={o.value} value={o.value} label={o.label} />
+									<FormControlLabel key={o.value} value={o.value} control={<Radio />} label={o.label} />
 								))}
-							</Group>
-						</Radio.Group>
+							</RadioGroup>
+						</FormControl>
 						{fieldErrors.audience && (
-							<Text size="sm" c="red">{fieldErrors.audience}</Text>
+							<Typography variant="body2" color="error">{fieldErrors.audience}</Typography>
 						)}
-						<Switch
+						<FormControlLabel
+							control={
+								<Switch
+									checked={form.isActive}
+									onChange={e => {
+										const isActive = e.currentTarget.checked;
+										setForm(f => ({ ...f, isActive }));
+									}}
+								/>
+							}
 							label="Active"
-							checked={form.isActive}
-							onChange={e => {
-								const isActive = e.currentTarget.checked;
-								setForm(f => ({ ...f, isActive }));
-							}}
 						/>
-						<Group justify="flex-end" mt="md">
-							<Button variant="default" onClick={closeModal} type="button">
-								Cancel
-							</Button>
-							<Button type="submit">Save</Button>
-						</Group>
 					</Stack>
 				</form>
-			</Modal>
+				</DialogContent>
+				<DialogActions>
+					<Button variant="outlined" onClick={closeModal} type="button">
+						Cancel
+					</Button>
+					<Button type="submit" form="quick-access-form" variant="contained">Save</Button>
+				</DialogActions>
+			</Dialog>
 		</Stack>
+		</PageContainer>
 	);
 }

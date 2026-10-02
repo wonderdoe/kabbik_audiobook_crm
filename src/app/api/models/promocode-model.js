@@ -247,7 +247,7 @@ class PromoModel {
 			return result.map(item => item.promocode);
 		} catch (err) {
 			console.error(err);
-			return err;
+			return [];
 		}
 	};
 

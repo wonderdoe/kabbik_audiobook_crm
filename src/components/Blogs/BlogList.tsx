@@ -1,22 +1,27 @@
 'use client';
 
 import {
+	Box,
 	Button,
-	FileInput,
-	Flex,
-	Image,
-	Modal,
-	MultiSelect,
+	Dialog,
+	DialogContent,
+	DialogTitle,
 	Pagination,
 	Paper,
+	Stack,
 	Switch,
+	Tab,
 	Table,
+	TableBody,
+	TableCell,
+	TableContainer,
+	TableHead,
+	TableRow,
 	Tabs,
-	Text,
-	TextInput,
-	Title,
-} from '@mantine/core';
-import { useDisclosure } from '@mantine/hooks';
+	TextField,
+	Typography,
+} from '@mui/material';
+import { useDisclosure } from '@/hooks/use-disclosure';
 import moment from 'moment';
 import { useCallback, useEffect, useState } from 'react';
 import Swal from 'sweetalert2';
@@ -182,53 +187,53 @@ export default function BlogList({ categories }: { categories: any }) {
 
 	return (
 		<>
-			<Flex justify="space-between">
-				<Title order={1} style={{ marginBottom: 10 }}>
+			<Stack direction="row" flexWrap="wrap" justifyContent="space-between">
+				<Typography variant="h4" component="h1" style={{ marginBottom: 10 }}>
 					Blogs
-				</Title>
+				</Typography>
 				<Button
 					onClick={() => {
 						setBlogOperation('create');
 						setupNewBlog();
 						open();
 					}}
-					variant="filled"
+					variant="contained"
 				>
 					Create New
 				</Button>
-			</Flex>
-			<Tabs mb="md" value={activeTab} onChange={setActiveTab}>
-				<Tabs.List>
-					<Tabs.Tab value="all" onClick={async () => setActiveTab('all')}>
+			</Stack>
+			<Tabs value={activeTab} onChange={setActiveTab}>
+				<Box>
+					<Tab value="all" onClick={async () => setActiveTab('all')}>
 						All
-					</Tabs.Tab>
-					<Tabs.Tab value="pending" onClick={async () => setActiveTab('pending')}>
+					</Tab>
+					<Tab value="pending" onClick={async () => setActiveTab('pending')}>
 						Pending
-					</Tabs.Tab>
-					<Tabs.Tab value="approved" onClick={async () => setActiveTab('approved')}>
+					</Tab>
+					<Tab value="approved" onClick={async () => setActiveTab('approved')}>
 						Approved
-					</Tabs.Tab>
-					{/* <Tabs.Tab value="rejected">Rejected</Tabs.Tab> */}
-				</Tabs.List>
+					</Tab>
+					{/* <Tab value="rejected">Rejected</Tab> */}
+				</Box>
 			</Tabs>
-			<Paper shadow="xs" p="md" withBorder>
+			<Paper elevation={1} sx={{ p: 2 }} variant="outlined">
 				{blogList.length ? (
-					<Table.ScrollContainer minWidth={800}>
+					<TableContainer sx={{ minWidth: 800 }}>
 						<Table>
-							<Table.Thead>
-								<Table.Tr>
-									<Table.Th>Featured</Table.Th>
-									<Table.Th>Title</Table.Th>
-									<Table.Th>Excerpt</Table.Th>
-									<Table.Th>Author</Table.Th>
-									<Table.Th>Uploaded</Table.Th>
-									<Table.Th>Updated</Table.Th>
-									<Table.Th>Published</Table.Th>
-								</Table.Tr>
-							</Table.Thead>
-							<Table.Tbody>
+							<TableHead>
+								<TableRow>
+									<TableCell component="th">Featured</TableCell>
+									<TableCell component="th">Title</TableCell>
+									<TableCell component="th">Excerpt</TableCell>
+									<TableCell component="th">Author</TableCell>
+									<TableCell component="th">Uploaded</TableCell>
+									<TableCell component="th">Updated</TableCell>
+									<TableCell component="th">Published</TableCell>
+								</TableRow>
+							</TableHead>
+							<TableBody>
 								{blogList.map(blog => (
-									<Table.Tr
+									<TableRow
 										key={blog.id}
 										onClick={() => {
 											setBlogOperation('update');
@@ -237,8 +242,8 @@ export default function BlogList({ categories }: { categories: any }) {
 										}}
 										style={{ cursor: 'pointer' }}
 									>
-										<Table.Td>
-											<Image
+										<TableCell>
+											<Box component="img" 
 												src={
 													blog?.featured_image ||
 													'https://kabbik-space.sgp1.cdn.digitaloceanspaces.com/No_Image_Available.jpg'
@@ -249,43 +254,39 @@ export default function BlogList({ categories }: { categories: any }) {
 												radius={7}
 												style={{ width: '100px', height: 'auto' }}
 											/>
-										</Table.Td>
-										<Table.Td>{blog.title}</Table.Td>
-										<Table.Td>{blog.excerpt}</Table.Td>
-										<Table.Td>{blog.author || 'N/A'}</Table.Td>
-										<Table.Td>{moment(blog.created_at).format('Do MMM, YYYY')}</Table.Td>
-										<Table.Td>{moment(blog.updated_at).format('Do MMM, YYYY')}</Table.Td>
-										<Table.Td>
+										</TableCell>
+										<TableCell>{blog.title}</TableCell>
+										<TableCell>{blog.excerpt}</TableCell>
+										<TableCell>{blog.author || 'N/A'}</TableCell>
+										<TableCell>{moment(blog.created_at).format('Do MMM, YYYY')}</TableCell>
+										<TableCell>{moment(blog.updated_at).format('Do MMM, YYYY')}</TableCell>
+										<TableCell>
 											<div onClick={e => togglePublish(e, blog.id!)}>
 												<Switch checked={!!blog.approved} />
 											</div>
-										</Table.Td>
-									</Table.Tr>
+										</TableCell>
+									</TableRow>
 								))}
-							</Table.Tbody>
+							</TableBody>
 						</Table>
-					</Table.ScrollContainer>
+					</TableContainer>
 				) : (
-					<Text ta="center">No data</Text>
+					<Typography textAlign="center">No data</Typography>
 				)}
-				<Pagination
-					value={currentPage}
+				<Pagination page={currentPage}
 					onChange={handlePageChange}
-					total={totalPage}
-					siblings={1}
+					count={totalPage}
 				/>
 			</Paper>
-			<Modal
-				opened={opened}
+			<Dialog
+				open={opened}
 				onClose={close}
-				title={blogOperation === 'create' ? 'Create Blog' : 'Update Blog'}
-				size="xl"
-				radius="md"
-				classNames={{
-					title: 'mantine-modal-title',
-					close: 'mantine-modal-close',
-				}}
+				
+				maxWidth="xl" sx={{ width: "100%" }}
+				sx={{ borderRadius: 2 }}
 			>
+<DialogTitle>{blogOperation === 'create' ? 'Create Blog' : 'Update Blog'}</DialogTitle>
+<DialogContent>
 				<form onSubmit={blogOperation === 'create' ? submitCreateHandler : submitEditHandler}>
 					<div
 						style={{
@@ -297,7 +298,7 @@ export default function BlogList({ categories }: { categories: any }) {
 						}}
 					>
 						{!previewImageUrl ? (
-							<Image
+							<Box component="img" 
 								src={
 									blog?.featured_image ||
 									'https://kabbik-space.sgp1.cdn.digitaloceanspaces.com/No_Image_Available.jpg'
@@ -308,7 +309,7 @@ export default function BlogList({ categories }: { categories: any }) {
 								style={{ width: '100%', height: 'auto' }}
 							/>
 						) : (
-							<Image
+							<Box component="img" 
 								src={previewImageUrl ? URL.createObjectURL(previewImageUrl) : ''}
 								alt={blog?.alter_text_for_featured_image}
 								width={0}
@@ -319,9 +320,9 @@ export default function BlogList({ categories }: { categories: any }) {
 						{blogOperation === 'create' ? null : (
 							<span style={{ marginLeft: 'auto', textAlign: 'right' }}>
 								Uploaded at
-								<Text size="sm" c="dimmed">
+								<Typography variant="body2" color="text.secondary">
 									— {moment(blog?.created_at).format('Do MMM, YYYY')}
-								</Text>
+								</Typography>
 							</span>
 						)}
 						<FileInput
@@ -343,14 +344,14 @@ export default function BlogList({ categories }: { categories: any }) {
 								}
 							}}
 						/>
-						<TextInput
+						<TextField
 							label="Title"
 							value={blog?.title}
 							onChange={e =>
 								setBlog((prev: Blog | null) => (prev ? { ...prev, title: e.target.value } : prev))
 							}
 						/>
-						<TextInput
+						<TextField
 							label="Excerpt"
 							value={blog?.excerpt}
 							onChange={e =>
@@ -376,14 +377,14 @@ export default function BlogList({ categories }: { categories: any }) {
 							}
 						/>
 						<CustomTextEditor rawBlogContent={blog?.content_body} setBlog={setBlog} />
-						<TextInput
+						<TextField
 							label="Author"
 							value={blog?.author}
 							onChange={e =>
 								setBlog((prev: Blog | null) => (prev ? { ...prev, author: e.target.value } : prev))
 							}
 						/>
-						<TextInput
+						<TextField
 							label="Meta Title"
 							value={blog?.meta_title}
 							onChange={e =>
@@ -392,7 +393,7 @@ export default function BlogList({ categories }: { categories: any }) {
 								)
 							}
 						/>
-						<TextInput
+						<TextField
 							label="Meta Description"
 							value={blog?.meta_description}
 							onChange={e =>
@@ -401,7 +402,7 @@ export default function BlogList({ categories }: { categories: any }) {
 								)
 							}
 						/>
-						<TextInput
+						<TextField
 							label="Meta Keywords"
 							value={blog?.meta_keywords}
 							onChange={e =>
@@ -410,7 +411,7 @@ export default function BlogList({ categories }: { categories: any }) {
 								)
 							}
 						/>
-						<TextInput
+						<TextField
 							label="Meta Author"
 							value={blog?.meta_author}
 							onChange={e =>
@@ -422,7 +423,8 @@ export default function BlogList({ categories }: { categories: any }) {
 						<Button type="submit">{blogOperation === 'create' ? 'Create' : 'Update'}</Button>
 					</div>
 				</form>
-			</Modal>
+			</DialogContent>
+</Dialog>
 		</>
 	);
 }

@@ -1,7 +1,16 @@
 'use client';
 
-import { Badge, Paper, Rating, Space, Title, Modal } from '@mantine/core';
-import { MantineReactTable, MRT_ColumnDef } from 'mantine-react-table';
+import {
+	Badge,
+	Box,
+	Dialog,
+	DialogContent,
+	DialogTitle,
+	Paper,
+	Rating,
+	Typography,
+} from '@mui/material';
+import { MaterialReactTable, type MRT_ColumnDef } from 'material-react-table';
 import { useEffect, useMemo, useState } from 'react';
 import { useCustomTable } from '@/hooks/use-custom-table';
 import { useProducts } from '@/services/products';
@@ -92,19 +101,17 @@ export function SponsorTable() {
     });
 
     return (
-        <Paper withBorder radius="md" p="md" mt="lg">
-            <Title order={5}>Sponsorship Request</Title>
-            {/* <Space h="md" /> */}
-            <MantineReactTable table={table} />
+        <Paper variant="outlined" sx={{ borderRadius: 2, p: 2, mt: 3 }}>
+            <Typography variant="subtitle2" component="h5">Sponsorship Request</Typography>
+            {/* <Box sx={{ height: 16 }} /> */}
+            <MaterialReactTable table={table} />
             
-            <Modal
-                opened={isModalOpen}
-                onClose={() => setIsModalOpen(false)}
-                title="Company Details"
-                centered
-            >
-                <p>{selectedDetails}</p>
-            </Modal>
+            <Dialog open={isModalOpen} onClose={() => setIsModalOpen(false)} maxWidth="sm" sx={{ width: "100%" }}>
+                <DialogTitle>Company Details</DialogTitle>
+                <DialogContent>
+                    <p>{selectedDetails}</p>
+                </DialogContent>
+            </Dialog>
         </Paper>
     );
 }

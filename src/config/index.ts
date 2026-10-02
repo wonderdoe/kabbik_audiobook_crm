@@ -53,6 +53,11 @@ export const navLinks: NavItem[] = [
 				link: '/dashboard/audiobook',
 			},
 			{
+				permissions:"",
+				label: 'Contributors',
+				link: '/dashboard/contributors',
+			},
+			{
 				permissions:"see_hero_banners",
 				label: 'Hero Banner',
 				link: '/dashboard/herobanner',

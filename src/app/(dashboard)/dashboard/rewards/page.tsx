@@ -1,19 +1,19 @@
 'use client';
 
-import '@mantine/dates/styles.css';
 import {
 	Alert,
+	Box,
 	Button,
-	Flex,
-	Group,
+	FormControl,
+	InputLabel,
+	MenuItem,
 	Pagination,
 	Select,
 	Skeleton,
-	Space,
 	Stack,
-	Text,
-	Title,
-} from '@mantine/core';
+	Typography,
+} from '@mui/material';
+import { PageContainer } from '@/components/PageContainer/PageContainer';
 import { IconDownload } from '@tabler/icons-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { RewardClaimDrawer } from './components/RewardClaimDrawer';
@@ -130,18 +130,21 @@ export default function RewardsPage() {
 	};
 
 	return (
-		<Stack gap="md">
-			<Flex justify="space-between" align="flex-start" wrap="wrap" gap="sm">
-				<div>
-					<Title order={2}>Rewards</Title>
-					<Text c="dimmed" size="sm">
-						View tier reward claims and usage
-					</Text>
-				</div>
-				<Button leftSection={<IconDownload size={16} />} variant="light" onClick={handleExport}>
+		<PageContainer
+			title="Rewards"
+			items={[{ label: 'Rewards', href: '/dashboard/rewards' }]}
+			subtitle={
+				<Typography color="text.secondary" variant="body2" sx={{ mt: 0.5 }}>
+					View tier reward claims and usage
+				</Typography>
+			}
+			actions={
+				<Button variant="outlined" startIcon={<IconDownload size={16} />} onClick={handleExport}>
 					Export CSV
 				</Button>
-			</Flex>
+			}
+		>
+		<Stack spacing={2}>
 
 			<RewardSummaryCards summary={summary} loading={summaryLoading} />
 
@@ -159,11 +162,14 @@ export default function RewardsPage() {
 			/>
 
 			{error ? (
-				<Alert color="red" title="Error">
+				<Alert severity="error"
+					action={
+						<Button color="inherit" size="small" onClick={() => loadData()}>
+							Retry
+						</Button>
+					}
+				>
 					{error}
-					<Button variant="light" size="xs" mt="sm" onClick={() => loadData()}>
-						Retry
-					</Button>
 				</Alert>
 			) : null}
 
@@ -173,33 +179,36 @@ export default function RewardsPage() {
 					<Skeleton height={200} />
 				</Stack>
 			) : rows.length === 0 ? (
-				<Text ta="center" c="dimmed" py="xl">
+				<Typography textAlign="center" color="text.secondary">
 					No claims match these filters
-				</Text>
+				</Typography>
 			) : (
 				<RewardClaimsTable rows={rows} onView={handleView} />
 			)}
 
-			<Group justify="space-between" align="center">
-				<Text size="sm" c="dimmed">
+			<Stack direction="row" justifyContent="space-between" alignItems="center" flexWrap="wrap" gap={1}>
+				<Typography variant="body2" color="text.secondary">
 					Showing {showingFrom}-{showingTo} of {total}
-				</Text>
-				<Group>
-					<Select
-						label="Page size"
-						value={String(pageSize)}
-						onChange={v => {
-							setPageSize(Number(v));
-							setPage(1);
-						}}
-						data={['25', '50', '100']}
-						w={100}
-					/>
-					<Pagination total={totalPages} value={page} onChange={setPage} />
-				</Group>
-			</Group>
-
-			<Space h="md" />
+				</Typography>
+				<Stack direction="row" alignItems="center" gap={2}>
+					<FormControl size="small" sx={{ width: 100 }}>
+						<InputLabel>Page size</InputLabel>
+						<Select
+							label="Page size"
+							value={String(pageSize)}
+							onChange={e => {
+								setPageSize(Number(e.target.value));
+								setPage(1);
+							}}
+						>
+							<MenuItem value="25">25</MenuItem>
+							<MenuItem value="50">50</MenuItem>
+							<MenuItem value="100">100</MenuItem>
+						</Select>
+					</FormControl>
+					<Pagination count={totalPages} page={page} onChange={(_, p) => setPage(p)} color="primary" />
+				</Stack>
+			</Stack>
 
 			<RewardClaimDrawer
 				claimId={selectedId}
@@ -208,5 +217,6 @@ export default function RewardsPage() {
 				onUpdated={() => loadData()}
 			/>
 		</Stack>
+		</PageContainer>
 	);
 }

@@ -1,21 +1,31 @@
 'use client';
-
 import {
 	Avatar,
+	Box,
 	Button,
+	Dialog,
+	DialogContent,
+	DialogTitle,
 	Divider,
-	Flex,
-	Image,
-	InputWrapper,
-	Modal,
+	FormControl,
+	InputLabel,
 	Pagination,
 	Paper,
+	Stack,
+	Tab,
 	Table,
-	Textarea,
-	TextInput,
-	Title,
-} from '@mantine/core';
-import { useDisclosure } from '@mantine/hooks';
+	TableBody,
+	TableCell,
+	TableContainer,
+	TableHead,
+	TableRow,
+	TextField,
+	Typography,
+} from '@mui/material';
+import { PageContainer } from '@/components/PageContainer/PageContainer';
+import { MainCard } from '@/components/mantis/MainCard';
+
+import { useDisclosure } from '@/hooks/use-disclosure';
 import moment from 'moment';
 
 import { useEffect, useState } from 'react';
@@ -41,27 +51,25 @@ export default function Authors() {
 
 	const rows = authorList.map((element: any, index: any) => {
 		return (
-			<Table.Tr key={element.id}>
-				<Table.Td>
+			<TableRow key={element.id}>
+				<TableCell>
 					<Avatar
 						style={{ objectFit: 'contain' }}
 						src={element.imageUrl}
 						alt={element.imageUrl}
 						radius={'xs'}
 						size={'100px'}
-						visibleFrom="sm"
 					/>
 					<Avatar
 						style={{ objectFit: 'contain' }}
 						src={element.imageUrl}
 						alt={element.imageUrl}
 						radius={'xs'}
-						hiddenFrom="sm"
 					/>
-				</Table.Td>
-				<Table.Td>{element.name || 'N/A'}</Table.Td>
-				<Table.Td>{element.en_name || 'N/A'}</Table.Td>
-				<Table.Td>
+				</TableCell>
+				<TableCell>{element.name || 'N/A'}</TableCell>
+				<TableCell>{element.en_name || 'N/A'}</TableCell>
+				<TableCell>
 					<div
 						className={`${showFullDescription === index ? '' : 'three-line-ellipsis'}`}
 						style={{ width: '200px' }}
@@ -71,12 +79,12 @@ export default function Authors() {
 					>
 						{element.description || 'N/A'}
 					</div>
-				</Table.Td>
-				<Table.Td>{moment(element.created_at).format('Do MMM YYYY h:mma') || 'N/A'}</Table.Td>
-				<Table.Td>
+				</TableCell>
+				<TableCell>{moment(element.created_at).format('Do MMM YYYY h:mma') || 'N/A'}</TableCell>
+				<TableCell>
 					<Button onClick={() => handleEditId(index)}>Edit</Button>
-				</Table.Td>
-			</Table.Tr>
+				</TableCell>
+			</TableRow>
 		);
 	});
 
@@ -235,85 +243,77 @@ export default function Authors() {
 			{loading ? (
 				<Loader />
 			) : (
-				<>
-					<Flex justify={'space-between'}>
-						<Title order={1} style={{ marginBottom: 20 }}>
-							Author List
-						</Title>
-						<Button onClick={openAuthorModal} variant="filled">
+			<PageContainer title="Author List" items={[{ label: 'Authors', href: '/dashboard/authors' }]}
+				actions={
+					<Button onClick={openAuthorModal} variant="contained">
 							Add Author
 						</Button>
-					</Flex>
-					<Paper withBorder radius="md" p="md" pt="0">
-						<Table.ScrollContainer minWidth={100}>
-							<Table>
-								<Table.Thead>
-									<Table.Tr>
-										<Table.Th>Image</Table.Th>
-										<Table.Th>Name</Table.Th>
-										<Table.Th>En Name</Table.Th>
-										<Table.Th>Description</Table.Th>
-										<Table.Th>Created At</Table.Th>
-										<Table.Th>Action</Table.Th>
-									</Table.Tr>
-								</Table.Thead>
-								<Table.Tbody>{rows}</Table.Tbody>
-							</Table>
-						</Table.ScrollContainer>
-						<Divider my="sm" />
-						<Pagination
-							value={currentPage}
-							onChange={handlePageChange}
-							total={totalPage}
-							siblings={1}
-						/>
-					</Paper>
+				}>
 
-					<Modal
-						opened={addAuthorModal}
+<MainCard contentSX={{ p: 0 }}>
+						<TableContainer sx={{ minWidth: 100 }}>
+							<Table>
+								<TableHead>
+									<TableRow>
+										<TableCell component="th">Image</TableCell>
+										<TableCell component="th">Name</TableCell>
+										<TableCell component="th">En Name</TableCell>
+										<TableCell component="th">Description</TableCell>
+										<TableCell component="th">Created At</TableCell>
+										<TableCell component="th">Action</TableCell>
+									</TableRow>
+								</TableHead>
+								<TableBody>{rows}</TableBody>
+							</Table>
+						</TableContainer>
+						<Divider sx={{ my: 1 }} />
+						<Pagination page={currentPage}
+							onChange={handlePageChange}
+							count={totalPage}
+						/>
+					</MainCard>
+
+					<Dialog
+						open={addAuthorModal}
 						onClose={closeAuthorModal}
-						title="Add Author"
-						size={'lg'}
-						centered
-						classNames={{ title: 'mantine-modal-title', close: 'mantine-modal-close' }}
+						
+						maxWidth="lg" sx={{ width: "100%" }}
 					>
+<DialogTitle>Add Author</DialogTitle>
+<DialogContent>
 						<form onSubmit={handleAddAuthor} action="">
-							<TextInput
+							<TextField
 								label="Name"
-								py={10}
 								onChange={e => setName(e.target.value)}
 								required
 								placeholder="Name"
 							/>
-							<TextInput
+							<TextField
 								label="En Name"
-								py={10}
 								onChange={e => setEnName(e.target.value)}
 								required
 								placeholder="En Name"
 							/>
-							<Textarea
+							<TextField multiline minRows={3}
 								label="Description"
-								py={10}
-								autosize
 								onChange={e => setDescription(e.target.value)}
 								required
 								placeholder="Description"
 							/>
 
-							<InputWrapper label="Image" required>
-								<Flex
+							<FormControl><InputLabel>Image</InputLabel>
+								<Stack direction="row" flexWrap="wrap"
 									mih={50}
 									gap="md"
-									justify="flex-start"
-									align="flex-start"
+									justifyContent="flex-start"
+									alignItems="flex-start"
 									direction="column"
 									wrap="wrap"
 								>
 									<input type="file" onChange={handleAddImage} />
 
 									{addImage && (
-										<Image
+										<Box component="img" 
 											style={{ paddingBottom: 10 }}
 											src={addImage}
 											height={150}
@@ -322,59 +322,56 @@ export default function Authors() {
 											radius={'md'}
 										/>
 									)}
-								</Flex>
-							</InputWrapper>
-							<Button type="submit" py={10}>
+								</Stack>
+							</FormControl>
+							<Button type="submit">
 								Create
 							</Button>
 						</form>
-					</Modal>
+					</DialogContent>
+</Dialog>
 
-					<Modal
-						opened={editAuthorModal}
+					<Dialog
+						open={editAuthorModal}
 						onClose={closeEditModal}
-						title="Edit Author"
-						size={'lg'}
-						centered
-						classNames={{ title: 'mantine-modal-title', close: 'mantine-modal-close' }}
+						
+						maxWidth="lg" sx={{ width: "100%" }}
 					>
+<DialogTitle>Edit Author</DialogTitle>
+<DialogContent>
 						<form onSubmit={handleEditAuthor} action="">
-							<TextInput
+							<TextField
 								label="Name"
-								py={10}
 								value={name ? name : ''}
 								onChange={e => setName(e.target.value)}
 								required
 								placeholder="Name"
 							/>
-							<TextInput
+							<TextField
 								label="En Name"
-								py={10}
 								value={enName ? enName : ''}
 								onChange={e => setEnName(e.target.value)}
 								required
 								placeholder="En Name"
 							/>
-							<Textarea
+							<TextField multiline minRows={3}
 								label="Description"
 								value={description ? description : ''}
-								py={10}
-								autosize
 								onChange={e => setDescription(e.target.value)}
 								required
 								placeholder="Description"
 							/>
 
-							<InputWrapper label="Image" required>
-								<Flex justify={'space-between'}>
-									<Flex direction={'column'} justify={'space-between'}>
+							<FormControl><InputLabel>Image</InputLabel>
+								<Stack direction="row" flexWrap="wrap" justify={'space-between'}>
+									<Stack direction="row" flexWrap="wrap" direction={'column'} justify={'space-between'}>
 										<input type="file" onChange={handleEditImage} />
-										<Button type="submit" py={10}>
+										<Button type="submit">
 											Update
 										</Button>
-									</Flex>
+									</Stack>
 									{editImage && (
-										<Image
+										<Box component="img" 
 											style={{ paddingBottom: 10 }}
 											src={editImage}
 											height={150}
@@ -383,11 +380,12 @@ export default function Authors() {
 											radius={'md'}
 										/>
 									)}
-								</Flex>
-							</InputWrapper>
+								</Stack>
+							</FormControl>
 						</form>
-					</Modal>
-				</>
+					</DialogContent>
+</Dialog>
+			</PageContainer>
 			)}
 		</>
 	);

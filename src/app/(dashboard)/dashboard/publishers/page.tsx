@@ -1,20 +1,29 @@
 'use client';
-
 import {
 	Avatar,
+	Box,
 	Button,
+	Dialog,
+	DialogContent,
+	DialogTitle,
 	Divider,
-	Flex,
-	Image,
-	Modal,
 	Pagination,
 	Paper,
+	Stack,
+	Tab,
 	Table,
-	Text,
-	TextInput,
-	Title,
-} from '@mantine/core';
-import { useDisclosure } from '@mantine/hooks';
+	TableBody,
+	TableCell,
+	TableContainer,
+	TableHead,
+	TableRow,
+	TextField,
+	Typography,
+} from '@mui/material';
+import { PageContainer } from '@/components/PageContainer/PageContainer';
+import { MainCard } from '@/components/mantis/MainCard';
+
+import { useDisclosure } from '@/hooks/use-disclosure';
 import moment from 'moment';
 
 import { useEffect, useState } from 'react';
@@ -185,34 +194,32 @@ export default function Publisher() {
 
 	const rows = publisherList.map((element: any, index: any) => {
 		return (
-			<Table.Tr key={element.id}>
-				<Table.Td>
+			<TableRow key={element.id}>
+				<TableCell>
 					<Avatar
 						style={{ objectFit: 'contain' }}
 						src={element.imageUrl}
 						alt={element.imageUrl}
 						radius={'xs'}
 						size={'100px'}
-						visibleFrom="sm"
 					/>
 					<Avatar
 						style={{ objectFit: 'contain' }}
 						src={element.imageUrl}
 						alt={element.imageUrl}
 						radius={'xs'}
-						hiddenFrom="sm"
 					/>
-				</Table.Td>
-				<Table.Td>{element.full_name || 'N/A'}</Table.Td>
-				<Table.Td>
+				</TableCell>
+				<TableCell>{element.full_name || 'N/A'}</TableCell>
+				<TableCell>
 					{element.phone
 						.split(',')
 						.map((phone: string) => formatPhoneNumber(phone))
 						.join(', ') || 'N/A'}
-				</Table.Td>
-				<Table.Td style={{ width: '300px' }}>{element.address || 'N/A'}</Table.Td>
-				<Table.Td>
-					<Flex gap={10}>
+				</TableCell>
+				<TableCell style={{ width: '300px' }}>{element.address || 'N/A'}</TableCell>
+				<TableCell>
+					<Stack direction="row" flexWrap="wrap" spacing={10}>
 						<Button onClick={event => handleEdit(event, index)}>Edit</Button>
 						<Button
 							onClick={() => {
@@ -222,9 +229,9 @@ export default function Publisher() {
 						>
 							Details
 						</Button>
-					</Flex>
-				</Table.Td>
-			</Table.Tr>
+					</Stack>
+				</TableCell>
+			</TableRow>
 		);
 	});
 
@@ -233,198 +240,180 @@ export default function Publisher() {
 			{loading ? (
 				<Loader />
 			) : (
-				<>
-					<Flex justify={'space-between'}>
-						<Title order={1} style={{ marginBottom: 20 }}>
-							Publisher List
-						</Title>
-						<Button onClick={openAddPublisher} variant="filled">
+			<PageContainer title="Publisher List" items={[{ label: 'Publishers', href: '/dashboard/publishers' }]}
+				actions={
+					<Button onClick={openAddPublisher} variant="contained">
 							Add Publisher
 						</Button>
-					</Flex>
-					<Paper withBorder radius="md" p="md" pt="0">
-						<Table.ScrollContainer minWidth={100}>
+				}>
+
+<MainCard contentSX={{ p: 0 }}>
+						<TableContainer sx={{ minWidth: 100 }}>
 							<Table>
-								<Table.Thead>
-									<Table.Tr>
-										<Table.Th>Image</Table.Th>
-										<Table.Th>Name</Table.Th>
-										<Table.Th>Phone</Table.Th>
-										<Table.Th>Address</Table.Th>
-										<Table.Th>Action</Table.Th>
-									</Table.Tr>
-								</Table.Thead>
-								<Table.Tbody>{rows}</Table.Tbody>
+								<TableHead>
+									<TableRow>
+										<TableCell component="th">Image</TableCell>
+										<TableCell component="th">Name</TableCell>
+										<TableCell component="th">Phone</TableCell>
+										<TableCell component="th">Address</TableCell>
+										<TableCell component="th">Action</TableCell>
+									</TableRow>
+								</TableHead>
+								<TableBody>{rows}</TableBody>
 							</Table>
-						</Table.ScrollContainer>
-						<Divider my="sm" />
-						<Pagination
-							value={currentPage}
+						</TableContainer>
+						<Divider sx={{ my: 1 }} />
+						<Pagination page={currentPage}
 							onChange={handlePageChange}
-							total={totalPage}
-							siblings={1}
+							count={totalPage}
 						/>
-						<Modal opened={addPublisherOpened} onClose={closeAddPublisher} title="" centered>
-							<Text size="xl" fw={900} style={{ textAlign: 'center' }}>
+					</MainCard>
+
+						<Dialog open={addPublisherOpened} onClose={closeAddPublisher} title="">
+							<Typography maxWidth="xl" sx={{ width: "100%" }} fontWeight={900} style={{ textAlign: 'center' }}>
 								Add Publisher
-							</Text>
-							<Paper shadow="xs" p="xl">
+							</Typography>
+							<Paper elevation={1} sx={{ p: 3 }}>
 								<form onSubmit={handleOpenAddPublisher} action="">
-									<TextInput
+									<TextField
 										label="Name"
-										py={10}
 										onChange={e => setName(e.target.value)}
 										required
 										placeholder="Name"
 									/>
-									<TextInput
+									<TextField
 										label="En Name"
-										py={10}
 										onChange={e => setEnName(e.target.value)}
 										required
 										placeholder="En Name"
 									/>
-									<TextInput
+									<TextField
 										label="Email"
 										type="email"
-										py={10}
 										onChange={e => setEmail(e.target.value)}
 										required
 										placeholder="Email"
 									/>
-									<TextInput
+									<TextField
 										label="Password"
 										type="password"
-										py={10}
 										onChange={e => setPassword(e.target.value)}
 										required
 										placeholder="Password"
 									/>
-									<TextInput
+									<TextField
 										label="Phone"
-										py={10}
 										onChange={e => setPhone(e.target.value)}
 										required
 										placeholder="Phone"
 									/>
 
-									<TextInput
+									<TextField
 										label="Address"
-										py={10}
 										onChange={e => setAddress(e.target.value)}
 										required
 										placeholder="Address"
 									/>
 									<label htmlFor="Image">Image</label>
 									<input type="file" onChange={handleImage} />
-									{image && <Image src={image} height={200} width={200} alt="Uploaded" />}
-									<Button type="submit" py={10}>
+									{image && <Box component="img" src={image} height={200} width={200} alt="Uploaded" />}
+									<Button type="submit">
 										Create
 									</Button>
 								</form>
 							</Paper>
-						</Modal>
+						</Dialog>
 
-						<Modal
-							opened={editOpened}
+						<Dialog
+							open={editOpened}
 							onClose={closeEdit}
-							title="Edit Publisher"
-							centered
-							classNames={{
-								title: 'mantine-modal-title',
-								close: 'mantine-modal-close',
-							}}
-							size="lg"
+							variant="h6"
 						>
-							<Paper shadow="xs" p="xs">
+<DialogTitle>Edit Publisher</DialogTitle>
+<DialogContent>
+							<Paper elevation={1} sx={{ p: 1 }}>
 								<form onSubmit={handleEditPublisher} action="">
-									<TextInput
+									<TextField
 										label="Name"
 										value={name ? name : ''}
-										py={10}
 										onChange={e => setName(e.target.value)}
 										required
 										placeholder="Name"
 									/>
-									<TextInput
+									<TextField
 										label="En Name"
 										value={enName ? enName : ''}
-										py={10}
 										onChange={e => setEnName(e.target.value)}
 										required
 										placeholder="En Name"
 									/>
-									<TextInput
+									<TextField
 										label="Email"
 										value={email ? email : ''}
 										type="email"
-										py={10}
 										onChange={e => setEmail(e.target.value)}
 										required
 										placeholder="Email"
 									/>
 
-									<TextInput
+									<TextField
 										label="Address"
 										value={address ? address : ''}
-										py={10}
 										onChange={e => setAddress(e.target.value)}
 										required
 										placeholder="Address"
 									/>
-									<Flex direction={{ base: 'column', xs: 'row' }} justify={'space-between'}>
-										<Flex direction={'column'} gap={10}>
-											<Flex direction={'column'}>
+									<Stack direction="row" flexWrap="wrap" direction={{ base: 'column', xs: 'row' }} justify={'space-between'}>
+										<Stack direction="row" flexWrap="wrap" direction={'column'} spacing={10}>
+											<Stack direction="row" flexWrap="wrap" direction={'column'}>
 												<label htmlFor="Image">Image</label>
 												<input type="file" onChange={handleImage} />
-											</Flex>
+											</Stack>
 											<div>
-												<Button type="submit" py={10}>
+												<Button type="submit">
 													Update
 												</Button>
 											</div>
-										</Flex>
+										</Stack>
 										<div>{image && <Avatar src={image} alt={image} size={'70px'} />}</div>
-									</Flex>
+									</Stack>
 								</form>
 							</Paper>
-						</Modal>
-						<Modal
-							title="Publisher Details"
-							opened={isOpenedDetailsModal}
+						</DialogContent>
+</Dialog>
+						<Dialog
+							
+							open={isOpenedDetailsModal}
 							onClose={closeDetailsModal}
-							classNames={{
-								title: 'mantine-modal-title',
-								close: 'mantine-modal-close',
-							}}
-							size={'lg'}
-							centered
+							maxWidth="lg" sx={{ width: "100%" }}
 						>
-							<Table.ScrollContainer minWidth={100}>
+<DialogTitle>Publisher Details</DialogTitle>
+<DialogContent>
+							<TableContainer sx={{ minWidth: 100 }}>
 								<Table>
-									<Table.Thead>
-										<Table.Tr>
-											<Table.Th>Id</Table.Th>
-											<Table.Th>English Name</Table.Th>
-											<Table.Th>Email</Table.Th>
-											<Table.Th>Created At</Table.Th>
-										</Table.Tr>
-									</Table.Thead>
-									<Table.Tbody>
-										<Table.Tr>
-											<Table.Td>{publisherModal?.id}</Table.Td>
-											<Table.Td>{publisherModal?.en_name || 'N/A'}</Table.Td>
-											<Table.Td>{publisherModal?.email || 'N/A'}</Table.Td>
-											<Table.Td>
+									<TableHead>
+										<TableRow>
+											<TableCell component="th">Id</TableCell>
+											<TableCell component="th">English Name</TableCell>
+											<TableCell component="th">Email</TableCell>
+											<TableCell component="th">Created At</TableCell>
+										</TableRow>
+									</TableHead>
+									<TableBody>
+										<TableRow>
+											<TableCell>{publisherModal?.id}</TableCell>
+											<TableCell>{publisherModal?.en_name || 'N/A'}</TableCell>
+											<TableCell>{publisherModal?.email || 'N/A'}</TableCell>
+											<TableCell>
 												{moment(publisherModal?.created_at).format('Do MMM YYYY h:mma') || 'N/A'}
-											</Table.Td>
-										</Table.Tr>
-									</Table.Tbody>
+											</TableCell>
+										</TableRow>
+									</TableBody>
 								</Table>
-							</Table.ScrollContainer>
-						</Modal>
-					</Paper>
-				</>
+							</TableContainer>
+						</DialogContent>
+</Dialog>
+			</PageContainer>
 			)}
 		</>
 	);

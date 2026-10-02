@@ -1,7 +1,7 @@
 'use client';
 
+import { Box, Stack } from '@mui/material';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Button, Flex } from '@mantine/core';
 import Image from 'next/image';
 import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
@@ -10,6 +10,12 @@ import { editAudiobookWithBGM, getCategoryForSingleAudiobook } from '@/services/
 import { Audiobook } from '@/types/global';
 import { imageLoader } from '@/utils/globalHelpers';
 import { createToast, createToast2 } from 'helpers/SweetAlert';
+import {
+	AudiobookFormField,
+	AudiobookFormGrid,
+	AudiobookFormRoot,
+	AudiobookFormSection,
+} from './AudiobookFormLayout';
 import { CustomFileInput } from './CustomFileInput';
 import { CustomInput } from './CustomInput';
 import { CustomMultiSelect } from './CustomMultiSelect';
@@ -45,9 +51,11 @@ export type AudiobookEditFormDataType = z.infer<typeof audiobookEditFormSchema>;
 export const AudiobookEditForm = ({
 	audiobook,
 	selectionList,
+	formId = 'audiobook-edit-form',
 }: {
 	audiobook: Audiobook;
 	selectionList: any;
+	formId?: string;
 }) => {
 	const {
 		control,
@@ -56,7 +64,7 @@ export const AudiobookEditForm = ({
 		setValue,
 		watch,
 		reset,
-		formState: { errors, isLoading, isSubmitting, isSubmitSuccessful, touchedFields },
+		formState: { errors, isSubmitSuccessful, touchedFields },
 	} = useForm<AudiobookEditFormDataType>({
 		resolver: zodResolver(audiobookEditFormSchema),
 		defaultValues: {
@@ -94,7 +102,7 @@ export const AudiobookEditForm = ({
 			setIsFetched(true);
 		};
 		fetchSelectedCategory();
-	}, []);
+	}, [audiobook.id]);
 
 	useEffect(() => {
 		if (isSubmitSuccessful) {
@@ -152,130 +160,71 @@ export const AudiobookEditForm = ({
 	};
 
 	return (
-		<form
-			onSubmit={handleSubmit(handleEditAudibook, err => console.log(err))}
-			style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}
-		>
-			<CustomInput
-				label="Name"
-				name="name"
-				placeholder="Audiobook name"
-				control={control}
-				error={(errors.name && errors.name.message) as string}
-				withAsterisk
-			/>
-			<CustomInput
-				label="English Name"
-				name="enName"
-				placeholder="Audiobook name in english"
-				control={control}
-				error={(errors.enName && errors.enName.message) as string}
-				withAsterisk
-			/>
+		<AudiobookFormRoot formId={formId} onSubmit={handleSubmit(handleEditAudibook, err => console.log(err))}>
+			<AudiobookFormSection title="Basic information" description="Display names shown in the app.">
+				<AudiobookFormGrid>
+					<AudiobookFormField>
+						<CustomInput dense label="Name" name="name" placeholder="Audiobook name" control={control} error={(errors.name && errors.name.message) as string} required />
+					</AudiobookFormField>
+					<AudiobookFormField>
+						<CustomInput dense label="English Name" name="enName" placeholder="Audiobook name in english" control={control} error={(errors.enName && errors.enName.message) as string} required />
+					</AudiobookFormField>
+					<AudiobookFormField xs={12}>
+						<CustomTextarea label="Description" name="description" placeholder="Give a description" control={control} error={(errors.description && errors.description.message) as string} />
+					</AudiobookFormField>
+				</AudiobookFormGrid>
+			</AudiobookFormSection>
 
-			<CustomSelect
-				label="Publisher"
-				name="publisher"
-				data={selectionList.publisherList}
-				placeholder="Select a publisher"
-				control={control}
-				error={(errors.publisher && errors.publisher.message) as string}
-				clearable
-				searchable
-				withAsterisk
-			/>
-			{/* {console.log(selectionList.artistList)} */}
-			<CustomMultiSelect
-				label="Contributor"
-				name="contributor"
-				data={selectionList.artistList}
-				placeholder="Select a contributor"
-				control={control}
-				error={(errors.contributor && errors.contributor.message) as string}
-				clearable
-				searchable
-				withAsterisk
-			/>
-			<CustomMultiSelect
-				label="Category"
-				name="category"
-				data={selectionList.categoryList}
-				placeholder="Select one or more categories"
-				control={control}
-				error={(errors.category && errors.category.message) as string}
-				clearable
-				searchable
-			/>
-			<CustomSelect
-				label="Author"
-				name="author"
-				data={selectionList.authorList}
-				placeholder="Select an author"
-				control={control}
-				error={(errors.author && errors.author.message) as string}
-				searchable
-				clearable
-				withAsterisk
-			/>
-			<CustomTextarea
-				label="Description"
-				name="description"
-				placeholder="Give a description"
-				control={control}
-				error={(errors.description && errors.description.message) as string}
-			/>
-			<CustomSwitch label="Premium" name="isPremium" control={control} />
-			<CustomSwitch label="Podcast" name="isPodcast" control={control} />
-			<CustomNumberInput
-				label="Price"
-				name="price"
-				placeholder="Set a price"
-				control={control}
-				error={(errors.price && errors.price.message) as string}
-				disabled={!isPremium}
-				withAsterisk={isPremium}
-			/>
-			<Flex gap={10} align={'end'}>
-				<div style={{ flexGrow: 1 }}>
-					<CustomFileInput
-						label="Audiobook Image"
-						name="audiobookImage"
-						placeholder="Upload an image"
-						multiple={true}
-						register={register}
-						setValue={setValue}
-						setLoading={setLoading}
-						reset={resetImagePath}
-						error={(errors.audiobookImage && errors.audiobookImage.message) as string}
-						isTouched={'audiobookImage' in touchedFields}
-					/>
-					<CustomFileInput
-						label="Banner Image"
-						name="bannerImage"
-						placeholder="Upload an image"
-						multiple={true}
-						register={register}
-						setValue={setValue}
-						setLoading={setLoading}
-						reset={resetImagePath}
-						error={(errors.bannerImage && errors.bannerImage.message) as string}
-						isTouched={'bannerImage' in touchedFields}
-					/>
-				</div>
-				<Image
-					loader={imageLoader}
-					src={audiobook.thumb_path}
-					height={0}
-					width={0}
-					alt={`${audiobook.en_name}_kabbik`}
-					quality={100}
-					priority={true}
-					style={{ width: '100px', height: 'auto', borderRadius: '5px', marginLeft: 'auto' }}
-				/>
-			</Flex>
-			<Button type="submit" py={10} disabled={loading || isLoading || isSubmitting}>
-				Update
-			</Button>
-		</form>
+			<AudiobookFormSection title="Classification" description="Publisher, people, and categories.">
+				<AudiobookFormGrid>
+					<AudiobookFormField>
+						<CustomSelect label="Publisher" name="publisher" data={selectionList.publisherList} placeholder="Select a publisher" control={control} error={(errors.publisher && errors.publisher.message) as string} clearable searchable required />
+					</AudiobookFormField>
+					<AudiobookFormField>
+						<CustomSelect label="Author" name="author" data={selectionList.authorList} placeholder="Select an author" control={control} error={(errors.author && errors.author.message) as string} searchable clearable required />
+					</AudiobookFormField>
+					<AudiobookFormField>
+						<CustomMultiSelect label="Contributor" name="contributor" data={selectionList.artistList} placeholder="Select a contributor" control={control} error={(errors.contributor && errors.contributor.message) as string} clearable searchable required />
+					</AudiobookFormField>
+					<AudiobookFormField>
+						<CustomMultiSelect label="Category" name="category" data={selectionList.categoryList} placeholder="Select one or more categories" control={control} error={(errors.category && errors.category.message) as string} clearable searchable />
+					</AudiobookFormField>
+				</AudiobookFormGrid>
+			</AudiobookFormSection>
+
+			<AudiobookFormSection title="Pricing & type">
+				<AudiobookFormGrid>
+					<AudiobookFormField md={4}>
+						<CustomSwitch label="Premium" name="isPremium" control={control} />
+					</AudiobookFormField>
+					<AudiobookFormField md={4}>
+						<CustomSwitch label="Podcast" name="isPodcast" control={control} />
+					</AudiobookFormField>
+					<AudiobookFormField md={4}>
+						<CustomNumberInput label="Price" name="price" placeholder="Set a price" control={control} error={(errors.price && errors.price.message) as string} disabled={!isPremium} required={isPremium} />
+					</AudiobookFormField>
+				</AudiobookFormGrid>
+			</AudiobookFormSection>
+
+			<AudiobookFormSection title="Cover art" description="Thumbnail and banner assets.">
+				<Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems={{ sm: 'flex-start' }}>
+					<Box sx={{ flex: 1, minWidth: 0 }}>
+						<AudiobookFormGrid>
+							<AudiobookFormField xs={12}>
+								<CustomFileInput label="Audiobook Image" name="audiobookImage" placeholder="Upload an image" multiple={true} register={register} setValue={setValue} setLoading={setLoading} reset={resetImagePath} error={(errors.audiobookImage && errors.audiobookImage.message) as string} isTouched={'audiobookImage' in touchedFields} />
+							</AudiobookFormField>
+							<AudiobookFormField xs={12}>
+								<CustomFileInput label="Banner Image" name="bannerImage" placeholder="Upload an image" multiple={true} register={register} setValue={setValue} setLoading={setLoading} reset={resetImagePath} error={(errors.bannerImage && errors.bannerImage.message) as string} isTouched={'bannerImage' in touchedFields} />
+							</AudiobookFormField>
+						</AudiobookFormGrid>
+					</Box>
+					{audiobook.thumb_path ? (
+						<Box sx={{ flexShrink: 0, p: 0.75, borderRadius: 2, border: 1, borderColor: 'divider', bgcolor: 'grey.50', alignSelf: { xs: 'center', sm: 'flex-start' } }}>
+							<Image loader={imageLoader} src={audiobook.thumb_path} height={140} width={100} alt={`${audiobook.en_name}_kabbik`} quality={100} style={{ width: 100, height: 'auto', borderRadius: 8, display: 'block' }} />
+						</Box>
+					) : null}
+				</Stack>
+			</AudiobookFormSection>
+		</AudiobookFormRoot>
 	);
 };

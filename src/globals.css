@@ -2,16 +2,17 @@
 @tailwind components;
 @tailwind utilities;
 
-.mantine-modal-title {
+/* SweetAlert2 must stack above MUI Dialog / nested modals (modal ~1300+) */
+.swal2-container {
+	z-index: 1600 !important;
+}
+
+.mui-dialog-title,
+.dialog-title-center {
 	font-weight: bolder;
 	text-align: center;
 	width: 100%;
 	font-size: 24px;
-}
-
-.mantine-modal-close {
-	position: absolute;
-	right: 15px;
 }
 
 .text-ellipsis {
@@ -51,4 +52,36 @@
 
 .RichEditor-root {
 	border-radius: 10px;
+}
+
+/* Table list views: cap thumbnail size (Mantine h/w props are ignored on MUI Box) */
+.MuiTableBody-root img:not([data-table-thumb-size]) {
+	width: 64px !important;
+	height: 64px !important;
+	max-width: 64px !important;
+	max-height: 64px !important;
+	object-fit: cover;
+	border-radius: 4px;
+	display: block;
+	border: 1px solid #f0f0f0;
+	background-color: #fafafa;
+}
+
+.MuiTableBody-root img[data-table-thumb='contain'] {
+	object-fit: contain !important;
+}
+
+.MuiTableBody-root img[data-table-thumb-size='lg'] {
+	width: 96px !important;
+	height: 128px !important;
+	max-width: 96px !important;
+	max-height: 128px !important;
+	object-fit: contain !important;
+}
+
+.MuiTableBody-root img[data-table-thumb-size='md'] {
+	width: 96px !important;
+	height: 96px !important;
+	max-width: 96px !important;
+	max-height: 96px !important;
 }

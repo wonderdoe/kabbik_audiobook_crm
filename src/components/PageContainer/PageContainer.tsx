@@ -1,30 +1,31 @@
-import { Anchor, Breadcrumbs, Container, ContainerProps, Space, Title } from '@mantine/core';
-import { FC, ReactNode } from 'react';
+'use client';
+
+import { FC, ReactNode, useMemo } from 'react';
+import { PageHeader } from '@/components/mantis/PageHeader';
+import type { BreadcrumbItem } from '@/components/mantis/Breadcrumbs';
+import { useRegisterPageMeta } from '@/contexts/PageMetaContext';
 
 type PageContainerProps = {
 	children: ReactNode;
 	title: string;
 	items?: { label: string; href: string }[];
-} & Pick<ContainerProps, 'fluid'>;
+	actions?: ReactNode;
+	subtitle?: ReactNode;
+	fluid?: boolean;
+};
 
-export const PageContainer: FC<PageContainerProps> = ({ children, title, items, fluid = true }) => {
+export const PageContainer: FC<PageContainerProps> = ({ children, title, items, actions, subtitle }) => {
+	const breadcrumbs: BreadcrumbItem[] = useMemo(
+		() => (items ?? []).map(i => ({ title: i.label, href: i.href })),
+		[items],
+	);
+
+	useRegisterPageMeta(breadcrumbs, title);
+
 	return (
-		<Container px={0} fluid={fluid}>
-			{items && items.length > 0 ? (
-				<Breadcrumbs>
-					{items.map(item => (
-						<Anchor key={item.label} href={item.href}>
-							{item.label}
-						</Anchor>
-					))}
-				</Breadcrumbs>
-			) : null}
-
-			<Title order={4}>{title}</Title>
-
-			<Space h="lg" />
-
+		<>
+			<PageHeader title={title} actions={actions} subtitle={subtitle} />
 			{children}
-		</Container>
+		</>
 	);
 };

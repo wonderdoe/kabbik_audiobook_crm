@@ -1,10 +1,17 @@
 'use client';
+import { Button, IconButton, Paper, Stack, Typography } from '@mui/material';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Button, Flex } from '@mantine/core';
+import { IconPlus, IconTrash } from '@tabler/icons-react';
 import { useEffect, useState } from 'react';
 import { FieldErrors, useFieldArray, useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { createAudiobookWithBGM } from '@/services/services';
+import {
+	AudiobookFormField,
+	AudiobookFormGrid,
+	AudiobookFormRoot,
+	AudiobookFormSection,
+} from './AudiobookFormLayout';
 import { CustomFileInput } from './CustomFileInput';
 import { CustomInput } from './CustomInput';
 import { CustomMultiSelect } from './CustomMultiSelect';
@@ -46,13 +53,14 @@ const audiobookUploadFormSchema = z
 
 export type AudiobookUploadFormDataType = z.infer<typeof audiobookUploadFormSchema>;
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
 export const AudiobookUploadForm = ({
 	token,
 	selectionList,
+	formId = 'audiobook-add-form',
 }: {
 	token: string;
 	selectionList: any;
+	formId?: string;
 }) => {
 	const {
 		control,
@@ -132,182 +140,234 @@ export const AudiobookUploadForm = ({
 	};
 
 	return (
-		<form
+		<AudiobookFormRoot
+			formId={formId}
 			onSubmit={handleSubmit(handleAddAudibook, err => console.log(err))}
-			style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}
 		>
-			<CustomInput
-				label="Name"
-				name="name"
-				placeholder="Audiobook name"
-				control={control}
-				error={(errors.name && errors.name.message) as string}
-				withAsterisk
-			/>
-			<CustomInput
-				label="English Name"
-				name="enName"
-				placeholder="Audiobook name in english"
-				control={control}
-				error={(errors.enName && errors.enName.message) as string}
-				withAsterisk
-			/>
+			<AudiobookFormSection title="Basic information" description="Display names shown in the app.">
+				<AudiobookFormGrid>
+					<AudiobookFormField>
+						<CustomInput
+							dense
+							label="Name"
+							name="name"
+							placeholder="Audiobook name"
+							control={control}
+							error={(errors.name && errors.name.message) as string}
+							required
+						/>
+					</AudiobookFormField>
+					<AudiobookFormField>
+						<CustomInput
+							dense
+							label="English Name"
+							name="enName"
+							placeholder="Audiobook name in english"
+							control={control}
+							error={(errors.enName && errors.enName.message) as string}
+							required
+						/>
+					</AudiobookFormField>
+					<AudiobookFormField xs={12}>
+						<CustomTextarea
+							label="Description"
+							name="description"
+							placeholder="Give a description"
+							control={control}
+							error={(errors.description && errors.description.message) as string}
+						/>
+					</AudiobookFormField>
+				</AudiobookFormGrid>
+			</AudiobookFormSection>
 
-			<CustomSelect
-				label="Publisher"
-				name="publisher"
-				data={selectionList.publisherList}
-				placeholder="Select a publisher"
-				control={control}
-				error={(errors.publisher && errors.publisher.message) as string}
-				clearable
-				searchable
-				withAsterisk
-			/>
-			<CustomMultiSelect
-				label="Contributor"
-				name="contributor"
-				data={selectionList.artistList}
-				placeholder="Select a contributor"
-				control={control}
-				error={(errors.contributor && errors.contributor.message) as string}
-				clearable
-				searchable
-				withAsterisk
-			/>
-			<CustomMultiSelect
-				label="Category"
-				name="category"
-				data={selectionList.categoryList}
-				placeholder="Select one or more categories"
-				control={control}
-				error={(errors.category && errors.category.message) as string}
-				clearable
-				searchable
-			/>
-			<CustomSelect
-				label="Author"
-				name="author"
-				data={selectionList.authorList}
-				placeholder="Select an author"
-				control={control}
-				error={(errors.author && errors.author.message) as string}
-				searchable
-				clearable
-				withAsterisk
-			/>
-			<CustomTextarea
-				label="Description"
-				name="description"
-				placeholder="Give a description"
-				control={control}
-				error={(errors.description && errors.description.message) as string}
-			/>
-			<CustomSwitch label="Premium" name="isPremium" control={control} />
-			<CustomSwitch label="Podcast" name="isPodcast" control={control} />
-			<CustomNumberInput
-				label="Price"
-				name="price"
-				placeholder="Set a price"
-				control={control}
-				error={(errors.price && errors.price.message) as string}
-				disabled={!isPremium}
-				withAsterisk={isPremium}
-			/>
-			<CustomFileInput
-				label="Audiobook Image"
-				name="audiobookImage"
-				placeholder="Upload an image"
-				multiple={true}
-				register={register}
-				setValue={setValue}
-				setLoading={setLoading}
-				reset={resetImagePath}
-				error={(errors.audiobookImage && errors.audiobookImage.message) as string}
-				withAsterisk
-				isTouched={'audiobookImage' in touchedFields}
-			/>
-			<CustomFileInput
-				label="Banner Image"
-				name="bannerImage"
-				placeholder="Upload an image"
-				multiple={true}
-				register={register}
-				setValue={setValue}
-				setLoading={setLoading}
-				reset={resetImagePath}
-				error={(errors.bannerImage && errors.bannerImage.message) as string}
-				withAsterisk
-				isTouched={'bannerImage' in touchedFields}
-			/>
-			<>
-				<>
+			<AudiobookFormSection title="Classification" description="Publisher, people, and categories.">
+				<AudiobookFormGrid>
+					<AudiobookFormField>
+						<CustomSelect
+							label="Publisher"
+							name="publisher"
+							data={selectionList.publisherList}
+							placeholder="Select a publisher"
+							control={control}
+							error={(errors.publisher && errors.publisher.message) as string}
+							clearable
+							searchable
+							required
+						/>
+					</AudiobookFormField>
+					<AudiobookFormField>
+						<CustomSelect
+							label="Author"
+							name="author"
+							data={selectionList.authorList}
+							placeholder="Select an author"
+							control={control}
+							error={(errors.author && errors.author.message) as string}
+							searchable
+							clearable
+							required
+						/>
+					</AudiobookFormField>
+					<AudiobookFormField>
+						<CustomMultiSelect
+							label="Contributor"
+							name="contributor"
+							data={selectionList.artistList}
+							placeholder="Select a contributor"
+							control={control}
+							error={(errors.contributor && errors.contributor.message) as string}
+							clearable
+							searchable
+							required
+						/>
+					</AudiobookFormField>
+					<AudiobookFormField>
+						<CustomMultiSelect
+							label="Category"
+							name="category"
+							data={selectionList.categoryList}
+							placeholder="Select one or more categories"
+							control={control}
+							error={(errors.category && errors.category.message) as string}
+							clearable
+							searchable
+						/>
+					</AudiobookFormField>
+				</AudiobookFormGrid>
+			</AudiobookFormSection>
+
+			<AudiobookFormSection title="Pricing & type">
+				<AudiobookFormGrid>
+					<AudiobookFormField md={4}>
+						<CustomSwitch label="Premium" name="isPremium" control={control} />
+					</AudiobookFormField>
+					<AudiobookFormField md={4}>
+						<CustomSwitch label="Podcast" name="isPodcast" control={control} />
+					</AudiobookFormField>
+					<AudiobookFormField md={4}>
+						<CustomNumberInput
+							label="Price"
+							name="price"
+							placeholder="Set a price"
+							control={control}
+							error={(errors.price && errors.price.message) as string}
+							disabled={!isPremium}
+							required={isPremium}
+						/>
+					</AudiobookFormField>
+				</AudiobookFormGrid>
+			</AudiobookFormSection>
+
+			<AudiobookFormSection title="Cover art">
+				<AudiobookFormGrid>
+					<AudiobookFormField>
+						<CustomFileInput
+							label="Audiobook Image"
+							name="audiobookImage"
+							placeholder="Upload an image"
+							multiple={true}
+							register={register}
+							setValue={setValue}
+							setLoading={setLoading}
+							reset={resetImagePath}
+							error={(errors.audiobookImage && errors.audiobookImage.message) as string}
+							required
+							isTouched={'audiobookImage' in touchedFields}
+						/>
+					</AudiobookFormField>
+					<AudiobookFormField>
+						<CustomFileInput
+							label="Banner Image"
+							name="bannerImage"
+							placeholder="Upload an image"
+							multiple={true}
+							register={register}
+							setValue={setValue}
+							setLoading={setLoading}
+							reset={resetImagePath}
+							error={(errors.bannerImage && errors.bannerImage.message) as string}
+							required
+							isTouched={'bannerImage' in touchedFields}
+						/>
+					</AudiobookFormField>
+				</AudiobookFormGrid>
+			</AudiobookFormSection>
+
+			<AudiobookFormSection
+				title="Episodes"
+				description="Add audio files now or skip and assign episodes later."
+			>
+				<Stack spacing={1.5}>
 					{fields.map((item, index) => {
 						const nameError = (errors?.episodeList as FieldErrors[] | undefined)?.[index]?.name
 							?.message as string;
 						const pathError = (errors?.episodeList as FieldErrors[] | undefined)?.[index]?.path
 							?.message as string;
 						return (
-							<Flex gap={10} direction="column" key={item.id}>
-								<CustomInput
-									label="Episode Name"
-									name={`episodeList.${index}.name`}
-									placeholder="Episode name"
-									control={control}
-									error={nameError}
-									withAsterisk
-								/>
-								<CustomFileInput
-									label="Audio File"
-									name={`episodeList.${index}.path`}
-									placeholder="Upload an audio"
-									multiple={true}
-									register={register}
-									setValue={setValue}
-									setLoading={setLoading}
-									reset={resetImagePath}
-									error={pathError}
-									isTouched={`episodeList.${index}.path` in touchedFields}
-									withAsterisk
-								/>
-								<Flex direction={'row'} wrap={'nowrap'} gap={10} align={'end'}>
-									<div style={{ flexGrow: 1 }}>
-										<CustomFileInput
-											label="BGM File"
-											name={`episodeList.${index}.bgm`}
-											placeholder="Upload an audio"
-											multiple={true}
-											register={register}
-											setValue={setValue}
-											setLoading={setLoading}
-											reset={resetImagePath}
-											error={pathError}
-											isTouched={`episodeList.${index}.bgm` in touchedFields}
-										/>
-									</div>
-									<Button
-										style={{ position: 'relative', top: '-3px' }}
+							<Paper key={item.id} variant="outlined" sx={{ p: 2, borderRadius: 2, bgcolor: 'grey.50' }}>
+								<Stack direction="row" alignItems="center" justifyContent="space-between" mb={1}>
+									<Typography variant="subtitle2" fontWeight={600}>
+										Episode {index + 1}
+									</Typography>
+									<IconButton
+										size="small"
+										color="error"
+										aria-label="Remove episode"
 										onClick={() => remove(index)}
 									>
-										Delete
-									</Button>
-								</Flex>
-							</Flex>
+										<IconTrash size={16} />
+									</IconButton>
+								</Stack>
+								<Stack spacing={0}>
+									<CustomInput
+										dense
+										label="Episode Name"
+										name={`episodeList.${index}.name`}
+										placeholder="Episode name"
+										control={control}
+										error={nameError}
+										required
+									/>
+									<CustomFileInput
+										label="Audio File"
+										name={`episodeList.${index}.path`}
+										placeholder="Upload an audio"
+										multiple={true}
+										register={register}
+										setValue={setValue}
+										setLoading={setLoading}
+										reset={resetImagePath}
+										error={pathError}
+										isTouched={`episodeList.${index}.path` in touchedFields}
+										required
+									/>
+									<CustomFileInput
+										label="BGM File (optional)"
+										name={`episodeList.${index}.bgm`}
+										placeholder="Upload an audio"
+										multiple={true}
+										register={register}
+										setValue={setValue}
+										setLoading={setLoading}
+										reset={resetImagePath}
+										error={pathError}
+										isTouched={`episodeList.${index}.bgm` in touchedFields}
+									/>
+								</Stack>
+							</Paper>
 						);
 					})}
-				</>
-				<Flex justify={'end'}>
 					<Button
-						style={{ flexGrow: 0 }}
+						variant="outlined"
+						size="small"
+						startIcon={<IconPlus size={16} />}
 						onClick={() => append({ name: '', path: '', bgm: '', duration: 0 })}
+						sx={{ alignSelf: 'flex-start' }}
 					>
-						Add Episode
+						Add episode
 					</Button>
-				</Flex>
-			</>
-			<Button type="submit" py={10} disabled={loading || isLoading || isSubmitting}>
-				Create
-			</Button>
-		</form>
+				</Stack>
+			</AudiobookFormSection>
+		</AudiobookFormRoot>
 	);
 };

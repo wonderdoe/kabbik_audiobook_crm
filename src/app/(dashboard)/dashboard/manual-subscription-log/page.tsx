@@ -1,25 +1,36 @@
 'use client';
-
 import {
+	Box,
 	Button,
-	Center,
+	Chip,
+	CircularProgress,
+	Dialog,
+	DialogActions,
+	DialogContent,
+	DialogTitle,
 	Divider,
-	Image,
-	Modal,
+	IconButton,
+	InputAdornment,
 	Pagination,
-	Paper,
-	Space,
 	Table,
-	TextInput,
-	Title,
-} from '@mantine/core';
-import { Loader as MantineLoader } from '@mantine/core';
+	TableBody,
+	TableCell,
+	TableContainer,
+	TableHead,
+	TableRow,
+	TextField,
+	Typography,
+} from '@mui/material';
+import { DetailGrid } from '@/components/ui/DetailGrid';
+import { PageContainer } from '@/components/PageContainer/PageContainer';
+import { MainCard } from '@/components/mantis/MainCard';
+import { TableThumbnail } from '@/components/mantis/TableThumbnail';
+
 import { IconSearch } from '@tabler/icons-react';
 import moment from 'moment';
 import { useEffect, useState } from 'react';
 import Loader from '@/components/Loader';
-import { useDisclosure } from '@mantine/hooks';
-
+import { useDisclosure } from '@/hooks/use-disclosure';
 export default function ManualSubscriptionLog() {
 	const limit = 10;
 	const [offset, setOffset] = useState(0);
@@ -106,20 +117,27 @@ export default function ManualSubscriptionLog() {
 	};
 
 	const manualRows = displayData?.map((element: any) => (
-		<Table.Tr key={element.id}>
-			<Table.Td>{element.user_id}</Table.Td>
-			<Table.Td>
-				{element.package_id === '1'
-					? 'Monthly'
-					: element.package_id === '2'
-						? 'Half Yearly'
-						: 'Yearly'}
-			</Table.Td>
-			<Table.Td>{element.payment_method}</Table.Td>
-			<Table.Td maw={300}>
-				<Image fit="contain" height={80} src={element.payment_proof} alt={element.payment_method} />
-			</Table.Td>
-			<Table.Td>
+		<TableRow key={element.id}>
+			<TableCell>{element.user_id}</TableCell>
+			<TableCell>
+				<Chip
+					size="small"
+					variant="outlined"
+					color="primary"
+					label={
+						element.package_id === '1'
+							? 'Monthly'
+							: element.package_id === '2'
+								? 'Half Yearly'
+								: 'Yearly'
+					}
+				/>
+			</TableCell>
+			<TableCell>{element.payment_method}</TableCell>
+			<TableCell sx={{ maxWidth: 300 }}>
+				<TableThumbnail src={element.payment_proof} alt={element.payment_method} objectFit="contain" />
+			</TableCell>
+			<TableCell>
 				<Button
 					onClick={() => {
 						setDetails(element);
@@ -128,85 +146,94 @@ export default function ManualSubscriptionLog() {
 				>
 					Details
 				</Button>
-			</Table.Td>
-		</Table.Tr>
+			</TableCell>
+		</TableRow>
 	));
 
 	return (
-		<div>
-			<Title order={1}>Manual Subscription</Title>
-			<form style={{ display: 'flex' }} onSubmit={handleSubmit}>
-				<TextInput
+		<PageContainer
+			title="Manual Subscription"
+			items={[{ label: 'Manual Subscription', href: '/dashboard/manual-subscription-log' }]}
+		>
+			<MainCard title="Search logs">
+			<form onSubmit={handleSubmit}>
+				<TextField
 					name="searchkey"
-					mt="md"
+					fullWidth
+					size="small"
 					placeholder="Search by subscription id or transaction id..."
-					rightSection={<IconSearch size={16} />}
-					style={{ width: '100%' }}
+					InputProps={{
+						endAdornment: (
+							<InputAdornment position="end">
+								<IconButton type="submit" edge="end" aria-label="Search">
+									<IconSearch size={18} />
+								</IconButton>
+							</InputAdornment>
+						),
+					}}
 				/>
 			</form>
-			<Space h="md" />
-			<Paper withBorder radius="md" p="md">
+			</MainCard>
+			<Box sx={{ height: 16 }} />
+			<MainCard contentSX={{ p: 0 }}>
 				{initialLoader ? (
 					<Loader />
 				) : loading ? (
-					<Center>
-						<MantineLoader size={24} />
-					</Center>
+					<Box display="flex" justifyContent="center" alignItems="center">
+						<CircularProgress size={24} />
+					</Box>
 				) : (
 					<>
-						<Table.ScrollContainer minWidth={800}>
-							<Table verticalSpacing="xs" horizontalSpacing="xs" captionSide="top">
-								<Table.Caption>{displayData?.length === 0 ? 'No data found' : ''}</Table.Caption>
-								<Table.Thead>
-									<Table.Tr>
-										<Table.Th>User Id</Table.Th>
-										<Table.Th>Package Id</Table.Th>
-										<Table.Th>Payment Method</Table.Th>
-										<Table.Th>Proof Of Payment</Table.Th>
-										<Table.Th>Action</Table.Th>
-									</Table.Tr>
-								</Table.Thead>
-								<Table.Tbody>{displayData?.length > 0 ? manualRows : null}</Table.Tbody>
+						<TableContainer sx={{ minWidth: 800 }}>
+							<Table size="small">
+								<TableHead>
+									<TableRow sx={{ '& th': { fontWeight: 700, bgcolor: 'action.hover' } }}>
+										<TableCell component="th">User Id</TableCell>
+										<TableCell component="th">Package Id</TableCell>
+										<TableCell component="th">Payment Method</TableCell>
+										<TableCell component="th">Proof Of Payment</TableCell>
+										<TableCell component="th">Action</TableCell>
+									</TableRow>
+								</TableHead>
+								<TableBody>{displayData?.length > 0 ? manualRows : null}</TableBody>
 							</Table>
-						</Table.ScrollContainer>
-						<Divider my="sm" />
-						<Pagination
-							value={currentPage}
+						</TableContainer>
+						<Divider sx={{ my: 1 }} />
+						<Pagination page={currentPage}
 							onChange={handlePageChange}
-							total={totalPages}
-							siblings={1}
+							count={totalPages}
 						/>
 					</>
 				)}
-			</Paper>
+			</MainCard>
 
-			<Modal
-				title="Details"
-				opened={detailsModalOpened}
-				onClose={closeDetailsModal}
-				size="xl"
-				centered
-				classNames={{ title: 'mantine-modal-title', close: 'mantine-modal-close' }}
-			>
-				<Table.ScrollContainer minWidth={200}>
-					<Table>
-						<Table.Thead>
-							<Table.Th>Subscription Id</Table.Th>
-							<Table.Th>Transaction Id</Table.Th>
-							<Table.Th>Subscription Date</Table.Th>
-							<Table.Th>Created At</Table.Th>
-							<Table.Th>Modified By</Table.Th>
-						</Table.Thead>
-						<Table.Tbody>
-							<Table.Td>{details?.subscription_id}</Table.Td>
-							<Table.Td>{details?.transaction_id}</Table.Td>
-							<Table.Td>{moment(details?.subscription_date).format('Do MMM YYYY h:mma')}</Table.Td>
-							<Table.Td>{moment(details?.created_at).format('Do MMM YYYY h:mma')}</Table.Td>
-							<Table.Td>{details?.modified_by}</Table.Td>
-						</Table.Tbody>
-					</Table>
-				</Table.ScrollContainer>
-			</Modal>
-		</div>
+			<Dialog open={detailsModalOpened} onClose={closeDetailsModal} maxWidth="md" fullWidth>
+				<DialogTitle>Details</DialogTitle>
+				<DialogContent>
+					<DetailGrid
+						fields={[
+							{ label: 'Subscription Id', value: details?.subscription_id },
+							{ label: 'Transaction Id', value: details?.transaction_id },
+							{
+								label: 'Subscription date',
+								value: details?.subscription_date
+									? moment(details.subscription_date).format('Do MMM YYYY h:mma')
+									: '—',
+							},
+							{
+								label: 'Created at',
+								value: details?.created_at
+									? moment(details.created_at).format('Do MMM YYYY h:mma')
+									: '—',
+							},
+							{ label: 'Modified by', value: details?.modified_by },
+						]}
+					/>
+				</DialogContent>
+				<DialogActions>
+					<Button onClick={closeDetailsModal}>Close</Button>
+				</DialogActions>
+			</Dialog>
+		</PageContainer>
 	);
 }

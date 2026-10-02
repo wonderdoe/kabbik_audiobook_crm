@@ -1,11 +1,25 @@
 'use client';
 
+import {
+	Box,
+	Button,
+	Chip,
+	Dialog,
+	DialogActions,
+	DialogContent,
+	DialogTitle,
+	FormControlLabel,
+	IconButton,
+	Paper,
+	Stack,
+	Switch,
+	Typography,
+} from '@mui/material';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Button, Flex, Modal, Paper, Switch, Table } from '@mantine/core';
-import { useDisclosure } from '@mantine/hooks';
+import { IconEdit, IconHeadphones, IconPlus, IconTrash, IconX } from '@tabler/icons-react';
+import { useDisclosure } from '@/hooks/use-disclosure';
 import { useState } from 'react';
 import { FieldErrors, useFieldArray, useForm } from 'react-hook-form';
-import Swal from 'sweetalert2';
 import { z } from 'zod';
 import {
 	addEpisodesWithBGM,
@@ -13,7 +27,11 @@ import {
 	updateSingleEpisodeWithBGM,
 } from '@/services/services';
 import { Audiobook, Episode } from '@/types/global';
-import { createToast, createToast2 } from 'helpers/SweetAlert';
+import { confirmDialog, createToast, createToast2 } from 'helpers/SweetAlert';
+import {
+	AudiobookFormRoot,
+	AudiobookFormSection,
+} from './AudiobookFormLayout';
 import { CustomFileInput } from './CustomFileInput';
 import { CustomInput } from './CustomInput';
 
@@ -40,6 +58,13 @@ const singleEpisodeEditFormSchema = z.object({
 
 type EpisodesEditFormDataType = z.infer<typeof episodesEditFormSchema>;
 type SingleEpisodeEditFormDataType = z.infer<typeof singleEpisodeEditFormSchema>;
+
+function formatDuration(seconds: number) {
+	if (!seconds || seconds <= 0) return '—';
+	const m = Math.floor(seconds / 60);
+	const s = Math.floor(seconds % 60);
+	return `${m}:${s.toString().padStart(2, '0')}`;
+}
 
 export const EpisodesEditForm = ({
 	audiobook,
@@ -89,23 +114,19 @@ export const EpisodesEditForm = ({
 	});
 
 	const handleToggle = (episodeId: number, isFree: null | number) => {
-		Swal.fire({
-			title: 'Are you sure?',
-			text: "You won't be able to revert this!",
+		confirmDialog({
+			title: 'Change free access?',
+			text: 'This updates whether listeners can play this episode for free.',
 			icon: 'warning',
 			showCancelButton: true,
 			confirmButtonColor: '#3085d6',
 			cancelButtonColor: '#d33',
-			confirmButtonText: 'Yes, update it!',
+			confirmButtonText: 'Yes, update',
 		}).then(async result => {
 			if (result.isConfirmed) {
 				const data = await toggleEpisodeIsFree(episodeId, !isFree ? 1 : 0);
 				if (data?.success) {
-					Swal.fire({
-						title: 'Updated!',
-						text: 'Item has been updated.',
-						icon: 'success',
-					});
+					confirmDialog({ title: 'Updated', text: 'Episode access updated.', icon: 'success' });
 					closeAssign();
 				}
 			}
@@ -122,6 +143,7 @@ export const EpisodesEditForm = ({
 		if (data?.statusCode === 200) {
 			createToast2(data.message);
 			editEpisodeClose();
+			closeAssign();
 		} else {
 			createToast('Could not update episode');
 		}
@@ -137,163 +159,273 @@ export const EpisodesEditForm = ({
 		}
 	};
 
-	const rowsEpisodes = episodes?.map((element: Episode) => {
-		return (
-			<Table.Tr key={element.id}>
-				<Table.Td style={{ fontSize: 14 }}>{element.id}</Table.Td>
-				<Table.Td style={{ fontSize: 14 }}>{element.name}</Table.Td>
-				<Table.Td style={{ fontSize: 14 }}>{element.audiobook_id}</Table.Td>
-				<Table.Td style={{ fontSize: 14, textAlign: 'center' }}>
-					<Flex gap="md" justify="flex-start" direction="row" wrap="wrap">
-						<Switch
-							checked={element.isfree === 1 ? true : false}
-							onChange={() => handleToggle(element.id, element.isfree)}
-							size="xs"
-						/>
-					</Flex>
-				</Table.Td>
-				<Table.Td style={{ fontSize: 14 }}>
-					<Button onClick={() => editEpisode(element.id)}>Edit</Button>
-				</Table.Td>
-			</Table.Tr>
-		);
-	});
+	const pendingCount = watch('episodeList').length;
 
 	return (
 		<>
-			<Paper shadow="sm" p="md">
-				<Table>
-					<Table.Thead>
-						<Table.Tr>
-							<Table.Th>Id</Table.Th>
-							<Table.Th>Episode Name</Table.Th>
-							<Table.Th>Audiobook Id</Table.Th>
-							<Table.Th>Free</Table.Th>
-							<Table.Th>Action</Table.Th>
-						</Table.Tr>
-					</Table.Thead>
-					<Table.Tbody>{rowsEpisodes}</Table.Tbody>
-				</Table>
-			</Paper>
-			<form onSubmit={handleSubmit(handleSubmitEpisodes, err => console.error(err))}>
-				{watch('episodeList').length ? (
-					<Paper shadow="sm" p="md" mt={20}>
-						{fields.map((item, index) => {
-							const nameError = (errors?.episodeList as FieldErrors[] | undefined)?.[index]?.name
-								?.message as string;
-							const pathError = (errors?.episodeList as FieldErrors[] | undefined)?.[index]?.path
-								?.message as string;
-							return (
-								<Flex gap={10} direction="column" key={item.id}>
-									<CustomInput
-										label="Episode Name"
-										name={`episodeList.${index}.name`}
-										placeholder="Episode name"
-										control={control}
-										error={nameError}
-										withAsterisk
-									/>
-									<CustomFileInput
-										label="Audio File"
-										name={`episodeList.${index}.path`}
-										placeholder="Upload an audio"
-										register={register}
-										setValue={setValue}
-										setLoading={setLoading}
-										reset={resetImagePath}
-										error={pathError}
-										isTouched={`episodeList.${index}.path` in touchedFields}
-										withAsterisk
-									/>
-									<Flex direction={'row'} wrap={'nowrap'} gap={10} align={'end'}>
-										<div style={{ flexGrow: 1 }}>
-											<CustomFileInput
-												label="BGM File"
-												name={`episodeList.${index}.bgm`}
-												placeholder="Upload an audio"
-												register={register}
-												setValue={setValue}
-												setLoading={setLoading}
-												reset={resetImagePath}
-												error={pathError}
-												isTouched={`episodeList.${index}.bgm` in touchedFields}
-											/>
-										</div>
-										<Button
-											style={{ position: 'relative', top: '-3px' }}
-											onClick={() => remove(index)}
-										>
-											Delete
-										</Button>
-									</Flex>
-								</Flex>
-							);
-						})}
-					</Paper>
-				) : (
-					<></>
-				)}
-				<Flex justify={'end'} my={20}>
-					<Button
-						style={{ flexGrow: 0 }}
-						onClick={() => append({ name: '', path: '', bgm: '', duration: 0 })}
-					>
-						Add Episode
-					</Button>
-				</Flex>
-				<Button fullWidth type="submit" 
-					disabled={loading || isLoading || isSubmitting}
+			<Stack spacing={2.5}>
+				<AudiobookFormSection
+					title={`Published episodes (${episodes?.length ?? 0})`}
+					description="Toggle free access or edit audio files."
 				>
-					Submit
-				</Button>
-			</form>
-			<Modal
-				opened={editEpisodeOpened}
+					{!episodes?.length ? (
+						<Paper
+							variant="outlined"
+							sx={{ py: 4, textAlign: 'center', borderRadius: 2, borderStyle: 'dashed' }}
+						>
+							<Typography variant="body2" color="text.secondary">
+								No episodes yet. Add one below.
+							</Typography>
+						</Paper>
+					) : (
+						<Stack spacing={1}>
+							{episodes.map((element: Episode, index: number) => (
+								<Paper
+									key={element.id}
+									variant="outlined"
+									sx={{
+										p: 1.5,
+										borderRadius: 2,
+										transition: 'box-shadow 0.2s ease',
+										'&:hover': { boxShadow: '0 4px 12px rgba(0,0,0,0.06)' },
+									}}
+								>
+									<Stack
+										direction={{ xs: 'column', sm: 'row' }}
+										spacing={1.5}
+										alignItems={{ sm: 'center' }}
+										justifyContent="space-between"
+									>
+										<Stack direction="row" spacing={1.5} alignItems="flex-start" sx={{ minWidth: 0, flex: 1 }}>
+											<Box
+												sx={{
+													width: 36,
+													height: 36,
+													borderRadius: 1.5,
+													bgcolor: 'primary.50',
+													color: 'primary.main',
+													display: 'flex',
+													alignItems: 'center',
+													justifyContent: 'center',
+													flexShrink: 0,
+													fontWeight: 700,
+													fontSize: '0.75rem',
+												}}
+											>
+												{index + 1}
+											</Box>
+											<Box sx={{ minWidth: 0 }}>
+												<Stack direction="row" alignItems="center" spacing={0.75} flexWrap="wrap">
+													<Typography variant="subtitle2" fontWeight={600} noWrap title={element.name}>
+														{element.name}
+													</Typography>
+													<Chip
+														label={`#${element.id}`}
+														size="small"
+														variant="outlined"
+														sx={{ height: 22, fontFamily: 'monospace', fontSize: '0.65rem' }}
+													/>
+													<Chip
+														label={element.isfree === 1 ? 'Free' : 'Premium'}
+														size="small"
+														color={element.isfree === 1 ? 'success' : 'default'}
+														sx={{ height: 22, fontWeight: 600, fontSize: '0.65rem' }}
+													/>
+												</Stack>
+												<Stack direction="row" alignItems="center" spacing={0.5} mt={0.5} color="text.secondary">
+													<IconHeadphones size={14} stroke={1.5} />
+													<Typography variant="caption">{formatDuration(element.duration)}</Typography>
+												</Stack>
+											</Box>
+										</Stack>
+
+										<Stack direction="row" alignItems="center" spacing={1} sx={{ flexShrink: 0 }}>
+											<FormControlLabel
+												control={
+													<Switch
+														size="small"
+														checked={element.isfree === 1}
+														onChange={() => handleToggle(element.id, element.isfree)}
+													/>
+												}
+												label={<Typography variant="caption">Free</Typography>}
+												sx={{ m: 0 }}
+											/>
+											<Button
+												size="small"
+												variant="outlined"
+												startIcon={<IconEdit size={14} />}
+												onClick={() => editEpisode(element.id)}
+											>
+												Edit
+											</Button>
+										</Stack>
+									</Stack>
+								</Paper>
+							))}
+						</Stack>
+					)}
+				</AudiobookFormSection>
+
+				<AudiobookFormRoot
+					formId="episode-batch-add-form"
+					onSubmit={handleSubmit(handleSubmitEpisodes, err => console.error(err))}
+				>
+					<AudiobookFormSection
+						title="Add new episodes"
+						description="Upload audio (and optional BGM) for episodes not listed above."
+					>
+						<Stack spacing={1.5}>
+							{fields.map((item, index) => {
+								const nameError = (errors?.episodeList as FieldErrors[] | undefined)?.[index]?.name
+									?.message as string;
+								const pathError = (errors?.episodeList as FieldErrors[] | undefined)?.[index]?.path
+									?.message as string;
+								return (
+									<Paper key={item.id} variant="outlined" sx={{ p: 2, borderRadius: 2, bgcolor: 'grey.50' }}>
+										<Stack direction="row" alignItems="center" justifyContent="space-between" mb={1}>
+											<Typography variant="subtitle2" fontWeight={600}>
+												New episode {index + 1}
+											</Typography>
+											<IconButton
+												size="small"
+												color="error"
+												aria-label="Remove"
+												onClick={() => remove(index)}
+											>
+												<IconTrash size={16} />
+											</IconButton>
+										</Stack>
+										<CustomInput
+											dense
+											label="Episode Name"
+											name={`episodeList.${index}.name`}
+											placeholder="Episode name"
+											control={control}
+											error={nameError}
+											required
+										/>
+										<CustomFileInput
+											label="Audio File"
+											name={`episodeList.${index}.path`}
+											placeholder="Upload an audio"
+											register={register}
+											setValue={setValue}
+											setLoading={setLoading}
+											reset={resetImagePath}
+											error={pathError}
+											isTouched={`episodeList.${index}.path` in touchedFields}
+											required
+										/>
+										<CustomFileInput
+											label="BGM File (optional)"
+											name={`episodeList.${index}.bgm`}
+											placeholder="Upload an audio"
+											register={register}
+											setValue={setValue}
+											setLoading={setLoading}
+											reset={resetImagePath}
+											error={pathError}
+											isTouched={`episodeList.${index}.bgm` in touchedFields}
+										/>
+									</Paper>
+								);
+							})}
+							<Button
+								variant="outlined"
+								size="small"
+								startIcon={<IconPlus size={16} />}
+								onClick={() => append({ name: '', path: '', bgm: '', duration: 0 })}
+								sx={{ alignSelf: 'flex-start' }}
+							>
+								Add episode row
+							</Button>
+							{pendingCount > 0 ? (
+								<Button
+									type="submit"
+									variant="contained"
+									disabled={loading || isLoading || isSubmitting}
+									sx={{ alignSelf: 'flex-end' }}
+								>
+									Upload {pendingCount} episode{pendingCount === 1 ? '' : 's'}
+								</Button>
+							) : null}
+						</Stack>
+					</AudiobookFormSection>
+				</AudiobookFormRoot>
+			</Stack>
+
+			<Dialog
+				open={editEpisodeOpened}
 				onClose={editEpisodeClose}
-				title="Update Episode"
-				centered
-				classNames={{ title: 'mantine-modal-title', close: 'mantine-modal-close' }}
+				maxWidth="sm"
+				fullWidth
+				PaperProps={{ sx: { borderRadius: 2 } }}
 			>
-				<form onSubmit={epForm.handleSubmit(handleSubmitEditEpisode, err => console.error(err))}>
-					<CustomInput
-						label="Episode Name"
-						name={`name`}
-						placeholder="Episode name"
-						control={epForm.control}
-						error={(epForm.formState.errors.name && epForm.formState.errors.name.message) as string}
-					/>
-					<CustomFileInput
-						label="Audio File"
-						name={`path`}
-						placeholder="Upload an audio"
-						register={epForm.register}
-						setValue={epForm.setValue}
-						setLoading={setLoading}
-						reset={resetImagePath}
-						error={(epForm.formState.errors.path && epForm.formState.errors.path.message) as string}
-						isTouched={`path` in epForm.formState.touchedFields}
-					/>
-					<CustomFileInput
-						label="BGM File"
-						name={`bgm`}
-						placeholder="Upload an audio"
-						register={epForm.register}
-						setValue={epForm.setValue}
-						setLoading={setLoading}
-						reset={resetImagePath}
-						error={(epForm.formState.errors.bgm && epForm.formState.errors.bgm.message) as string}
-						isTouched={`bgm` in epForm.formState.touchedFields}
-					/>
+				<DialogTitle
+					sx={{
+						display: 'flex',
+						alignItems: 'center',
+						justifyContent: 'space-between',
+						fontWeight: 600,
+						py: 1.5,
+					}}
+				>
+					Update episode
+					<IconButton size="small" aria-label="Close" onClick={editEpisodeClose}>
+						<IconX size={18} />
+					</IconButton>
+				</DialogTitle>
+				<DialogContent dividers>
+					<form id="episode-edit-form" onSubmit={epForm.handleSubmit(handleSubmitEditEpisode, err => console.error(err))}>
+						<Stack spacing={0}>
+							<CustomInput
+								dense
+								label="Episode Name"
+								name="name"
+								placeholder="Episode name"
+								control={epForm.control}
+								error={(epForm.formState.errors.name && epForm.formState.errors.name.message) as string}
+							/>
+							<CustomFileInput
+								label="Audio File"
+								name="path"
+								placeholder="Upload an audio"
+								register={epForm.register}
+								setValue={epForm.setValue}
+								setLoading={setLoading}
+								reset={resetImagePath}
+								error={(epForm.formState.errors.path && epForm.formState.errors.path.message) as string}
+								isTouched={'path' in epForm.formState.touchedFields}
+							/>
+							<CustomFileInput
+								label="BGM File (optional)"
+								name="bgm"
+								placeholder="Upload an audio"
+								register={epForm.register}
+								setValue={epForm.setValue}
+								setLoading={setLoading}
+								reset={resetImagePath}
+								error={(epForm.formState.errors.bgm && epForm.formState.errors.bgm.message) as string}
+								isTouched={'bgm' in epForm.formState.touchedFields}
+							/>
+						</Stack>
+					</form>
+				</DialogContent>
+				<DialogActions sx={{ px: 3, py: 2, gap: 1 }}>
+					<Button variant="outlined" color="inherit" onClick={editEpisodeClose}>
+						Cancel
+					</Button>
 					<Button
+						variant="contained"
 						type="submit"
-						fullWidth
-						mt={10}
+						form="episode-edit-form"
 						disabled={loading || epForm.formState.isLoading || epForm.formState.isSubmitting}
 					>
-						Update
+						Save episode
 					</Button>
-				</form>
-			</Modal>
+				</DialogActions>
+			</Dialog>
 		</>
 	);
 };

@@ -1,4 +1,7 @@
-import { Group, Text } from '@mantine/core';
+import {
+	Stack,
+	Typography,
+} from '@mui/material';
 import {
 	ContentBlock,
 	convertFromRaw,
@@ -224,14 +227,14 @@ export class CustomTextEditor extends React.Component<
 
 		return (
 			<>
-				<Group justify="space-between" dir="row" mb={1}>
-					<Text mb={-10} size="sm" c={'#222222'} style={{ fontWeight: '600' }}>
+				<Stack direction="row" alignItems="center" justifyContent="space-between" dir="row" mb={1}>
+					<Typography mb={-10} variant="body2" color={'#222222'} style={{ fontWeight: '600' }}>
 						Content
-					</Text>
-					<Text mb={-10} size="sm" c={'#222222'} style={{ fontWeight: '600' }}>
+					</Typography>
+					<Typography mb={-10} variant="body2" color={'#222222'} style={{ fontWeight: '600' }}>
 						{this.state.currentContentLength} / {MAX_ALLOWED_CONTENT_LENGTH}
-					</Text>
-				</Group>
+					</Typography>
+				</Stack>
 				<div className="RichEditor-root">
 					<BlockStyleControls editorState={editorState} onToggle={this.toggleBlockType} />
 					<InlineStyleControls editorState={editorState} onToggle={this.toggleInlineStyle} />

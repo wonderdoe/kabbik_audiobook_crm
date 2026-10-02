@@ -1,88 +1,100 @@
 'use client';
 
 import {
-	ActionIcon,
 	Avatar,
+	Box,
 	Button,
 	Card,
-	Flex,
-	Group,
+	CardContent,
+	Divider,
+	IconButton,
+	ListItemIcon,
+	ListItemText,
 	Menu,
-	Space,
+	MenuItem,
 	Stack,
-	Text,
-	Title,
-} from '@mantine/core';
+	Typography,
+} from '@mui/material';
 import { IconDots, IconEye, IconFileZip, IconTrash } from '@tabler/icons-react';
+import { useState } from 'react';
 
-const sectionStyle = {
-	padding: 'var(--mantine-spacing-md)',
-	borderTop: '1px solid lightdark(var(--mantine-colors-gray-3), var(--mantine-colors-dark-4))',
+const sectionSx = {
+	p: 2,
+	borderTop: '1px solid',
+	borderColor: 'divider',
 };
 
 export function ProfileCard() {
+	const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+
 	return (
-		<Card radius="md">
-			<Card.Section style={sectionStyle}>
-				<Group justify="space-between">
-					<Avatar radius="xl"></Avatar>
-					<Menu withinPortal position="bottom-end" shadow="sm">
-						<Menu.Target>
-							<ActionIcon variant="subtle">
-								<IconDots size="1rem" />
-							</ActionIcon>
-						</Menu.Target>
-
-						<Menu.Dropdown>
-							<Menu.Item leftSection={<IconFileZip size={14} />}>Action One</Menu.Item>
-							<Menu.Item leftSection={<IconEye size={14} />}>Action Two</Menu.Item>
-							<Menu.Item leftSection={<IconTrash size={14} />} color="red">
-								Action Three
-							</Menu.Item>
-						</Menu.Dropdown>
+		<Card sx={{ borderRadius: 2 }}>
+			<CardContent sx={sectionSx}>
+				<Stack direction="row" alignItems="center" justifyContent="space-between">
+					<Avatar />
+					<IconButton onClick={e => setAnchorEl(e.currentTarget)}>
+						<IconDots size="1rem" />
+					</IconButton>
+					<Menu anchorEl={anchorEl} open={Boolean(anchorEl)} onClose={() => setAnchorEl(null)}>
+						<MenuItem onClick={() => setAnchorEl(null)}>
+							<ListItemIcon>
+								<IconFileZip size={14} />
+							</ListItemIcon>
+							<ListItemText>Action One</ListItemText>
+						</MenuItem>
+						<MenuItem onClick={() => setAnchorEl(null)}>
+							<ListItemIcon>
+								<IconEye size={14} />
+							</ListItemIcon>
+							<ListItemText>Action Two</ListItemText>
+						</MenuItem>
+						<MenuItem onClick={() => setAnchorEl(null)} sx={{ color: 'error.main' }}>
+							<ListItemIcon>
+								<IconTrash size={14} />
+							</ListItemIcon>
+							<ListItemText>Action Three</ListItemText>
+						</MenuItem>
 					</Menu>
-				</Group>
+				</Stack>
 
-				<Space h="md" />
+				<Box sx={{ height: 16 }} />
 
-				<Flex direction="column">
-					<Title order={5}>Joshua Lee</Title>
-					<Space h="xs" />
-					<Text fz="sm" c="dimmed" fw="500">
+				<Stack spacing={0.5}>
+					<Typography variant="subtitle2" component="h5">Joshua Lee</Typography>
+					<Typography fontSize="sm" color="text.secondary" fontWeight={500}>
 						jotyy318@email.com
-					</Text>
-					<Space h="4" />
-					<Text fz="sm" c="dimmed" fw="500">
+					</Typography>
+					<Typography fontSize="sm" color="text.secondary" fontWeight={500}>
 						{'0x3D2f3bA6737C6999850E0c0Fe571190E6d27C40C'.slice(0, 12) +
 							'..' +
 							'0x3D2f3bA6737C6999850E0c0Fe571190E6d27C40C'.slice(-4)}
-					</Text>
-				</Flex>
-			</Card.Section>
+					</Typography>
+				</Stack>
+			</CardContent>
 
-			<Card.Section style={sectionStyle}>
-				<Group grow>
-					<Stack gap={4}>
-						<Text fz="sm" fw="500">
-							Balance
-						</Text>
-						<Title order={3}>$9821</Title>
-					</Stack>
-					<Stack gap={4}>
-						<Text fz="sm" fw="500">
-							Chain
-						</Text>
-						<Title order={3}>Etherum</Title>
-					</Stack>
-				</Group>
-			</Card.Section>
+			<Divider />
 
-			<Card.Section style={sectionStyle}>
-				<Group>
-					<Button variant="light">Deposit</Button>
-					<Button>Buy/Sell</Button>
-				</Group>
-			</Card.Section>
+			<CardContent sx={sectionSx}>
+				<Stack direction="row" alignItems="center" spacing={4}>
+					<Stack spacing={0.5}>
+						<Typography fontSize="sm" fontWeight={500}>Balance</Typography>
+						<Typography variant="h6" component="h3">$9821</Typography>
+					</Stack>
+					<Stack spacing={0.5}>
+						<Typography fontSize="sm" fontWeight={500}>Chain</Typography>
+						<Typography variant="h6" component="h3">Etherum</Typography>
+					</Stack>
+				</Stack>
+			</CardContent>
+
+			<Divider />
+
+			<CardContent sx={sectionSx}>
+				<Stack direction="row" alignItems="center" spacing={1}>
+					<Button variant="outlined">Deposit</Button>
+					<Button variant="contained">Buy/Sell</Button>
+				</Stack>
+			</CardContent>
 		</Card>
 	);
 }

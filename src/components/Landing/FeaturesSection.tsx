@@ -1,6 +1,13 @@
 'use client';
 
-import { Container, Paper, SimpleGrid, Space, Text, ThemeIcon, Title } from '@mantine/core';
+import {
+	Avatar,
+	Box,
+	Container,
+	Grid,
+	Paper,
+	Typography,
+} from '@mui/material';
 import {
 	IconBrandMantine,
 	IconBrandNextjs,
@@ -46,16 +53,16 @@ interface FeatureProps {
 
 export function Feature({ icon: Icon, title, description }: FeatureProps) {
 	return (
-		<Paper h="100%" shadow="md" px="lg" py="sm" radius="md" withBorder>
-			<ThemeIcon variant="light" size={60} radius={60}>
+		<Paper h="100%" elevation={3} px="lg" sx={{ borderRadius: 2 }} variant="outlined">
+			<ThemeIcon variant="outlined" size={60} radius={60}>
 				<Icon size="2rem" stroke={1.5} />
 			</ThemeIcon>
-			<Text mt="sm" mb={7} fw="600">
+			<Typography mb={7} fontWeight="600">
 				{title}
-			</Text>
-			<Text size="sm" c="dimmed" style={{ lineHeight: 1.6 }}>
+			</Typography>
+			<Typography variant="body2" color="text.secondary" style={{ lineHeight: 1.6 }}>
 				{description}
-			</Text>
+			</Typography>
 		</Paper>
 	);
 }
@@ -71,22 +78,22 @@ export function FeaturesSection({ title, description, data = featuresData }: Fea
 
 	return (
 		<Container className={classes.wrapper}>
-			<Title className={classes.title}>{title}</Title>
-			<Space h="md" />
+			<Typography className={classes.title} component="h2" variant="h4">{title}</Typography>
+			<Box sx={{ height: 16 }} />
 
 			<Container size={560} p={0}>
-				<Text size="sm" className={classes.description}>
+				<Typography variant="body2" className={classes.description}>
 					{description}
-				</Text>
+				</Typography>
 			</Container>
 
-			<SimpleGrid
+			<Grid container
 				mt={60}
 				cols={{ base: 1, sm: 2, lg: 3 }}
 				spacing={{ base: 'lg', md: 'lg', lg: 'xl' }}
 			>
 				{features}
-			</SimpleGrid>
+			</Grid>
 		</Container>
 	);
 }

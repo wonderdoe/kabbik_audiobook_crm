@@ -6,7 +6,8 @@ class AudioBookCategoryController {
 			const results = await AudioBookCategoryModel.getCategory();
 			return results;
 		} catch (error) {
-			return error;
+			console.error(error);
+			return [];
 		}
 	}
 

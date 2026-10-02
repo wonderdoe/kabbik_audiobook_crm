@@ -1,6 +1,9 @@
 'use client'
 
-import { Card, Title } from '@mantine/core';
+import {
+	Card,
+	Typography,
+} from '@mui/material';
 import {
 	CategoryScale,
 	Chart as ChartJS,
@@ -49,16 +52,16 @@ export const data = {
 export function OverviewCard() {
 	return (
 		<Card
-			radius="md"
-			w="100%"
-			h="100%"
-			style={{
+			sx={{
+				borderRadius: 2,
+				width: '100%',
+				height: '100%',
 				display: 'flex',
 				flexDirection: 'column',
 				justifyContent: 'space-between',
 			}}
 		>
-			<Title order={5}>Overview</Title>
+			<Typography variant="subtitle2" component="h5">Overview</Typography>
 			<Line options={options} data={data} />
 		</Card>
 	);
