@@ -33,8 +33,9 @@ class TotalUserModel {
 				)
 				SELECT dr.date, COALESCE(COUNT(bw.id), 0) AS Count
 				FROM date_range dr
-				JOIN bkash_webhook bw ON DATE(CONVERT_TZ(bw.created_at, '+00:00', '+06:00')) = dr.date
-				WHERE bw.firstPayment = 1
+				LEFT JOIN bkash_webhook bw
+					ON DATE(CONVERT_TZ(bw.created_at, '+00:00', '+06:00')) = dr.date
+					AND bw.firstPayment = 1
 					AND bw.paymentStatus = 'SUCCEEDED_PAYMENT'
 				GROUP BY dr.date
 				ORDER BY dr.date DESC
@@ -47,10 +48,11 @@ class TotalUserModel {
 					FROM date_range
 					WHERE n < 6
 				)
-				SELECT dr.date, COUNT(*) AS count
+				SELECT dr.date, COALESCE(COUNT(bw.id), 0) AS count
 				FROM date_range dr
-				JOIN bkash_webhook bw ON DATE(CONVERT_TZ(bw.created_at, '+00:00', '+06:00')) = dr.date
-				WHERE subscriptionStatus = 'CANCELLED'
+				LEFT JOIN bkash_webhook bw
+					ON DATE(CONVERT_TZ(bw.created_at, '+00:00', '+06:00')) = dr.date
+					AND bw.subscriptionStatus = 'CANCELLED'
 				GROUP BY dr.date
 				ORDER BY dr.date DESC
 			`;
@@ -72,8 +74,14 @@ class TotalUserModel {
 							date: moment(item.date).format('Do MMM, YYYY'),
 						})) || [],
 				},
-				{ title: "Today's Left Bkash Subscribers", count: sqlResponse5[0]?.count },
-				{ title: "Yesterdays's Left Bkash Subscribers", count: sqlResponse5[1]?.count??0 },
+				{
+					title: "Today's Left Bkash Subscribers",
+					count: Number(sqlResponse5[0]?.count ?? 0),
+				},
+				{
+					title: "Yesterday's Left Bkash Subscribers",
+					count: Number(sqlResponse5[1]?.count ?? 0),
+				},
 			];
 			return results;
 		} catch (error) {

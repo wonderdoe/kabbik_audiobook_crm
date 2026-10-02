@@ -74,10 +74,15 @@ export function DashboardContent({
 	const scalars = (dashboardData ?? []).filter(
 		(d): d is { title: string; count: number } => typeof d.count === 'number',
 	);
-	const bkashSlice = Array.isArray(dashboardData?.[3]?.count)
-		? (dashboardData[3].count as { date: string; Count: number }[]).slice(0, 2)
+
+	const bkashSeriesEntry = (dashboardData ?? []).find(
+		d => d.title?.toLowerCase().includes('bkash new recurring'),
+	);
+	const chartBkash = Array.isArray(bkashSeriesEntry?.count)
+		? (bkashSeriesEntry.count as { date: string; Count: number }[])
 		: [];
-	const chartBkash = Array.isArray(dashboardData?.[3]?.count) ? dashboardData[3].count : [];
+	const bkashSlice = chartBkash.slice(0, 2);
+	const showBkashChart = bkashSeriesEntry != null;
 
 	return (
 		<Stack spacing={3}>
@@ -108,16 +113,16 @@ export function DashboardContent({
 			)}
 
 			{/* ── Bkash recurring chart ── */}
-			{chartBkash.length > 0 && (
+			{showBkashChart && (
 				<MainCard
-					title="Bkash Recurring Subscribers"
-					subtitle="New recurring sign-ups over time"
+					title="Recent Bkash New Recurring Subscribers"
+					subtitle="Last 7 days (Dhaka)"
 					secondary={
-						<Stack direction="row" spacing={1.5}>
+						<Stack direction="row" spacing={1.5} flexWrap="wrap" useFlexGap>
 							{bkashSlice.map((item, index) => (
 								<MiniStat
 									key={item.date}
-									label={index === 0 ? 'Today' : 'Yesterday'}
+									label={index === 0 ? "Today's Bkash new recurring" : "Yesterday's Bkash new recurring"}
 									value={formatCount(item.Count)}
 									color="warning"
 									icon={index === 0

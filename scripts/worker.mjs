@@ -44,6 +44,14 @@ function shouldSkipMidnightRevenueWarm() {
 	return hour === 0 && minute === 0;
 }
 
+const STARTUP_WARM_LOCK_KEY = 'cron:lock:startup-warm';
+
+async function isStartupWarmInProgress() {
+	if (!(await ensureRedisReady())) return false;
+	const exists = await redis.exists(STARTUP_WARM_LOCK_KEY);
+	return exists === 1;
+}
+
 async function withLock(name, ttlSeconds, fn, { retries = 2 } = {}) {
 	console.log(`[cron:${name}] tick ${cronTimestamp()}`);
 	await touchHeartbeat();
@@ -89,7 +97,13 @@ async function withLock(name, ttlSeconds, fn, { retries = 2 } = {}) {
 
 cron.schedule(
 	'*/15 * * * *',
-	() => withLock('home', 240, () => warmDashboardHome()),
+	async () => {
+		if (await isStartupWarmInProgress()) {
+			console.log('[cron:home] skipped (startup-warm in progress)');
+			return;
+		}
+		return withLock('home', 300, () => warmDashboardHome());
+	},
 	TZ,
 );
 
@@ -106,21 +120,29 @@ cron.schedule(
 
 cron.schedule(
 	'*/15 * * * *',
-	() => {
+	async () => {
 		if (shouldSkipMidnightRevenueWarm()) {
 			console.log('[cron:revenue-warm] skipped (midnight; rollup-and-warm handles warm)');
 			return;
 		}
-		return withLock('revenue-warm', 240, () => warmDefaultRevenueReports());
+		if (await isStartupWarmInProgress()) {
+			console.log('[cron:revenue-warm] skipped (startup-warm in progress)');
+			return;
+		}
+		return withLock('revenue-warm', 300, () => warmDefaultRevenueReports());
 	},
 	TZ,
 );
 
 cron.schedule(
 	'*/15 * * * *',
-	() => {
+	async () => {
 		if (shouldSkipMidnightRevenueWarm()) {
 			console.log('[cron:report-warm] skipped (midnight; rollup-and-warm handles warm)');
+			return;
+		}
+		if (await isStartupWarmInProgress()) {
+			console.log('[cron:report-warm] skipped (startup-warm in progress)');
 			return;
 		}
 		return withLock('report-warm', 600, async () => {
