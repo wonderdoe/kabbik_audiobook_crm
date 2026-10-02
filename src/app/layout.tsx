@@ -6,7 +6,7 @@ import '@/globals.css';
 import { AppProvider } from './provider';
 
 export const metadata = {
-	metadataBase: new URL('https://mantine-admin.vercel.app/'),
+	metadataBase: new URL('https://crm.kabbik.com'),
 	title: { default: 'Kabbik CRM', template: '%s | Kabbik CRM' },
 	description: 'A CRM Tool for Kabbik',
 	keywords: [

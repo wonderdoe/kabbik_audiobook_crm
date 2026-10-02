@@ -35,6 +35,7 @@ import { DataSelect } from '@/components/Form/DataSelect';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import dayjs from 'dayjs';
 import { useDisclosure } from '@/hooks/use-disclosure';
+import { useIsMobileSm } from '@/hooks/use-is-mobile-sm';
 import {
 	IconBan,
 	IconCheck,
@@ -136,6 +137,16 @@ const TAB_LABELS: Record<string, string> = {
 	rent: 'Rent',
 	pending: 'Pending',
 	rejected: 'Rejected',
+};
+
+const actionBtnSx = {
+	py: 0.25,
+	px: 0.75,
+	fontSize: '0.7rem',
+	width: '100%',
+	minWidth: 0,
+	whiteSpace: 'nowrap',
+	'& .MuiButton-startIcon': { mr: 0.25 },
 };
 
 function countActiveFilters(filters: AudiobookFilterState) {
@@ -244,6 +255,7 @@ function PathCopyCell({ value }: { value: string }) {
 
 export default function AudiobookViews({ cookie }: any) {
 	const token = cookie?.value;
+	const isMobileSm = useIsMobileSm();
 
 	const [addAudiobookOpened, { open: openAddAudiobook, close: closeAddAudiobook }] =
 		useDisclosure(false);
@@ -420,6 +432,10 @@ export default function AudiobookViews({ cookie }: any) {
 		}
 		if (max !== null && !Number.isFinite(max)) {
 			createToast('Invalid maximum price');
+			return false;
+		}
+		if (min !== null && max !== null && min > max) {
+			createToast('Minimum price must be less than or equal to maximum');
 			return false;
 		}
 		return true;
@@ -773,15 +789,23 @@ export default function AudiobookViews({ cookie }: any) {
 				</Typography>
 			</TableCell>
 
-			<TableCell sx={{ py: 1, px: 1.5, minWidth: 200 }}>
-				<Stack direction="row" flexWrap="wrap" gap={0.5} sx={{ maxWidth: 320 }}>
+			<TableCell sx={{ py: 1, px: 1.5, minWidth: 200, verticalAlign: 'top' }}>
+				<Box
+					sx={{
+						display: 'grid',
+						gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
+						gap: 0.5,
+						width: '100%',
+						maxWidth: 300,
+					}}
+				>
 					<Button
 						size="small"
 						onClick={() => handleEpisodes(element.id)}
 						startIcon={<IconList size={14} />}
 						variant="outlined"
 						color="primary"
-						sx={{ py: 0.25, fontSize: '0.75rem' }}
+						sx={actionBtnSx}
 					>
 						Episodes
 					</Button>
@@ -791,7 +815,7 @@ export default function AudiobookViews({ cookie }: any) {
 						color="primary"
 						startIcon={<IconEdit size={14} />}
 						onClick={() => handleEditAudiobook(element.id)}
-						sx={{ py: 0.25, fontSize: '0.75rem' }}
+						sx={actionBtnSx}
 					>
 						Edit
 					</Button>
@@ -801,7 +825,7 @@ export default function AudiobookViews({ cookie }: any) {
 						color="info"
 						startIcon={<IconEye size={14} />}
 						onClick={() => handleViewAudiobook(element.id)}
-						sx={{ py: 0.25, fontSize: '0.75rem' }}
+						sx={actionBtnSx}
 					>
 						View
 					</Button>
@@ -811,7 +835,7 @@ export default function AudiobookViews({ cookie }: any) {
 						color="error"
 						startIcon={<IconTrash size={14} />}
 						onClick={() => handleDeleteAudiobook(element.id)}
-						sx={{ py: 0.25, fontSize: '0.75rem' }}
+						sx={actionBtnSx}
 					>
 						Delete
 					</Button>
@@ -822,7 +846,7 @@ export default function AudiobookViews({ cookie }: any) {
 							color="warning"
 							startIcon={<IconBan size={14} />}
 							onClick={() => handleApproveAudiobook(element.id, 'reject')}
-							sx={{ py: 0.25, fontSize: '0.75rem' }}
+							sx={actionBtnSx}
 						>
 							Reject
 						</Button>
@@ -833,12 +857,12 @@ export default function AudiobookViews({ cookie }: any) {
 							color="success"
 							startIcon={<IconCheckbox size={14} />}
 							onClick={() => handleApproveAudiobook(element.id, 'approve')}
-							sx={{ py: 0.25, fontSize: '0.75rem' }}
+							sx={actionBtnSx}
 						>
 							Approve
 						</Button>
 					)}
-				</Stack>
+				</Box>
 			</TableCell>
 
 			<TableCell align="center" sx={{ py: 0.5, px: 0.5 }}>
@@ -888,31 +912,50 @@ export default function AudiobookViews({ cookie }: any) {
 						</Typography>
 					}
 					actions={
-						<Stack direction="row" alignItems="center" spacing={1}>
+						<Stack
+							direction={{ xs: 'column', sm: 'row' }}
+							alignItems={{ xs: 'stretch', sm: 'center' }}
+							spacing={1}
+							sx={{ width: { xs: '100%', sm: 'auto' } }}
+						>
 							<Button
 								variant="outlined"
 								color="inherit"
+								fullWidth
+								sx={{ whiteSpace: 'nowrap' }}
 								startIcon={<IconDownload size={16} />}
 								onClick={handleExportCsv}
 								disabled={exporting}
 							>
 								Export CSV
 							</Button>
-							<Button variant="contained" onClick={openAddAudiobook} startIcon={<IconPlus size={16} />}>
+							<Button
+								variant="contained"
+								fullWidth
+								sx={{ whiteSpace: 'nowrap' }}
+								onClick={openAddAudiobook}
+								startIcon={<IconPlus size={16} />}
+							>
 								Add audiobook
 							</Button>
 						</Stack>
 					}
 				>
-				<Stack spacing={1.5} sx={{ pb: 2 }}>
-					<Paper variant="outlined" sx={{ p: 1.5, borderRadius: 2 }}>
-						<Stack spacing={1.5}>
+				<Stack spacing={1.5} sx={{ pb: 2, minWidth: 0, width: '100%' }}>
+					<Paper variant="outlined" sx={{ p: { xs: 1.25, sm: 1.5 }, borderRadius: 2, minWidth: 0, overflow: 'hidden' }}>
+						<Stack spacing={1.5} sx={{ minWidth: 0 }}>
 							<form onSubmit={!isSubmitted ? handleSearchResult : removeSearchInput}>
-								<Stack direction="row" alignItems="center" flexWrap="wrap" spacing={1} useFlexGap>
+								<Stack
+									direction={{ xs: 'column', sm: 'row' }}
+									alignItems={{ xs: 'stretch', sm: 'center' }}
+									spacing={1}
+									useFlexGap
+								>
 									<TextField
 										size="small"
 										variant="outlined"
-										sx={{ flex: 1, minWidth: 280 }}
+										fullWidth
+										sx={{ flex: 1, minWidth: 0 }}
 										value={searchInputValue}
 										onChange={e => setSearchInputValue(e.target.value)}
 										placeholder="Search name, English name, description, author, artists…"
@@ -924,27 +967,37 @@ export default function AudiobookViews({ cookie }: any) {
 											),
 										}}
 									/>
-									<Button
-										type="submit"
-										size="small"
-										variant={isSubmitted ? 'outlined' : 'contained'}
-										color={isSubmitted ? 'error' : 'primary'}
-										startIcon={isSubmitted ? <IconX size={16} /> : <IconSearch size={16} />}
+									<Stack
+										direction={{ xs: 'column', sm: 'row' }}
+										spacing={1}
+										sx={{ width: { xs: '100%', sm: 'auto' }, flexShrink: 0 }}
 									>
-										{isSubmitted ? 'Clear search' : 'Search'}
-									</Button>
-									<Button
-										type="button"
-										size="small"
-										variant="outlined"
-										color="primary"
-										startIcon={<IconFilter size={16} />}
-										endIcon={filtersOpen ? <IconChevronUp size={14} /> : <IconChevronDown size={14} />}
-										onClick={() => setFiltersOpen(open => !open)}
-									>
-										Filters
-										{activeFilterCount > 0 ? ` (${activeFilterCount})` : ''}
-									</Button>
+										<Button
+											type="submit"
+											size="small"
+											fullWidth
+											sx={{ whiteSpace: 'nowrap' }}
+											variant={isSubmitted ? 'outlined' : 'contained'}
+											color={isSubmitted ? 'error' : 'primary'}
+											startIcon={isSubmitted ? <IconX size={16} /> : <IconSearch size={16} />}
+										>
+											{isSubmitted ? 'Clear search' : 'Search'}
+										</Button>
+										<Button
+											type="button"
+											size="small"
+											fullWidth
+											sx={{ whiteSpace: 'nowrap' }}
+											variant="outlined"
+											color="primary"
+											startIcon={<IconFilter size={16} />}
+											endIcon={filtersOpen ? <IconChevronUp size={14} /> : <IconChevronDown size={14} />}
+											onClick={() => setFiltersOpen(open => !open)}
+										>
+											Filters
+											{activeFilterCount > 0 ? ` (${activeFilterCount})` : ''}
+										</Button>
+									</Stack>
 								</Stack>
 							</form>
 
@@ -955,14 +1008,16 @@ export default function AudiobookViews({ cookie }: any) {
 										mt: 0.5,
 										borderTop: 1,
 										borderColor: 'divider',
+										minWidth: 0,
 									}}
 								>
 									<Typography variant="subtitle2" fontWeight={600} sx={{ mb: 1.25, display: 'block' }}>
 										Refine results
 									</Typography>
 									<Grid container spacing={1.5}>
-										<Grid item xs={12} sm={6} md={4}>
+										<Grid item xs={12} sm={6} lg={4} sx={{ minWidth: 0 }}>
 											<DataSelect
+												fullWidth
 												label="Category"
 												placeholder="All"
 												clearable
@@ -971,8 +1026,9 @@ export default function AudiobookViews({ cookie }: any) {
 												onChange={v => setFilterDraft(prev => ({ ...prev, category: v ?? '' }))}
 											/>
 										</Grid>
-										<Grid item xs={12} sm={6} md={4}>
+										<Grid item xs={12} sm={6} lg={4} sx={{ minWidth: 0 }}>
 											<DataSelect
+												fullWidth
 												label="Author"
 												placeholder="All"
 												clearable
@@ -982,8 +1038,9 @@ export default function AudiobookViews({ cookie }: any) {
 												onChange={v => setFilterDraft(prev => ({ ...prev, author: v ?? '' }))}
 											/>
 										</Grid>
-										<Grid item xs={12} sm={6} md={4}>
+										<Grid item xs={12} sm={6} lg={4} sx={{ minWidth: 0 }}>
 											<DataSelect
+												fullWidth
 												label="Premium"
 												placeholder="All"
 												clearable
@@ -992,8 +1049,9 @@ export default function AudiobookViews({ cookie }: any) {
 												onChange={v => setFilterDraft(prev => ({ ...prev, premium: v ?? '' }))}
 											/>
 										</Grid>
-										<Grid item xs={12} sm={6} md={4}>
+										<Grid item xs={12} sm={6} lg={4} sx={{ minWidth: 0 }}>
 											<DataSelect
+												fullWidth
 												label="For Rent"
 												placeholder="All"
 												clearable
@@ -1002,8 +1060,9 @@ export default function AudiobookViews({ cookie }: any) {
 												onChange={v => setFilterDraft(prev => ({ ...prev, for_rent: v ?? '' }))}
 											/>
 										</Grid>
-										<Grid item xs={12} sm={6} md={4}>
+										<Grid item xs={12} sm={6} lg={4} sx={{ minWidth: 0 }}>
 											<DataSelect
+												fullWidth
 												label="BGM"
 												placeholder="All"
 												clearable
@@ -1012,8 +1071,9 @@ export default function AudiobookViews({ cookie }: any) {
 												onChange={v => setFilterDraft(prev => ({ ...prev, has_bgm: v ?? '' }))}
 											/>
 										</Grid>
-										<Grid item xs={12} sm={6} md={4}>
+										<Grid item xs={12} sm={6} lg={4} sx={{ minWidth: 0 }}>
 											<DataSelect
+												fullWidth
 												label="Approval status"
 												placeholder="All"
 												clearable
@@ -1024,7 +1084,7 @@ export default function AudiobookViews({ cookie }: any) {
 												}
 											/>
 										</Grid>
-										<Grid item xs={12} sm={6} md={4}>
+										<Grid item xs={12} sm={6} lg={4} sx={{ minWidth: 0 }}>
 											<TextField
 												type="number"
 												label="Price min"
@@ -1041,7 +1101,7 @@ export default function AudiobookViews({ cookie }: any) {
 												}
 											/>
 										</Grid>
-										<Grid item xs={12} sm={6} md={4}>
+										<Grid item xs={12} sm={6} lg={4} sx={{ minWidth: 0 }}>
 											<TextField
 												type="number"
 												label="Price max"
@@ -1058,7 +1118,7 @@ export default function AudiobookViews({ cookie }: any) {
 												}
 											/>
 										</Grid>
-										<Grid item xs={12} sm={6} md={4}>
+										<Grid item xs={12} sm={6} lg={4} sx={{ minWidth: 0 }}>
 											<DatePicker
 												label="Created from"
 												value={filterDraft.date_from ? dayjs(filterDraft.date_from) : null}
@@ -1068,10 +1128,19 @@ export default function AudiobookViews({ cookie }: any) {
 														date_from: d?.toDate() ?? null,
 													}))
 												}
-												slotProps={{ textField: { size: 'small', fullWidth: true } }}
+												slotProps={{
+													textField: {
+														size: 'small',
+														fullWidth: true,
+														sx: {
+															minWidth: 0,
+															'& .MuiFormControl-root': { mt: 0, mb: 0 },
+														},
+													},
+												}}
 											/>
 										</Grid>
-										<Grid item xs={12} sm={6} md={4}>
+										<Grid item xs={12} sm={6} lg={4} sx={{ minWidth: 0 }}>
 											<DatePicker
 												label="Created to"
 												value={filterDraft.date_to ? dayjs(filterDraft.date_to) : null}
@@ -1081,29 +1150,50 @@ export default function AudiobookViews({ cookie }: any) {
 														date_to: d?.toDate() ?? null,
 													}))
 												}
-												slotProps={{ textField: { size: 'small', fullWidth: true } }}
+												slotProps={{
+													textField: {
+														size: 'small',
+														fullWidth: true,
+														sx: {
+															minWidth: 0,
+															'& .MuiFormControl-root': { mt: 0, mb: 0 },
+														},
+													},
+												}}
 											/>
 										</Grid>
-										<Grid
-											item
-											xs={12}
-											md={8}
-											sx={{
-												display: 'flex',
-												alignItems: 'flex-end',
-												justifyContent: { xs: 'flex-start', md: 'flex-end' },
-											}}
-										>
-											<Stack direction="row" spacing={1}>
-												<Button size="small" variant="contained" onClick={applyFilters}>
-													Apply filters
-												</Button>
-												<Button size="small" variant="outlined" onClick={clearFilters}>
-													Reset
-												</Button>
-											</Stack>
-										</Grid>
 									</Grid>
+									<Stack
+										direction={{ xs: 'column', sm: 'row' }}
+										spacing={1}
+										justifyContent="flex-end"
+										alignItems={{ xs: 'stretch', sm: 'center' }}
+										sx={{
+											pt: 1.5,
+											mt: 1,
+											borderTop: 1,
+											borderColor: 'divider',
+										}}
+									>
+										<Button
+											type="button"
+											size="small"
+											variant="contained"
+											sx={{ whiteSpace: 'nowrap', minWidth: { sm: 128 } }}
+											onClick={applyFilters}
+										>
+											Apply filters
+										</Button>
+										<Button
+											type="button"
+											size="small"
+											variant="outlined"
+											sx={{ whiteSpace: 'nowrap', minWidth: { sm: 88 } }}
+											onClick={clearFilters}
+										>
+											Reset
+										</Button>
+									</Stack>
 								</Box>
 							</Collapse>
 
@@ -1131,7 +1221,14 @@ export default function AudiobookViews({ cookie }: any) {
 						subtitle={`Page ${currentPage} of ${totalPages || 1}`}
 						contentSX={{ p: 0, pt: 0 }}
 					>
-						<Box sx={{ width: '100%', overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+						<Box
+							sx={{
+								width: '100%',
+								maxWidth: '100%',
+								overflowX: 'auto',
+								WebkitOverflowScrolling: 'touch',
+							}}
+						>
 							<TableContainer sx={{ minWidth: 1200 }}>
 								<Table
 									size="small"
@@ -1239,6 +1336,8 @@ export default function AudiobookViews({ cookie }: any) {
 							count={totalPages || 1}
 							shape="rounded"
 							color="primary"
+							siblingCount={0}
+							sx={{ '& .MuiPagination-ul': { justifyContent: 'center', flexWrap: 'wrap' } }}
 						/>
 						</Stack>
 					</MainCard>
@@ -1251,8 +1350,9 @@ export default function AudiobookViews({ cookie }: any) {
 				onClose={closeAddAudiobook}
 				maxWidth="lg"
 				fullWidth
+				fullScreen={isMobileSm}
 				scroll="paper"
-				PaperProps={{ sx: { borderRadius: 2, maxHeight: 'min(90vh, 920px)' } }}
+				PaperProps={{ sx: { borderRadius: { xs: 0, sm: 2 }, maxHeight: { xs: '100%', sm: 'min(90vh, 920px)' } } }}
 			>
 				<DialogTitle
 					sx={{
@@ -1286,8 +1386,9 @@ export default function AudiobookViews({ cookie }: any) {
 				onClose={closeEditAudiobook}
 				maxWidth="lg"
 				fullWidth
+				fullScreen={isMobileSm}
 				scroll="paper"
-				PaperProps={{ sx: { borderRadius: 2, maxHeight: 'min(90vh, 920px)' } }}
+				PaperProps={{ sx: { borderRadius: { xs: 0, sm: 2 }, maxHeight: { xs: '100%', sm: 'min(90vh, 920px)' } } }}
 			>
 				<DialogTitle
 					sx={{
@@ -1325,10 +1426,11 @@ export default function AudiobookViews({ cookie }: any) {
 			<Dialog
 				maxWidth="md"
 				fullWidth
+				fullScreen={isMobileSm}
 				open={assignOpened}
 				onClose={closeAssign}
 				scroll="paper"
-				PaperProps={{ sx: { borderRadius: 2, maxHeight: 'min(90vh, 880px)' } }}
+				PaperProps={{ sx: { borderRadius: { xs: 0, sm: 2 }, maxHeight: { xs: '100%', sm: 'min(90vh, 880px)' } } }}
 			>
 				<DialogTitle
 					sx={{
@@ -1368,7 +1470,13 @@ export default function AudiobookViews({ cookie }: any) {
 				</DialogActions>
 			</Dialog>
 
-		<Dialog maxWidth="xl" fullWidth open={viewAudiobookOpened} onClose={closeViewAudiobook}>
+		<Dialog
+			maxWidth="xl"
+			fullWidth
+			fullScreen={isMobileSm}
+			open={viewAudiobookOpened}
+			onClose={closeViewAudiobook}
+		>
 			<DialogTitle sx={{ fontWeight: 600, pb: 1 }}>
 				<Stack direction="row" alignItems="center" spacing={1}>
 					<Chip label={`#${audiobookDetails?.id}`} size="small" variant="outlined" sx={{ fontFamily: 'monospace' }} />

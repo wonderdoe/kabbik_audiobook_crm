@@ -31,7 +31,9 @@ import moment from 'moment';
 import { useEffect, useState } from 'react';
 import Loader from '@/components/Loader';
 import { useDisclosure } from '@/hooks/use-disclosure';
+import { useIsMobileSm } from '@/hooks/use-is-mobile-sm';
 export default function ManualSubscriptionLog() {
+	const isMobileSm = useIsMobileSm();
 	const limit = 10;
 	const [offset, setOffset] = useState(0);
 	const [searchKey, setSearchKey] = useState('');
@@ -207,7 +209,7 @@ export default function ManualSubscriptionLog() {
 				)}
 			</MainCard>
 
-			<Dialog open={detailsModalOpened} onClose={closeDetailsModal} maxWidth="md" fullWidth>
+			<Dialog open={detailsModalOpened} onClose={closeDetailsModal} maxWidth="md" fullWidth fullScreen={isMobileSm}>
 				<DialogTitle>Details</DialogTitle>
 				<DialogContent>
 					<DetailGrid

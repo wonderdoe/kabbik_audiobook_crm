@@ -32,7 +32,13 @@ type Props = {
 export function RewardFiltersBar({ filters, onChange, onReset, options }: Props) {
 	return (
 		<MainCard title="Filters" contentSX={{ py: 2 }}>
-		<Stack direction="row" flexWrap="wrap" alignItems="flex-end" gap={1.5}>
+		<Stack
+			direction={{ xs: 'column', sm: 'row' }}
+			flexWrap="wrap"
+			alignItems={{ xs: 'stretch', sm: 'flex-end' }}
+			gap={1.5}
+			useFlexGap
+		>
 			<TextField
 				label="Search"
 				placeholder="Name, username, email, phone"
@@ -48,7 +54,7 @@ export function RewardFiltersBar({ filters, onChange, onReset, options }: Props)
 					),
 				}}
 			/>
-			<FormControl size="small" sx={{ width: 160 }}>
+			<FormControl size="small" sx={{ width: { xs: '100%', sm: 160 } }}>
 				<InputLabel id="reward-filter-claim-status" shrink>Claim status</InputLabel>
 				<Select
 					labelId="reward-filter-claim-status"
@@ -64,7 +70,7 @@ export function RewardFiltersBar({ filters, onChange, onReset, options }: Props)
 					))}
 				</Select>
 			</FormControl>
-			<FormControl size="small" sx={{ width: 180 }}>
+			<FormControl size="small" sx={{ width: { xs: '100%', sm: 180 } }}>
 				<InputLabel id="reward-filter-tier" shrink>Tier</InputLabel>
 				<Select
 					labelId="reward-filter-tier"
@@ -82,7 +88,7 @@ export function RewardFiltersBar({ filters, onChange, onReset, options }: Props)
 					))}
 				</Select>
 			</FormControl>
-			<FormControl size="small" sx={{ width: 120 }}>
+			<FormControl size="small" sx={{ width: { xs: '100%', sm: 120 } }}>
 				<InputLabel id="reward-filter-used" shrink>Used</InputLabel>
 				<Select
 					labelId="reward-filter-used"
@@ -109,7 +115,9 @@ export function RewardFiltersBar({ filters, onChange, onReset, options }: Props)
 				onChange={(d: Dayjs | null) => onChange({ ...filters, dateTo: d?.toDate() ?? null })}
 				slotProps={{ textField: { size: 'small', sx: { width: { xs: '100%', sm: 160 } } } }}
 			/>
-			<Button variant="outlined" onClick={onReset}>Reset filters</Button>
+			<Button variant="outlined" onClick={onReset} sx={{ width: { xs: '100%', sm: 'auto' } }}>
+				Reset filters
+			</Button>
 		</Stack>
 		</MainCard>
 	);

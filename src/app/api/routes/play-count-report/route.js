@@ -5,21 +5,25 @@ import { buildPlayCountReport } from '../../../../server/jobs/reports.js';
 
 export const dynamic = 'force-dynamic';
 
+function normalizePlayCountReportRows(data) {
+	if (Array.isArray(data)) return data;
+	if (data && Array.isArray(data.payload)) return data.payload;
+	return [];
+}
+
 export async function GET() {
 	try {
 		const data = await getOrSetLocked(playCountReportCacheKey(), PLAYCOUNT_TTL, () =>
 			buildPlayCountReport(),
 		);
-		return NextResponse.json(data);
+		return NextResponse.json(normalizePlayCountReportRows(data));
 	} catch (error) {
+		console.error('[play-count-report GET]', error);
 		return NextResponse.json(
 			{
-				message: error,
+				message: error instanceof Error ? error.message : 'Internal server error',
 			},
-
-			{
-				status: 500,
-			},
+			{ status: 500 },
 		);
 	}
 }

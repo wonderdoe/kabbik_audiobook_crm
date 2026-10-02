@@ -12,13 +12,23 @@ import { DashboardContent } from '@/components/Dashboard/DashboardContent';
 import Loader from '@/components/Loader';
 import { PageContainer } from '@/components/PageContainer/PageContainer';
 import { checkgetPermission } from '@/helper/Commonfunction';
-import { dashboardSummaryUrl } from '@/utils/constant';
+import { getBreakdown, type GatewayBreakdownRow } from '@/components/revenue/subscription-gateway-breakdown';
+import { dashboardSummaryUrl, subscriptionRevenueUrl } from '@/utils/constant';
+
+type ReportSummary = {
+	lifetimeSubscribers: number;
+	activeSubscribers: number;
+	blSubscribers: number;
+	activeRentCount: number;
+	totalPlayCount: number;
+} | null;
 
 type DashboardSummaryResponse = {
 	updatedAt: string;
 	dashboardData: unknown[];
 	recentTotalPayments: { date: string; Amount: number }[];
 	topMostUsedPromos: { today: unknown[]; yesterday: unknown[] };
+	reportSummary?: ReportSummary;
 };
 
 export default function Dashboard() {
@@ -36,6 +46,8 @@ export default function Dashboard() {
 		yesterday: [],
 		today: [],
 	});
+	const [reportSummary, setReportSummary] = useState<ReportSummary>(null);
+	const [kabbikTodayBreakdown, setKabbikTodayBreakdown] = useState<GatewayBreakdownRow[]>([]);
 
 	const applySnapshot = (data: DashboardSummaryResponse) => {
 		setUpdatedAt(data.updatedAt);
@@ -44,7 +56,25 @@ export default function Dashboard() {
 		setTopMostUsedPromos(
 			data.topMostUsedPromos ?? { today: [], yesterday: [] },
 		);
+		setReportSummary(data.reportSummary ?? null);
 	};
+
+	const loadKabbikTodayBreakdown = useCallback(async () => {
+		const date = moment().format('YYYY-MM-DD');
+		try {
+			const res = await fetch(
+				`${subscriptionRevenueUrl}?startDate=${date}&endDate=${date}`,
+				{ cache: 'no-store' },
+			);
+			if (!res.ok) return;
+			const json = await res.json() as { kabbik?: Record<string, Record<string, number>> };
+			const dayMap = json.kabbik?.[date] ?? {};
+			const nested = Object.entries(dayMap) as [string, number][];
+			setKabbikTodayBreakdown(getBreakdown(nested));
+		} catch {
+			setKabbikTodayBreakdown([]);
+		}
+	}, []);
 
 	const loadSummary = useCallback(async (refresh = false) => {
 		const date = moment().format('YYYY-MM-DD');
@@ -63,13 +93,14 @@ export default function Dashboard() {
 		loadSummary()
 			.catch(console.error)
 			.finally(() => setLoading(false));
-	}, [loadSummary]);
+		loadKabbikTodayBreakdown();
+	}, [loadSummary, loadKabbikTodayBreakdown]);
 
 	const handleRefresh = async () => {
 		if (!checkgetPermission('dashboard')) return;
 		setRefreshing(true);
 		try {
-			await loadSummary(true);
+			await Promise.all([loadSummary(true), loadKabbikTodayBreakdown()]);
 		} catch (e) {
 			console.error(e);
 		} finally {
@@ -113,6 +144,8 @@ export default function Dashboard() {
 							dashboardData={res}
 							recentTotalPayments={recentTotalPayments}
 							topMostUsedPromos={topMostUsedPromos}
+							reportSummary={reportSummary}
+							kabbikTodayBreakdown={kabbikTodayBreakdown}
 						/>
 					) : null
 				) : (

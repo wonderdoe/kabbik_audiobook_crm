@@ -48,12 +48,13 @@ export const CustomSelect = ({
 							{...params}
 							label={label}
 							placeholder={placeholder}
-							margin="normal"
+							margin="none"
 							size="small"
 							fullWidth
 							required={required}
 							error={Boolean(error)}
 							helperText={error || ' '}
+							InputLabelProps={{ ...params.InputLabelProps, shrink: true }}
 						/>
 					)}
 				/>

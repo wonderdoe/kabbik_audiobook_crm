@@ -17,20 +17,38 @@ type PageHeaderProps = {
 
 export function PageHeader({ title, breadcrumbs = [], actions, subtitle }: PageHeaderProps) {
 	return (
-		<Box sx={{ mb: 3 }}>
+		<Box sx={{ mb: { xs: 2, sm: 3 } }}>
 			{breadcrumbs.length > 0 && (
 				<Box sx={{ mb: 1 }}>
 					<MantisBreadcrumbs items={breadcrumbs} />
 				</Box>
 			)}
-			<Stack direction="row" alignItems="center" justifyContent="space-between" flexWrap="wrap" gap={2}>
-				<Box>
-					<Typography variant="h4" component="h1">
+			<Stack
+				direction={{ xs: 'column', sm: 'row' }}
+				alignItems={{ xs: 'stretch', sm: 'center' }}
+				justifyContent="space-between"
+				flexWrap="wrap"
+				gap={2}
+			>
+				<Box sx={{ minWidth: 0 }}>
+					<Typography variant="h4" component="h1" sx={{ fontSize: { xs: '1.125rem', sm: undefined } }}>
 						{title}
 					</Typography>
 					{subtitle}
 				</Box>
-				{actions}
+				{actions ? (
+					<Box
+						sx={{
+							display: 'flex',
+							flexDirection: { xs: 'column', sm: 'row' },
+							gap: 1,
+							width: { xs: '100%', sm: 'auto' },
+							'& .MuiButton-root': { width: { xs: '100%', sm: 'auto' } },
+						}}
+					>
+						{actions}
+					</Box>
+				) : null}
 			</Stack>
 		</Box>
 	);

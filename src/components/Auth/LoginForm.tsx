@@ -115,7 +115,7 @@ export function LoginForm() {
 
 					<Paper
 						variant="outlined"
-						sx={{ p: { xs: 3, sm: 4 }, borderRadius: 3, boxShadow: '0 4px 24px rgba(0,0,0,0.06)' }}
+						sx={{ p: { xs: 3, sm: 4 }, borderRadius: 3, boxShadow: '0 2px 8px rgba(0,0,0,0.03)' }}
 					>
 						<Box component="form" onSubmit={handleSubmit}>
 							<Stack spacing={2.5}>

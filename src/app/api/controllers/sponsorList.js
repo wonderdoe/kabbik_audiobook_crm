@@ -3,7 +3,6 @@ import SponsorModel from '../models/sponsor-request';
 class SponsorController {
     async getSponsor(page,limit) {
         try {
-            console.log("from controller")
             const results = await SponsorModel.SponsorList(page,limit);
             return results;
         } catch (err) {

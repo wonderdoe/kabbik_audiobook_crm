@@ -5,8 +5,6 @@ export const dynamic = 'force-dynamic';
 
 export async function GET(req:any) {
     try {
-        // const 
-        console.log("from router")
          const { searchParams } = new URL(req.url);
 
         const page = searchParams.get('page');   // string | null

@@ -18,7 +18,7 @@ export function PlayCountGrid({ list }: { list: Item[] }) {
 							justifyContent: 'center',
 							minHeight: 160,
 							borderRadius: 2,
-							'&:hover': { boxShadow: 3 },
+							'&:hover': { boxShadow: 2 },
 						}}
 					>
 						<Stack alignItems="center" spacing={1}>

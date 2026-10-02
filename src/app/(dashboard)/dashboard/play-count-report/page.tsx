@@ -35,16 +35,25 @@ export default function PageCountReport() {
 			try {
 				const response = await fetch(`/api/routes/play-count-report`);
 				const apidata = await response.json();
-				setAllData(apidata);
+				if (!response.ok) {
+					setAllData([]);
+					return;
+				}
+				const rows = Array.isArray(apidata)
+					? apidata
+					: Array.isArray(apidata?.payload)
+						? apidata.payload
+						: [];
+				setAllData(rows);
 			} catch {
-				/* ignore */
+				setAllData([]);
 			} finally {
 				setLoading(false);
 			}
 		})();
 	}, []);
 
-	const week = allData.slice(0, 7);
+	const week = Array.isArray(allData) ? allData.slice(0, 7) : [];
 
 	const playRows = [
 		{ logo: KABBIK_LOGO, alt: 'Kabbik', key: 'kabbik_playcount' },
@@ -84,10 +93,18 @@ export default function PageCountReport() {
 					<MainCard
 						title="Daily breakdown"
 						secondary={
-							<Tabs value={tab} onChange={(_, v) => setTab(v as TabKey)}>
-								<Tab label="Play count" value="playcount" />
-								<Tab label="Unique listeners" value="unique" />
-							</Tabs>
+							<Box sx={{ width: '100%', overflowX: 'auto' }}>
+								<Tabs
+									value={tab}
+									onChange={(_, v) => setTab(v as TabKey)}
+									variant="scrollable"
+									scrollButtons="auto"
+									allowScrollButtonsMobile
+								>
+									<Tab label="Play count" value="playcount" />
+									<Tab label="Unique listeners" value="unique" />
+								</Tabs>
+							</Box>
 						}
 					>
 						<TableContainer>

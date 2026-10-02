@@ -10,6 +10,15 @@ Two admin reports that used to scan large payment tables on every page load now 
 - **Today:** Always calculated live so intraday numbers stay current
 - **Past days:** Stored in `daily_subscription_revenue_stats` overnight
 
+## Package Wise Report
+
+- **Page:** Dashboard → Package Wise Report (default: month-to-date, Dhaka)
+- **What you see:** Revenue total per subscription package
+- **Freshness:** Redis `report:pkg-wise:v1:{start}:{end}` — 30 min if range includes today, else 24 h
+- **Past days:** `daily_package_revenue_stats` (built at **00:10** with other rollups)
+- **Today:** Live per-gateway day query only for today’s slice
+- **Legacy SQL:** `PACKAGE_WISE_LEGACY=1` forces old UNION range query
+
 ## Payment Gateway Wise Report
 
 - **Page:** Dashboard → Payment Gateway Wise (default: today only)
@@ -22,7 +31,7 @@ Two admin reports that used to scan large payment tables on every page load now 
 | When | What |
 |------|------|
 | Worker startup | Warm home + default revenue reports into Redis |
-| 00:10 daily | Payment + subscription/PGW rollups for yesterday, then warm all default Redis keys |
+| 00:10 daily | Payment + subscription/PGW + **package-wise** rollups for yesterday, then warm secondary report caches (incl. MTD package-wise) |
 | Every 15 min | Refresh home snapshot in Redis (logical freshness 3600s; key retention 86400s) |
 | Every 15 min | Refresh default subscription (7 days) + PGW (today) in Redis (same TTL model) |
 

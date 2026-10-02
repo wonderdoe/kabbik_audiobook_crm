@@ -29,7 +29,7 @@ type DataSelectProps = {
 	sx?: object;
 };
 
-/** Mantine-style Select (`data`, `clearable`, `searchable`) on MUI. */
+/** Select API (`data`, `clearable`, `searchable`) implemented with MUI. */
 export function DataSelect({
 	label,
 	placeholder = 'All',
@@ -56,6 +56,7 @@ export function DataSelect({
 			<Autocomplete
 				disabled={disabled}
 				options={options}
+				sx={{ width: fullWidth ? '100%' : 'auto', minWidth: fullWidth ? 0 : undefined, ...sx }}
 				getOptionLabel={o => o.label}
 				isOptionEqualToValue={(a, b) => a.value === b.value}
 				value={options.find(o => o.value === (value ?? '')) ?? null}
@@ -67,7 +68,8 @@ export function DataSelect({
 						label={label}
 						placeholder={placeholder}
 						size="small"
-						sx={{ width: '100%' }}
+						fullWidth={fullWidth}
+						sx={{ width: fullWidth ? '100%' : undefined, minWidth: fullWidth ? 0 : undefined, ...sx }}
 						required={required}
 						error={Boolean(error)}
 						helperText={error}
@@ -92,7 +94,11 @@ export function DataSelect({
 			error={Boolean(error)}
 			helperText={error}
 			value={selectedValue}
-			sx={{ minWidth: fullWidth ? undefined : 200, ...sx }}
+			sx={{
+				width: fullWidth ? '100%' : undefined,
+				minWidth: fullWidth ? 0 : 200,
+				...sx,
+			}}
 			InputLabelProps={{
 				id: labelId,
 				shrink: true,

@@ -1,19 +1,24 @@
-import { title } from 'process';
 import DB from '../../../server/config/db.js';
+import {
+	fetchActiveSubscribers,
+	queryRentCountVariant,
+} from '../../../server/jobs/user-report-queries.js';
 
 class SubscriptionUserModel {
 	tableName = 'users';
 	userlist = async (offset, limit) => {
 		try {
-			const sql = `SELECT id,full_name,user_name,user_email,phone_no,created_at,is_subscribed  FROM users 
+			const sql = `SELECT id, full_name, user_name, user_email, phone_no, created_at, is_subscribed
+			FROM users
 			ORDER BY id DESC
 			LIMIT ${limit} OFFSET ${offset}`;
 
-			// WHERE user_name = ? OR user_email = ? OR phone_no = ?
-			// const sql = `INSERT INTO ${this.tableName} (name, email, phone) VALUES (?, ?, ?);`;
 			const result = await DB.query(sql);
 
-			const sql2 = 'SELECT COUNT(*) AS total_count FROM users';
+			const sql2 = `SELECT
+				COUNT(*) AS total_count,
+				SUM(CASE WHEN is_subscribed = 1 THEN 1 ELSE 0 END) AS subscribed_count
+			FROM users`;
 
 			const result2 = await DB.query(sql2);
 			const response = {
@@ -28,17 +33,27 @@ class SubscriptionUserModel {
 
 	searchUser = async (searchkey, offset, limit) => {
 		try {
+			const trimmed = String(searchkey ?? '').trim();
+			const isNumericId = /^\d+$/.test(trimmed);
+			const idClause = isNumericId ? 'OR id = ?' : '';
 			const query = `
 				SELECT * FROM users
-				WHERE LOWER(user_name) LIKE CONCAT('%', LOWER(?), '%')
-				OR LOWER(full_name) LIKE CONCAT('%', LOWER(?), '%')
-				OR LOWER(user_email) LIKE CONCAT('%', LOWER(?), '%')
-				OR LOWER(phone_no) LIKE CONCAT('%', LOWER(?), '%')
+				WHERE (
+					LOWER(user_name) LIKE CONCAT('%', LOWER(?), '%')
+					OR LOWER(full_name) LIKE CONCAT('%', LOWER(?), '%')
+					OR LOWER(user_email) LIKE CONCAT('%', LOWER(?), '%')
+					OR LOWER(phone_no) LIKE CONCAT('%', LOWER(?), '%')
+					${idClause}
+				)
 				LIMIT ${limit} OFFSET ${offset}
 			`;
 			// const pageCountSql =
 			// 	"SELECT COUNT(*) AS total_count FROM users WHERE user_name LIKE CONCAT('%', ? ,'%') OR full_name LIKE CONCAT('%', ? ,'%') OR user_email LIKE CONCAT('%', ? ,'%') OR phone_no LIKE CONCAT('%', ? ,'%');";
-			const result = await DB.query(query, [searchkey, searchkey, searchkey, searchkey, searchkey]);
+			const params = [trimmed, trimmed, trimmed, trimmed];
+			if (isNumericId) {
+				params.push(parseInt(trimmed, 10));
+			}
+			const result = await DB.query(query, params);
 
 			// const result2 = await DB.query(pageCountSql, [search, search, search, search]);
 			// const pageCount = result2[0];
@@ -61,6 +76,31 @@ class SubscriptionUserModel {
 			return result;
 		} catch (error) {
 			throw new Error(error);
+		}
+	};
+
+	getPaymentLogByPayerNo = async payerNo => {
+		try {
+			const trimmed = String(payerNo ?? '').trim();
+			if (!trimmed) {
+				return [];
+			}
+			const sql = `
+				SELECT uspl.*, sp.name
+				FROM user_subscription_payment_log AS uspl
+				LEFT JOIN subscription_packages AS sp ON sp.subscriptionItemId = uspl.package_id
+				WHERE uspl.payer = ?
+					OR uspl.payer LIKE CONCAT('%', ?, '%')
+					OR uspl.user_id IN (
+						SELECT id FROM users
+						WHERE phone_no = ? OR phone_no LIKE CONCAT('%', ?, '%')
+					)
+				ORDER BY uspl.created_at DESC;
+			`;
+			return await DB.query(sql, [trimmed, trimmed, trimmed, trimmed]);
+		} catch (error) {
+			console.error(error);
+			throw error;
 		}
 	};
 
@@ -87,82 +127,9 @@ class SubscriptionUserModel {
 		}
 	};
 
-	getSubcribedUser = async date => {
-		// title
-		// image
-		// count
+	getSubcribedUser = async _date => {
 		try {
-			
-			// a comment
-			const newQuery=` 
-					WITH latest_docs AS (
-						SELECT *
-						FROM (
-							SELECT *,
-								ROW_NUMBER() OVER (PARTITION BY user_id ORDER BY created_at DESC) AS rn
-							FROM user_subscription_payment_log  where from_banglalink = 0
-						) t
-						WHERE rn = 1
-					)					
-											
-						select 
-					spl.is_recurring,
-					spl.payment_method AS payment_source, 
-					SUM(CASE WHEN spl.is_subscribed = 1  THEN 1 ELSE 0 END) AS count
-					from latest_docs as spl
-					WHERE 
-					payment_status = 'SUCCEEDED_PAYMENT'
-					and convert_tz(spl.created_at, '+00:00', '+06:00') 
-					and from_banglalink = 0
-					and amount != '1'
-					AND isCancelled=0
-					and rent_payment = 0
-					GROUP BY  
-					spl.payment_method, 
-					spl.is_recurring
-			;`
-			// testing comment
-			let newResult = await DB.query(newQuery)
-			let getData=(item)=>{
-				if(item?.payment_source?.toLowerCase()==="bkash")
-					return {...item,
-								image:"https://kabbik-space.sgp1.digitaloceanspaces.com/1713779372202.png",
-								name: "Bkash",
-						}
-				if(item?.payment_source?.toLowerCase()==="nagad")
-					return {...item, name:"Nagad",
-								image:"https://kabbik-space.sgp1.digitaloceanspaces.com/1713779396431.png",
-							}
-				if(item?.payment_source?.toLowerCase()==="aamarpay")
-					return {...item,image:"https://kabbik-ab-bucket.s3.ap-south-1.amazonaws.com/1685361594336.png",name:"Aamarpay Payment"}
-				if(item?.payment_source?.toLowerCase()==="robi")
-					return {...item,image:"https://kabbik-space.sgp1.digitaloceanspaces.com/1713779411161.png",name:item.is_recurring?"Robi":"Robi"}
-				if(item?.payment_source?.toLowerCase()==="bl")
-					return {...item,image:"/images/BLlogopng.png",name:item.is_recurring?"BL":"BL"}
-				// if(item?.payment_source?.toLowerCase()==="ROBI")
-				// 	return {...item,image:"https://kabbik-space.sgp1.digitaloceanspaces.com/1713779411161.png",name:"Robi Payment"}
-				if(item?.payment_source?.toLowerCase()==="gp")
-					return {...item,image:"https://kabbik-space.sgp1.cdn.digitaloceanspaces.com/grameen%20.png",name:item.is_recurring?"GP": "GP"}
-				if(item?.payment_source?.toLowerCase()==="app_store")
-					return {...item,image:"https://kabbik-space.sgp1.cdn.digitaloceanspaces.com/applepay.png",
-						name:item.is_recurring?"Apple Pay":"Apple Pay"		
-					}
-				if(item?.payment_source?.toLowerCase()==="play_store")
-					return {...item,image:"https://kabbik-space.sgp1.cdn.digitaloceanspaces.com/googlepay.png",
-						name:item.is_recurring?"Google Pay":"Google Pay"
-					}
-				if(item?.payment_source?.toLowerCase()==="stripe")
-					return {...item,image:"https://kabbik-space.sgp1.cdn.digitaloceanspaces.com/strip.png",
-						name:item.is_recurring?"Stripe":"Stripe"
-				}
-				if(item?.payment_source?.toLowerCase()==="upay")
-					return {...item,image:"/image.png",
-						name:item.is_recurring?"Upay":"Upay"
-					}
-			}
-			let newData=newResult.map((item)=>getData(item))
-			newData=newData.filter((item)=>item!== undefined)
-			return newData;
+			return await fetchActiveSubscribers(0);
 		} catch (error) {
 			console.log(error);
 			throw error;
@@ -305,90 +272,10 @@ class SubscriptionUserModel {
 		}
 	};
 
-	getRentCount = async (body) => {
-		// title
-		// image
-		// count
-		let { isActive, isUnique } = body;
+	getRentCount = async body => {
+		const { isActive, isUnique } = body;
 		try {
-			
-			// a comment
-			const newQuery=`
-				SELECT 
-					0 AS is_recurring, 
-					payment_method AS payment_source,
-					COUNT(${isUnique ? 'DISTINCT s.user_id' : '*'}) AS count
-				FROM store_log s
-				JOIN audiobooks_rent a 
-					ON s.product_id = a.audiobook_id AND a.user_id = s.user_id
-				WHERE 
-					purchase_type = 'Audiobook' AND 
-					is_succeed = 1
-					${isActive ? 'AND a.expired_at > NOW()' : ''}
-				GROUP BY payment_method;
-			`
-			// +` 
-			// 	select  
-			// 		spl.is_recurring,
-			// 		spl.payment_method AS payment_source, 
-			// 		count(${isUnique?'DISTINCT user_id':'*'}) AS count
-			// 	FROM  user_subscription_payment_log as spl
-			// 	WHERE 
-			// 		payment_status = 'SUCCEEDED_PAYMENT'
-			// 		and from_banglalink = 0
-			// 		and rent_payment=1
-			// 		and package_id REGEXP '^[0-9]+$'
-			// 		${isActive ? 'AND created_at + INTERVAL 60 DAY >= NOW()' : ''}
-			// 	GROUP BY  
-			// 		spl.payment_method, 
-			// 		spl.is_recurring;
-			// ;`
-			// testing comment
-			let newResult = await DB.query(newQuery)
-			let getData=(item)=>{
-				if(item?.payment_source?.toLowerCase()==="bkash")
-					return {...item,
-								image:"https://kabbik-space.sgp1.digitaloceanspaces.com/1713779372202.png",
-								name: "Bkash",
-						}
-				if(item?.payment_source?.toLowerCase()==="nagad")
-					return {...item, name:"Nagad",
-								image:"https://kabbik-space.sgp1.digitaloceanspaces.com/1713779396431.png",
-							}
-				if(item?.payment_source?.toLowerCase()==="aamarpay")
-					return {...item,image:"https://kabbik-ab-bucket.s3.ap-south-1.amazonaws.com/1685361594336.png",name:"Aamarpay Payment"}
-				if(item?.payment_source?.toLowerCase()==="robi")
-					return {...item,image:"https://kabbik-space.sgp1.digitaloceanspaces.com/1713779411161.png",name:item.is_recurring?"Robi":"Robi"}
-				if(item?.payment_source?.toLowerCase()==="bl")
-					return {...item,image:"/images/BLlogopng.png",name:item.is_recurring?"BL":"BL"}
-				// if(item?.payment_source?.toLowerCase()==="ROBI")
-				// 	return {...item,image:"https://kabbik-space.sgp1.digitaloceanspaces.com/1713779411161.png",name:"Robi Payment"}
-				if(item?.payment_source?.toLowerCase()==="gp")
-					return {...item,image:"https://kabbik-space.sgp1.cdn.digitaloceanspaces.com/grameen%20.png",name:item.is_recurring?"GP": "GP"}
-				if(item?.payment_source?.toLowerCase()==="app_store")
-					return {...item,image:"https://kabbik-space.sgp1.cdn.digitaloceanspaces.com/applepay.png",
-						name:item.is_recurring?"Apple Pay":"Apple Pay"		
-					}
-				if(item?.payment_source?.toLowerCase()==="play_store")
-					return {...item,image:"https://kabbik-space.sgp1.cdn.digitaloceanspaces.com/googlepay.png",
-						name:item.is_recurring?"Google Pay":"Google Pay"
-					}
-				if(item?.payment_source?.toLowerCase()==="stripe")
-					return {...item,image:"https://kabbik-space.sgp1.cdn.digitaloceanspaces.com/strip.png",
-						name:item.is_recurring?"Stripe":"Stripe"
-				}
-				if(item?.payment_source?.toLowerCase()==="upay")
-					return {...item,image:"/image.png",
-						name:item.is_recurring?"Upay":"Upay"
-					}
-			}
-			let newData=newResult.map((item)=>getData(item)).sort((a, b) => {
-				if (a.name < b.name) return -1;
-				if (a.name > b.name) return 1;
-				return 0;
-			})
-			newData=newData.filter((item)=>item!== undefined)
-			return newData;
+			return await queryRentCountVariant({ isActive, isUnique });
 		} catch (error) {
 			console.log(error);
 			throw error;

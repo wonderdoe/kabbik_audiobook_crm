@@ -15,7 +15,12 @@ import {
 } from '@mui/material';
 import { PageContainer } from '@/components/PageContainer/PageContainer';
 import { IconDownload } from '@tabler/icons-react';
+import { useSearchParams } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import {
+	dispatchRewardsReadUpdated,
+	markClaimIdsRead,
+} from '@/helper/reward-notifications-storage';
 import { RewardClaimDrawer } from './components/RewardClaimDrawer';
 import { RewardClaimsTable } from './components/RewardClaimsTable';
 import { RewardFiltersBar } from './components/RewardFiltersBar';
@@ -48,6 +53,7 @@ function toQueryString(filters: RewardFilters, page: number, pageSize: number, e
 }
 
 export default function RewardsPage() {
+	const searchParams = useSearchParams();
 	const [filters, setFilters] = useState<RewardFilters>(defaultFilters);
 	const [debouncedSearch, setDebouncedSearch] = useState('');
 	const [page, setPage] = useState(1);
@@ -96,9 +102,12 @@ export default function RewardsPage() {
 			if (!listRes.ok || !summaryRes.ok) throw new Error('fetch failed');
 			const listJson = await listRes.json();
 			const summaryJson = await summaryRes.json();
-			setRows(listJson.data ?? []);
+			const data = (listJson.data ?? []) as RewardClaimRow[];
+			setRows(data);
 			setTotal(listJson.total ?? 0);
 			setSummary(summaryJson.summary ?? null);
+			markClaimIdsRead(data.map(r => r.id));
+			dispatchRewardsReadUpdated();
 		} catch {
 			setError('Failed to load rewards. Please try again.');
 		} finally {
@@ -114,6 +123,15 @@ export default function RewardsPage() {
 	useEffect(() => {
 		loadData();
 	}, [loadData]);
+
+	useEffect(() => {
+		const raw = searchParams.get('claimId');
+		if (!raw) return;
+		const id = Number(raw);
+		if (!Number.isFinite(id) || id <= 0) return;
+		setSelectedId(id);
+		setDrawerOpen(true);
+	}, [searchParams]);
 
 	const totalPages = Math.max(1, Math.ceil(total / pageSize));
 	const showingFrom = total === 0 ? 0 : (page - 1) * pageSize + 1;
@@ -186,11 +204,22 @@ export default function RewardsPage() {
 				<RewardClaimsTable rows={rows} onView={handleView} />
 			)}
 
-			<Stack direction="row" justifyContent="space-between" alignItems="center" flexWrap="wrap" gap={1}>
-				<Typography variant="body2" color="text.secondary">
+			<Stack
+				direction={{ xs: 'column', sm: 'row' }}
+				justifyContent="space-between"
+				alignItems={{ xs: 'stretch', sm: 'center' }}
+				flexWrap="wrap"
+				gap={1}
+			>
+				<Typography variant="body2" color="text.secondary" textAlign={{ xs: 'center', sm: 'left' }}>
 					Showing {showingFrom}-{showingTo} of {total}
 				</Typography>
-				<Stack direction="row" alignItems="center" gap={2}>
+				<Stack
+					direction={{ xs: 'column', sm: 'row' }}
+					alignItems="center"
+					gap={2}
+					sx={{ width: { xs: '100%', sm: 'auto' } }}
+				>
 					<FormControl size="small" sx={{ width: 100 }}>
 						<InputLabel>Page size</InputLabel>
 						<Select
@@ -206,7 +235,14 @@ export default function RewardsPage() {
 							<MenuItem value="100">100</MenuItem>
 						</Select>
 					</FormControl>
-					<Pagination count={totalPages} page={page} onChange={(_, p) => setPage(p)} color="primary" />
+					<Pagination
+						count={totalPages}
+						page={page}
+						onChange={(_, p) => setPage(p)}
+						color="primary"
+						siblingCount={0}
+						sx={{ '& .MuiPagination-ul': { justifyContent: 'center', flexWrap: 'wrap' } }}
+					/>
 				</Stack>
 			</Stack>
 

@@ -29,6 +29,7 @@ import {
 	getUpcomingAudiobook,
 } from '@/services/services';
 import { useDisclosure } from '@/hooks/use-disclosure';
+import { useIsMobileSm } from '@/hooks/use-is-mobile-sm';
 import { transition } from '@/styles/motion';
 import { createToast, createToast2 } from 'helpers/SweetAlert';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -49,6 +50,7 @@ const UpcomingAudiobookFormSchema = z.object({
 type UpcomingAudiobookFormType = z.infer<typeof UpcomingAudiobookFormSchema>;
 
 export default function UpcomingAudio() {
+	const isMobileSm = useIsMobileSm();
 	const [data, setData] = useState<any[]>([]);
 	const [isLoading, setIsLoading] = useState(true);
 	const [loading, setLoading] = useState(false);
@@ -384,7 +386,7 @@ export default function UpcomingAudio() {
 						)}
 					</Stack>
 
-					<Dialog open={createUpcomingModalOpened} onClose={closeCreateModal} maxWidth="sm" fullWidth>
+					<Dialog open={createUpcomingModalOpened} onClose={closeCreateModal} maxWidth="sm" fullWidth fullScreen={isMobileSm}>
 						<DialogTitle sx={{ fontWeight: 600 }}>Create upcoming audiobook</DialogTitle>
 						<DialogContent dividers>
 							<Stack
@@ -410,7 +412,7 @@ export default function UpcomingAudio() {
 						</DialogActions>
 					</Dialog>
 
-					<Dialog open={editUpcomingModalOpened} onClose={closeEditUpcomingModal} maxWidth="sm" fullWidth>
+					<Dialog open={editUpcomingModalOpened} onClose={closeEditUpcomingModal} maxWidth="sm" fullWidth fullScreen={isMobileSm}>
 						<DialogTitle sx={{ fontWeight: 600 }}>Edit upcoming audiobook</DialogTitle>
 						<DialogContent dividers>
 							<Stack
@@ -457,7 +459,7 @@ export default function UpcomingAudio() {
 						</DialogActions>
 					</Dialog>
 
-					<Dialog open={Boolean(previewImage)} onClose={() => setPreviewImage(null)} maxWidth="md" fullWidth>
+					<Dialog open={Boolean(previewImage)} onClose={() => setPreviewImage(null)} maxWidth="md" fullWidth fullScreen={isMobileSm}>
 						<DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', py: 1.5 }}>
 							<Typography variant="subtitle1" fontWeight={600}>{previewImage?.title}</Typography>
 							<IconButton aria-label="Close preview" size="small" onClick={() => setPreviewImage(null)}>

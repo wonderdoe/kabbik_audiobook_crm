@@ -45,7 +45,7 @@ export default function SubscriptionListView({ data }: any) {
 	));
 
 	return (
-		<PageContainer title="Subscription" items={[{ label: 'Subscription', href: '/dashboard/subscription' }]}>
+		<PageContainer title="Kabbik Users" items={[{ label: 'Kabbik Users', href: '/dashboard/subscription' }]}>
 			<MainCard contentSX={{ p: 0 }}>
 				<TextField
 					endIcon={<Button variant="text">{icon}</Button>}

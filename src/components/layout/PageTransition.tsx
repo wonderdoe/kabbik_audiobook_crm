@@ -20,6 +20,7 @@ export function PageTransition({ children }: { children: React.ReactNode }) {
 				animate={variants.animate}
 				exit={variants.exit}
 				transition={t}
+				sx={{ minWidth: 0, maxWidth: '100%', overflowX: 'hidden' }}
 			>
 				{children}
 			</Box>

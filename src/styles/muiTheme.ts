@@ -1,6 +1,20 @@
 'use client';
 
-import { createTheme, alpha } from '@mui/material/styles';
+import '@mui/x-tree-view/themeAugmentation';
+import { createTheme, alpha, type Shadows } from '@mui/material/styles';
+
+function softenShadowString(shadow: string): string {
+	if (!shadow || shadow === 'none') return shadow;
+	return shadow.replace(/rgba\(\s*0\s*,\s*0\s*,\s*0\s*,\s*([\d.]+)\s*\)/g, (_, a) => {
+		const n = Math.min(parseFloat(a) * 0.45, 0.1);
+		return `rgba(0,0,0,${n})`;
+	});
+}
+
+function softenElevationShadows(): Shadows {
+	const base = createTheme().shadows;
+	return base.map((s, i) => (i === 0 ? s : softenShadowString(s))) as Shadows;
+}
 
 // Kabbik brand: hot-pink → deep-purple (matches login gradient)
 const primaryMain = '#e91e8c';
@@ -21,6 +35,7 @@ const grey = {
 };
 
 export const muiTheme = createTheme({
+	shadows: softenElevationShadows(),
 	palette: {
 		mode: 'light',
 		primary: {
@@ -59,7 +74,7 @@ export const muiTheme = createTheme({
 		caption: { fontSize: '0.75rem' },
 		button: { textTransform: 'none', fontWeight: 600 },
 	},
-	shape: { borderRadius: 8 },
+	shape: { borderRadius: 4 },
 	transitions: {
 		duration: { shortest: 150, shorter: 200, short: 250, standard: 300 },
 		easing: { easeInOut: 'cubic-bezier(0.4, 0, 0.2, 1)' },
@@ -87,11 +102,11 @@ export const muiTheme = createTheme({
 		MuiCard: {
 			defaultProps: { elevation: 0 },
 			styleOverrides: {
-				root: {
+				root: ({ theme }) => ({
 					border: `1px solid ${grey[200]}`,
-					borderRadius: 4,
+					borderRadius: theme.shape.borderRadius,
 					boxShadow: 'none',
-				},
+				}),
 			},
 		},
 		MuiPaper: {
@@ -108,7 +123,23 @@ export const muiTheme = createTheme({
 				paper: {
 					borderRight: `1px solid ${grey[200]}`,
 					boxShadow: 'none',
-					backgroundColor: '#fff',
+					backgroundColor: grey[50],
+					backgroundImage: `linear-gradient(180deg, ${alpha(primaryMain, 0.03)} 0%, ${grey[50]} 120px)`,
+				},
+			},
+		},
+		MuiTreeItem: {
+			styleOverrides: {
+				content: {
+					borderRadius: 4,
+					'&:hover': {
+						backgroundColor: grey[100],
+					},
+				},
+				groupTransition: {
+					borderLeft: `1px solid ${grey[300]}`,
+					marginLeft: 12,
+					paddingLeft: 8,
 				},
 			},
 		},
@@ -148,6 +179,17 @@ export const muiTheme = createTheme({
 		},
 		MuiChip: {
 			styleOverrides: { root: { fontWeight: 500, borderRadius: 4 } },
+		},
+		MuiTableContainer: {
+			styleOverrides: {
+				root: {
+					display: 'block',
+					width: '100%',
+					maxWidth: '100%',
+					overflowX: 'auto',
+					WebkitOverflowScrolling: 'touch',
+				},
+			},
 		},
 		MuiTableCell: {
 			styleOverrides: {
@@ -205,6 +247,16 @@ export const muiTheme = createTheme({
 		},
 		MuiDialog: {
 			defaultProps: { transitionDuration: 200 },
+			styleOverrides: {
+				paper: {
+					margin: 8,
+					'@media (max-width:599.95px)': {
+						margin: 8,
+						width: 'calc(100% - 16px)',
+						maxWidth: 'calc(100% - 16px)',
+					},
+				},
+			},
 		},
 	},
 });

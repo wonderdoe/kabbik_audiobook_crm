@@ -25,8 +25,11 @@ import { MainCard } from '@/components/mantis/MainCard';
 import { StatCard } from '@/components/ui/StatCard';
 import { DetailGrid } from '@/components/ui/DetailGrid';
 import { useDisclosure } from '@/hooks/use-disclosure';
-import { IconBooks, IconCash, IconChartBar } from '@tabler/icons-react';
+import { useIsMobileSm } from '@/hooks/use-is-mobile-sm';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { IconBooks, IconCash, IconChartBar, IconSearch } from '@tabler/icons-react';
 import moment from 'moment';
+import dayjs from 'dayjs';
 import { useCallback, useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
@@ -35,14 +38,32 @@ import Loader from '@/components/Loader';
 import { getRentRevenueReport } from '@/services/services';
 import { formatPhoneNumber, getTotalPageNumber } from '@/utils/globalHelpers';
 
-const formSchema = z.object({
-	startDate: z.date({ required_error: 'Start date must be selected' }),
-	endDate: z.date({ required_error: 'End date must be selected' }),
-});
+const formSchema = z
+	.object({
+		startDate: z.date({ required_error: 'Start date must be selected' }),
+		endDate: z.date({ required_error: 'End date must be selected' }),
+	})
+	.refine(data => data.endDate >= data.startDate, {
+		message: 'End date must be on or after start date',
+		path: ['endDate'],
+	});
 
 export type FormData = z.infer<typeof formSchema>;
 
+function formatTk(amount: unknown): string {
+	const n = Number(amount);
+	if (!Number.isFinite(n)) return '0 Tk';
+	return `${n.toLocaleString(undefined, { maximumFractionDigits: 2 })} Tk`;
+}
+
+function formatCount(value: unknown): string {
+	const n = Number(value);
+	if (!Number.isFinite(n)) return '0';
+	return n.toLocaleString(undefined, { maximumFractionDigits: 0 });
+}
+
 export default function Rent() {
+	const isMobileSm = useIsMobileSm();
 	const [rentData, setRentData] = useState<any>(null);
 	const [isLoading, setIsLoading] = useState(true);
 	const [date, setDate] = useState<any>({
@@ -59,6 +80,7 @@ export default function Rent() {
 		handleSubmit,
 		formState: { errors },
 	} = useForm<FormData>({
+		resolver: zodResolver(formSchema),
 		defaultValues: {
 			startDate: new Date(moment().startOf('month').format('YYYY-MM-DD')),
 			endDate: new Date(),
@@ -76,12 +98,12 @@ export default function Rent() {
 		fetchData();
 	}, [fetchData]);
 
-	const handleSubmitForm = async (formData: FormData) => {
+	const handleSubmitForm = (formData: FormData) => {
 		setCurrentPage(1);
 		setOffset(0);
 		setDate({
-			startDate: moment(formData.startDate).format('YYYY-MM-DD'),
-			endDate: moment(formData.endDate).format('YYYY-MM-DD'),
+			startDate: dayjs(formData.startDate).format('YYYY-MM-DD'),
+			endDate: dayjs(formData.endDate).format('YYYY-MM-DD'),
 		});
 	};
 
@@ -95,30 +117,30 @@ export default function Rent() {
 
 	return (
 		<PageContainer title="Rent Revenue Report" items={[{ label: 'Rent', href: '/dashboard/rent' }]}>
-			<Stack spacing={2}>
+			<Stack spacing={2} sx={{ minWidth: 0, width: '100%' }}>
 				<Grid container spacing={2}>
-					<Grid item xs={12} md={4}>
+					<Grid item xs={12} sm={6} lg={4} sx={{ display: 'flex' }}>
 						<StatCard
 							title="Rent revenue (all time)"
-							value={`${rentData?.total ?? 0} Tk`}
+							value={formatTk(rentData?.total)}
 							color="success"
 							icon={<IconCash size={22} />}
 							loading={isLoading}
 						/>
 					</Grid>
-					<Grid item xs={12} md={4}>
+					<Grid item xs={12} sm={6} lg={4} sx={{ display: 'flex' }}>
 						<StatCard
 							title="Revenue in range"
-							value={`${rentData?.totalAmountInRange ?? 0} Tk`}
+							value={formatTk(rentData?.totalAmountInRange)}
 							color="primary"
 							icon={<IconChartBar size={22} />}
 							loading={isLoading}
 						/>
 					</Grid>
-					<Grid item xs={12} md={4}>
+					<Grid item xs={12} sm={6} lg={4} sx={{ display: 'flex' }}>
 						<StatCard
 							title="Rented books in range"
-							value={rentData?.totalCountInRange ?? 0}
+							value={formatCount(rentData?.totalCountInRange)}
 							color="info"
 							icon={<IconBooks size={22} />}
 							loading={isLoading}
@@ -128,22 +150,47 @@ export default function Rent() {
 
 				<MainCard title="Date range">
 					<form onSubmit={handleSubmit(handleSubmitForm, err => console.error(err))}>
-						<Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems="flex-end">
-							<CustomDatePicker
-								label="Start Date"
-								name="startDate"
-								control={control}
-								placeholder="Select start date"
-								error={(errors.startDate && errors.startDate.message) as string}
-							/>
-							<CustomDatePicker
-								label="End Date"
-								name="endDate"
-								control={control}
-								placeholder="Select end date"
-								error={(errors.endDate && errors.endDate.message) as string}
-							/>
-							<Button type="submit" variant="contained">Apply filter</Button>
+						<Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems={{ xs: 'stretch', sm: 'center' }}>
+							<Box
+								sx={{
+									flex: 1,
+									minWidth: { sm: 200 },
+									'& .MuiFormControl-root': { mt: 0, mb: 0 },
+									'& .MuiFormHelperText-root': { display: errors.startDate ? 'block' : 'none' },
+								}}
+							>
+								<CustomDatePicker
+									label="Start Date"
+									name="startDate"
+									control={control}
+									placeholder="Select start date"
+									error={(errors.startDate && errors.startDate.message) as string}
+								/>
+							</Box>
+							<Box
+								sx={{
+									flex: 1,
+									minWidth: { sm: 200 },
+									'& .MuiFormControl-root': { mt: 0, mb: 0 },
+									'& .MuiFormHelperText-root': { display: errors.endDate ? 'block' : 'none' },
+								}}
+							>
+								<CustomDatePicker
+									label="End Date"
+									name="endDate"
+									control={control}
+									placeholder="Select end date"
+									error={(errors.endDate && errors.endDate.message) as string}
+								/>
+							</Box>
+							<Button
+								type="submit"
+								variant="contained"
+								startIcon={<IconSearch size={16} />}
+								sx={{ px: 3, py: 1.25, whiteSpace: 'nowrap', flexShrink: 0, alignSelf: { xs: 'stretch', sm: 'auto' } }}
+							>
+								Apply filter
+							</Button>
 						</Stack>
 					</form>
 				</MainCard>
@@ -213,7 +260,7 @@ export default function Rent() {
 					</Box>
 				</MainCard>
 
-				<Dialog open={isOpenDetailsModal} onClose={closeDetailsModal} maxWidth="md" fullWidth>
+				<Dialog open={isOpenDetailsModal} onClose={closeDetailsModal} maxWidth="md" fullWidth fullScreen={isMobileSm}>
 					<DialogTitle>Rent details</DialogTitle>
 					<DialogContent>
 						<DetailGrid

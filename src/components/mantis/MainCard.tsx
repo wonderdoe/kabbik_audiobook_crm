@@ -9,6 +9,7 @@ import {
 	useTheme,
 } from '@mui/material';
 import type { ReactNode } from 'react';
+import { cardShadow } from '@/styles/cardShadow';
 
 type MainCardProps = {
 	title?: ReactNode;
@@ -27,20 +28,23 @@ export function MainCard({ title, subtitle, secondary, children, contentSX, bord
 		<Card
 			sx={{
 				border: border ? `1px solid ${theme.palette.divider}` : 'none',
-				borderRadius: 2,
-				boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
+				borderRadius: 1,
+				boxShadow: cardShadow.rest,
 				transition: 'box-shadow 0.2s',
-				'&:hover': { boxShadow: '0 4px 16px rgba(0,0,0,0.07)' },
+				'&:hover': { boxShadow: cardShadow.hover },
+				minWidth: 0,
+				maxWidth: '100%',
 				...sx,
 			}}
 		>
 			{(title || secondary) && (
 				<Box
 					sx={{
-						px: 2.5,
-						py: 1.75,
+						px: { xs: 1.5, sm: 2.5 },
+						py: { xs: 1.25, sm: 1.75 },
 						display: 'flex',
-						alignItems: 'center',
+						flexDirection: { xs: 'column', sm: 'row' },
+						alignItems: { xs: 'stretch', sm: 'center' },
 						justifyContent: 'space-between',
 						gap: 2,
 						borderBottom: `1px solid ${alpha(theme.palette.divider, 0.6)}`,
@@ -61,7 +65,9 @@ export function MainCard({ title, subtitle, secondary, children, contentSX, bord
 					{secondary}
 				</Box>
 			)}
-			<CardContent sx={{ p: 2.5, pt: 2.5, ...contentSX }}>{children}</CardContent>
+			<CardContent sx={{ p: { xs: 1.5, sm: 2.5 }, pt: { xs: 1.5, sm: 2.5 }, ...contentSX }}>
+				{children}
+			</CardContent>
 		</Card>
 	);
 }

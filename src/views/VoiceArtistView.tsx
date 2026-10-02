@@ -418,7 +418,7 @@ export default function VoiceArtistView() {
 												overflow: 'hidden',
 												transition: 'box-shadow 0.2s, transform 0.2s',
 												'&:hover': {
-													boxShadow: `0 12px 28px ${alpha(theme.palette.primary.main, 0.12)}`,
+													boxShadow: `0 4px 10px ${alpha(theme.palette.primary.main, 0.06)}`,
 													transform: 'translateY(-2px)',
 												},
 											}}

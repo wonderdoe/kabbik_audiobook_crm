@@ -4,9 +4,10 @@ import { createActivityLog } from '@/helper/Commonfunction';
 import { imageUploadApiUrl } from '@/utils/constant';
 import {
 	Button,
+	FormControl,
 	FormHelperText,
-	Stack,
-	Typography,
+	InputLabel,
+	OutlinedInput,
 } from '@mui/material';
 import { Dispatch, SetStateAction, useEffect, useState } from 'react';
 
@@ -89,46 +90,50 @@ export const CustomFileInput = ({
 		}
 	};
 
-	const showError = Boolean(required && isTouched && !filePath && error);
+	const showError = Boolean(required && isTouched && !filePath && error) || Boolean(error);
 
 	const registration = register(name);
+	const helperMessage = showError || error ? error : ' ';
 
 	return (
-		<Stack spacing={0.5} sx={{ my: 1 }}>
-			<Typography variant="body2" fontWeight={500}>
+		<FormControl fullWidth size="small" error={Boolean(showError || error)} required={required}>
+			<InputLabel shrink htmlFor={`${name}-file`}>
 				{label}
-				{required ? (
-					<Typography component="span" color="error.main">
-						{' '}
-						*
-					</Typography>
-				) : null}
-			</Typography>
-			<Button
-				variant="outlined"
-				component="label"
-				size="small"
+			</InputLabel>
+			<OutlinedInput
+				notched
+				label={label}
+				readOnly
+				value={filePath || ''}
+				placeholder={placeholder}
 				sx={{
-					justifyContent: 'flex-start',
-					color: filePath ? 'text.primary' : 'text.secondary',
-					borderColor: showError ? 'error.main' : undefined,
+					'& .MuiOutlinedInput-input': {
+						cursor: 'pointer',
+						color: filePath ? 'text.primary' : 'text.secondary',
+					},
 				}}
-			>
-				{filePath || placeholder}
-				<input
-					type="file"
-					hidden
-					multiple={multiple}
-					accept={accept}
-					name={registration.name}
-					ref={registration.ref}
-					onBlur={registration.onBlur}
-					onChange={e => {
-						void handleFile(e);
-					}}
-				/>
-			</Button>
-			<FormHelperText error={showError || Boolean(error)}>{showError || error ? error : ' '}</FormHelperText>
-		</Stack>
+				inputProps={{ id: `${name}-file` }}
+				onClick={() => document.getElementById(`${name}-file-input`)?.click()}
+				endAdornment={
+					<Button component="label" size="small" variant="text" sx={{ whiteSpace: 'nowrap', flexShrink: 0 }}>
+						Browse
+						<input
+							id={`${name}-file-input`}
+							type="file"
+							hidden
+							multiple={multiple}
+							accept={accept}
+							name={registration.name}
+							ref={registration.ref}
+							onBlur={registration.onBlur}
+							onChange={e => {
+								void handleFile(e);
+							}}
+						/>
+					</Button>
+				}
+			/>
+			<FormHelperText sx={{ minHeight: 20, m: 0, mt: 0.5 }}>{helperMessage}</FormHelperText>
+		</FormControl>
 	);
 };

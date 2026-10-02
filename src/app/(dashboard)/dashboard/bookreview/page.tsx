@@ -25,6 +25,7 @@ import { PageContainer } from '@/components/PageContainer/PageContainer';
 import Loader from '@/components/Loader';
 import { createActivityLog } from '@/helper/Commonfunction';
 import { useDisclosure } from '@/hooks/use-disclosure';
+import { useIsMobileSm } from '@/hooks/use-is-mobile-sm';
 import { transition } from '@/styles/motion';
 import { getTotalPageNumber } from '@/utils/globalHelpers';
 import { IconEye, IconSearch, IconTrash, IconX } from '@tabler/icons-react';
@@ -34,6 +35,7 @@ import { useEffect, useState } from 'react';
 import Swal from 'sweetalert2';
 
 export default function BookReview() {
+	const isMobileSm = useIsMobileSm();
 	const [reviewData, setReviewData] = useState<any[]>([]);
 	const [currentPage, setCurrentPage] = useState(1);
 	const [limit] = useState(12);
@@ -319,7 +321,7 @@ export default function BookReview() {
 						)}
 					</Stack>
 
-					<Dialog open={detailsModalOpened} onClose={closeDetailsModal} maxWidth="sm" fullWidth>
+					<Dialog open={detailsModalOpened} onClose={closeDetailsModal} maxWidth="sm" fullWidth fullScreen={isMobileSm}>
 						<DialogTitle sx={{ fontWeight: 600 }}>Review details</DialogTitle>
 						<DialogContent dividers>
 							<Stack spacing={2} sx={{ pt: 0.5 }}>
@@ -356,7 +358,7 @@ export default function BookReview() {
 						</DialogActions>
 					</Dialog>
 
-					<Dialog open={Boolean(previewImage)} onClose={() => setPreviewImage(null)} maxWidth="md" fullWidth>
+					<Dialog open={Boolean(previewImage)} onClose={() => setPreviewImage(null)} maxWidth="md" fullWidth fullScreen={isMobileSm}>
 						<DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', py: 1.5 }}>
 							<Typography variant="subtitle1" fontWeight={600}>{previewImage?.title}</Typography>
 							<IconButton aria-label="Close preview" size="small" onClick={() => setPreviewImage(null)}>

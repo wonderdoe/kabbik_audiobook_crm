@@ -10,6 +10,7 @@ import {
 } from '@mui/material';
 import { motion } from 'framer-motion';
 import type { ReactNode } from 'react';
+import { cardShadow } from '@/styles/cardShadow';
 
 type AnalyticCardProps = {
 	title: string;
@@ -36,18 +37,18 @@ export function AnalyticCard({ title, count, icon, color = 'primary', extra }: A
 	return (
 		<Box
 			component={motion.div}
-			whileHover={{ y: -3, boxShadow: `0 8px 24px ${alpha(main, 0.14)}` }}
+			whileHover={{ y: -2, boxShadow: `0 4px 10px ${alpha(main, 0.08)}` }}
 			transition={{ duration: 0.18 }}
 			sx={{
 				p: 2.5,
-				borderRadius: 2,
+				borderRadius: 1,
 				border: `1px solid ${theme.palette.divider}`,
 				bgcolor: 'background.paper',
 				height: '100%',
 				overflow: 'hidden',
 				position: 'relative',
 				cursor: 'default',
-				boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
+				boxShadow: cardShadow.rest,
 				'&::before': {
 					content: '""',
 					position: 'absolute',
@@ -56,7 +57,7 @@ export function AnalyticCard({ title, count, icon, color = 'primary', extra }: A
 					right: 0,
 					height: 3,
 					bgcolor: main,
-					borderRadius: '8px 8px 0 0',
+					borderRadius: `${theme.shape.borderRadius}px ${theme.shape.borderRadius}px 0 0`,
 					opacity: 0.85,
 				},
 			}}
@@ -86,9 +87,9 @@ export function AnalyticCard({ title, count, icon, color = 'primary', extra }: A
 						height: 46,
 						bgcolor: light,
 						color: main,
-						borderRadius: 2,
+						borderRadius: 1,
 						flexShrink: 0,
-						boxShadow: `0 0 0 1px ${alpha(main, 0.18)}`,
+						boxShadow: `0 0 0 1px ${alpha(main, 0.1)}`,
 					}}
 				>
 					{icon}
