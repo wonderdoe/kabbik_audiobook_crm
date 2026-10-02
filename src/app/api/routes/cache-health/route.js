@@ -1,10 +1,13 @@
 import { NextResponse } from 'next/server';
 import { ensureRedisReady, redis } from '../../../../server/config/redis.js';
 import {
+	DEFAULT_RENT_REPORT_LIMIT,
 	dashHomeCacheKey,
+	defaultRentReportRange,
 	playCountReportCacheKey,
+	rentRevenueCacheKey,
 	signUpReportCacheKey,
-	userCountCacheKey,
+	userReportSnapshotCacheKey,
 } from '../../../../server/jobs/cache-warm.js';
 import { dhakaTodayYmd } from '../../../../server/utils/dhaka-date.js';
 
@@ -25,17 +28,36 @@ export async function GET() {
 		}
 
 		const today = dhakaTodayYmd();
-		const [heartbeat, homeOk, revenueOk, dashTtl, signupTtl, playReportTtl, userReportTtl, redisStatus] =
-			await Promise.all([
-				readTs('worker:heartbeat'),
-				readTs('warm:home:last_ok'),
-				readTs('warm:revenue-warm:last_ok'),
-				redis.ttl(dashHomeCacheKey()),
-				redis.ttl(signUpReportCacheKey()),
-				redis.ttl(playCountReportCacheKey()),
-				redis.ttl(userCountCacheKey(today)),
-				Promise.resolve(redis.status),
-			]);
+		const { startDate: rentStart, endDate: rentEnd } = defaultRentReportRange();
+		const defaultRentRevenueKey = rentRevenueCacheKey(
+			rentStart,
+			rentEnd,
+			DEFAULT_RENT_REPORT_LIMIT,
+			0,
+		);
+		const [
+			heartbeat,
+			homeOk,
+			revenueOk,
+			reportWarmOk,
+			dashTtl,
+			signupTtl,
+			playReportTtl,
+			userReportSnapshotTtl,
+			rentRevenueDefaultPageTtl,
+			redisStatus,
+		] = await Promise.all([
+			readTs('worker:heartbeat'),
+			readTs('warm:home:last_ok'),
+			readTs('warm:revenue-warm:last_ok'),
+			readTs('warm:report-warm:last_ok'),
+			redis.ttl(dashHomeCacheKey()),
+			redis.ttl(signUpReportCacheKey()),
+			redis.ttl(playCountReportCacheKey()),
+			redis.ttl(userReportSnapshotCacheKey(today)),
+			redis.ttl(defaultRentRevenueKey),
+			Promise.resolve(redis.status),
+		]);
 
 		const now = Date.now();
 		const heartbeatAgeMs = heartbeat ? now - heartbeat : null;
@@ -52,12 +74,15 @@ export async function GET() {
 			warm: {
 				homeLastOk: homeOk,
 				revenueLastOk: revenueOk,
+				reportWarmLastOk: reportWarmOk,
 			},
 			keys: {
 				dashHomeTtlSeconds: dashTtl,
 				signUpReportTtlSeconds: signupTtl,
 				playCountReportTtlSeconds: playReportTtl,
-				userCountTodayTtlSeconds: userReportTtl,
+				userReportSnapshotTtlSeconds: userReportSnapshotTtl,
+				rentRevenueDefaultPageTtlSeconds: rentRevenueDefaultPageTtl,
+				rentRevenueDefaultPageKey: defaultRentRevenueKey,
 			},
 			env: {
 				redisEnv: process.env.REDIS_ENV === 'production' ? 'production' : 'staging',

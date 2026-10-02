@@ -2,17 +2,17 @@
 import {
 	Box,
 	Button,
+	Chip,
 	CircularProgress,
 	Dialog,
 	DialogContent,
 	DialogTitle,
 	Divider,
 	IconButton,
+	InputAdornment,
 	Pagination,
-	Paper,
 	Slide,
 	Stack,
-	Tab,
 	Table,
 	TableBody,
 	TableCell,
@@ -22,8 +22,9 @@ import {
 	TextField,
 	Typography,
 } from '@mui/material';
-import { PageContainer } from '@/components/PageContainer/PageContainer';
 import { MainCard } from '@/components/mantis/MainCard';
+import { DetailGrid } from '@/components/ui/DetailGrid';
+import { PageContainer } from '@/components/PageContainer/PageContainer';
 
 import { useDisclosure } from '@/hooks/use-disclosure';
 import { TransitionProps } from '@mui/material/transitions';
@@ -167,7 +168,14 @@ export default function Subscription() {
 				<TableCell>{element.user_name || 'N/A'}</TableCell>
 				<TableCell>{formatPhoneNumber(element.phone_no) || '-'}</TableCell>
 				<TableCell>{element.user_email|| '-'}</TableCell>
-				<TableCell>{element.is_subscribed === 1 ? 'Yes' : 'No'}</TableCell>
+				<TableCell>
+					<Chip
+						size="small"
+						variant="outlined"
+						color={element.is_subscribed === 1 ? 'success' : 'default'}
+						label={element.is_subscribed === 1 ? 'Subscribed' : 'Not subscribed'}
+					/>
+				</TableCell>
 				<TableCell>
 					<Stack direction="row" flexWrap="wrap" spacing={6}>
 						<Button
@@ -207,24 +215,22 @@ export default function Subscription() {
 				<Typography mb={15} maxWidth="xl" sx={{ width: "100%" }} fontWeight={900} style={{ fontWeight: 'bold', textAlign: 'center' }}>
 					Extra Details
 				</Typography>
-				<div style={{ display: 'flex', justifyContent: 'center', margin: '0 auto', width: '50%' }}>
-					<Table mb={50}>
-						<TableHead>
-							<TableCell component="th">Id</TableCell>
-							<TableCell component="th">User Name</TableCell>
-							<TableCell component="th">Email</TableCell>
-							<TableCell component="th">Created At</TableCell>
-						</TableHead>
-						<TableBody>
-							<TableCell>{details?.id || 'N/A'}</TableCell>
-							<TableCell>{details?.user_name || 'N/A'}</TableCell>
-							<TableCell>{details?.user_email || 'N/A'}</TableCell>
-							<TableCell>
-								{moment(details?.created_at).format('Do MMM YYYY h:mma') || 'N/A'}
-							</TableCell>
-						</TableBody>
-					</Table>
-				</div>
+				<Box sx={{ px: 3, maxWidth: 720, mx: 'auto' }}>
+					<DetailGrid
+						title="User"
+						fields={[
+							{ label: 'Id', value: details?.id },
+							{ label: 'User name', value: details?.user_name },
+							{ label: 'Email', value: details?.user_email },
+							{
+								label: 'Created at',
+								value: details?.created_at
+									? moment(details.created_at).format('Do MMM YYYY h:mma')
+									: 'N/A',
+							},
+						]}
+					/>
+				</Box>
 				<Typography mb={15} maxWidth="xl" sx={{ width: "100%" }} fontWeight={900} style={{ fontWeight: 'bold', textAlign: 'center' }}>
 					Subscription Details
 				</Typography>
@@ -308,14 +314,25 @@ export default function Subscription() {
 
 	return (
 		<PageContainer title="Subscription" items={[{ label: 'Subscription', href: '/dashboard/subscription' }]}>
-			<form style={{ display: 'flex' }} onSubmit={handleSubmit}>
+			<MainCard title="Search users">
+			<form onSubmit={handleSubmit}>
 				<TextField
 					name="searchkey"
+					fullWidth
+					size="small"
 					placeholder="Search by name, email or number..."
-					endIcon={<IconSearch size={16} />}
-					style={{ width: '100%' }}
+					InputProps={{
+						endAdornment: (
+							<InputAdornment position="end">
+								<IconButton type="submit" edge="end" aria-label="Search">
+									<IconSearch size={18} />
+								</IconButton>
+							</InputAdornment>
+						),
+					}}
 				/>
 			</form>
+			</MainCard>
 			<Box sx={{ height: 16 }} />
 			<MainCard contentSX={{ p: 0 }}>
 				{initialLoader ? (
@@ -327,9 +344,9 @@ export default function Subscription() {
 				) : (
 					<>
 						<TableContainer sx={{ minWidth: 800 }}>
-							<Table verticalSpacing="xs" horizontalSpacing="xs">
+							<Table size="small">
 								<TableHead>
-									<TableRow>
+									<TableRow sx={{ '& th': { fontWeight: 700, bgcolor: 'action.hover' } }}>
 										<TableCell component="th">ID</TableCell>
 										<TableCell component="th">Login Id</TableCell>
 										<TableCell component="th">User Phone</TableCell>

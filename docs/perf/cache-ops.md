@@ -12,9 +12,12 @@ pm2 logs crm-worker --lines 100
 Expect every **15 minutes** (Asia/Dhaka):
 
 - `[cron:home] ok`
-- `[cron:revenue-warm] ok` (skipped at **00:00** only; `rollup-and-warm` at **00:10** warms all)
+- `[cron:revenue-warm] ok` (skipped at **00:00** only)
+- `[cron:report-warm] ok` — user-report snapshot, rent revenue default page (`limit=10`, month-to-date), and related report keys (skipped at **00:00** only)
 
-At **00:10** daily: `[cron:rollup-and-warm] ok`
+At **00:10** daily: `[cron:rollup-and-warm] ok` (daily rollups + `warmAllDefaultCaches` for sign-up / play-count / user-report / rent default page)
+
+`warmAllDefaultCaches` on startup warms **report caches only**; home and revenue rely on their 15-min crons.
 
 Bad signs: `redis unavailable`, `skipped (lock held)` every tick, repeated `failed`.
 
@@ -41,6 +44,9 @@ redis-cli TTL dash:home
 redis-cli GET worker:heartbeat
 redis-cli GET warm:home:last_ok
 redis-cli GET warm:revenue-warm:last_ok
+redis-cli GET warm:report-warm:last_ok
+redis-cli TTL report:user-report:v1:YYYY-MM-DD
+redis-cli TTL report:rent-revenue:v1:YYYY-MM-01:YYYY-MM-DD:10:0
 ```
 
 - `dash:home` TTL should stay near **86400** (hard retention); logical freshness is **60 min** inside the payload.

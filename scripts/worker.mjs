@@ -12,6 +12,8 @@ import {
 	warmAllDefaultCaches,
 	warmDashboardHome,
 	warmDefaultRevenueReports,
+	warmDefaultRentReport,
+	warmUserReport,
 } from '../src/server/jobs/cache-warm.js';
 import { dhakaClock } from '../src/server/utils/dhaka-date.js';
 
@@ -110,6 +112,21 @@ cron.schedule(
 			return;
 		}
 		return withLock('revenue-warm', 240, () => warmDefaultRevenueReports());
+	},
+	TZ,
+);
+
+cron.schedule(
+	'*/15 * * * *',
+	() => {
+		if (shouldSkipMidnightRevenueWarm()) {
+			console.log('[cron:report-warm] skipped (midnight; rollup-and-warm handles warm)');
+			return;
+		}
+		return withLock('report-warm', 600, async () => {
+			await warmUserReport();
+			await warmDefaultRentReport();
+		});
 	},
 	TZ,
 );

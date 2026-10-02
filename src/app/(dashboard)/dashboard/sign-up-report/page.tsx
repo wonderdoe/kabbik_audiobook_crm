@@ -1,8 +1,7 @@
 'use client';
+
 import {
 	Box,
-	Paper,
-	Tab,
 	Table,
 	TableBody,
 	TableCell,
@@ -14,111 +13,38 @@ import {
 import { PageContainer } from '@/components/PageContainer/PageContainer';
 import { MainCard } from '@/components/mantis/MainCard';
 import { MuiAreaChart } from '@/components/Charts/MuiAreaChart';
-import { IconArrowDown, IconArrowUp } from '@tabler/icons-react';
+import { TrendValue } from '@/components/ui/TrendValue';
 import moment from 'moment';
 import { useEffect, useState } from 'react';
 import Loader from '@/components/Loader';
+
+const KABBIK_LOGO = 'https://kabbik-space.sgp1.digitaloceanspaces.com/1713780521478.png';
+const BL_LOGO = 'https://kabbik-space.sgp1.digitaloceanspaces.com/1713780481387.png';
+const TOFFEE_LOGO = 'https://kabbik-space.sgp1.digitaloceanspaces.com/1713780502718.png';
+
 export default function SignUpReport() {
 	const [loading, setLoading] = useState(true);
 	const [trackUser, setTrackUser] = useState<any>([]);
-	async function lastSevenDaysUserTrack() {
-		try {
-			const response = await fetch(`/api/routes/last-seven-days-sign-up`, {
-				cache: 'no-store',
-				method: 'POST',
-			});
-			
-			const apidata = await response.json();
-			setLoading(false);
-
-			setTrackUser(apidata);
-		} catch (error) {}
-	}
-
-	const compareCount = (index: number) => {
-		if (index < 7) {
-			const currentElement: any = trackUser[index];
-			const previousElement: any = trackUser[index + 1];
-
-			if (currentElement.kabbikCount > previousElement.kabbikCount) {
-				return (
-					<span style={{ color: 'green' }}>
-						{currentElement.kabbikCount}
-						<IconArrowUp />
-					</span>
-				);
-			} else if (currentElement.kabbikCount < previousElement.kabbikCount) {
-				return (
-					<span style={{ color: 'red' }}>
-						{currentElement.kabbikCount}
-						<IconArrowDown />
-					</span>
-				);
-			} else {
-				return <span>{currentElement.kabbikCount}</span>;
-			}
-		} else {
-			return <span>{trackUser[index].kabbikCount}</span>;
-		}
-	};
-
-	const compareMyBlCount = (index: number) => {
-		if (index < 7) {
-			const currentElement: any = trackUser[index];
-			const previousElement: any = trackUser[index + 1];
-
-			if (currentElement.myBLCount > previousElement.myBLCount) {
-				return (
-					<span style={{ color: 'green' }}>
-						{currentElement.myBLCount}
-						<IconArrowUp />
-					</span>
-				);
-			} else if (currentElement.myBLCount < previousElement.myBLCount) {
-				return (
-					<span style={{ color: 'red' }}>
-						{currentElement.myBLCount}
-						<IconArrowDown />
-					</span>
-				);
-			} else {
-				return <span>{currentElement.myBLCount}</span>;
-			}
-		} else {
-			return <span>{trackUser[index].myBLCount}</span>;
-		}
-	};
-
-	const compareToffeCount = (index: number) => {
-		if (index < 7) {
-			const currentElement: any = trackUser[index];
-			const previousElement: any = trackUser[index + 1];
-
-			if (currentElement.toffeeCount > previousElement.toffeeCount) {
-				return (
-					<span style={{ color: 'green' }}>
-						{currentElement.toffeeCount}
-						<IconArrowUp />
-					</span>
-				);
-			} else if (currentElement.toffeeCount < previousElement.toffeeCount) {
-				return (
-					<span style={{ color: 'red' }}>
-						{currentElement.toffeeCount}
-						<IconArrowDown />
-					</span>
-				);
-			} else {
-				return <span>{currentElement.toffeeCount}</span>;
-			}
-		} else {
-			return <span>{trackUser[index].toffeeCount}</span>;
-		}
-	};
 
 	useEffect(() => {
-		lastSevenDaysUserTrack();
+		(async () => {
+			try {
+				const response = await fetch(`/api/routes/last-seven-days-sign-up`, {
+					cache: 'no-store',
+					method: 'POST',
+				});
+				const apidata = await response.json();
+				setTrackUser(apidata);
+			} catch {
+				/* ignore */
+			} finally {
+				setLoading(false);
+			}
+		})();
 	}, []);
+
+	const week = trackUser.slice(0, 7);
+
 	return (
 		<PageContainer
 			title="Sign Up Report"
@@ -128,16 +54,15 @@ export default function SignUpReport() {
 				<Loader />
 			) : (
 				<>
-					<Typography variant="h5" component="h2" mb={'md'}>
-						Overview
-					</Typography>
-					<Paper elevation={1} sx={{ p: 2 }}>
+					<MainCard
+						title="Overview"
+						subtitle="Last 7 days sign-ups by platform"
+						sx={{ mb: 3 }}
+					>
 						<MuiAreaChart
 							h={300}
 							withLegend
-							data={trackUser
-								.slice(0, 7)
-								.map((v: any) => ({ ...v, date: moment(v.date).format('Do MMM, YYYY') }))}
+							data={week.map((v: any) => ({ ...v, date: moment(v.date).format('Do MMM, YYYY') }))}
 							dataKey="date"
 							series={[
 								{ name: 'kabbikCount', color: 'indigo.6', label: 'Kabbik Count' },
@@ -146,75 +71,55 @@ export default function SignUpReport() {
 							]}
 							curveType="linear"
 						/>
-					</Paper>
-					<Typography variant="h5" component="h2" mb={'md'}>
-						Sign Up Report
-					</Typography>
-					<Paper elevation={1} sx={{ p: 2 }}>
-						<Table>
-							<TableBody>
-								<TableRow>
-									<TableCell>
-										<Typography variant="caption" color="text.secondary">
-											Date
-										</Typography>
-									</TableCell>
-									{trackUser.slice(0, 7).map((element: any) => (
-										<TableCell key={element.date}>
-											<Typography variant="caption" color="text.secondary">
-												{moment(element.date).format('Do MMM, YYYY')}
-											</Typography>
+					</MainCard>
+
+					<MainCard title="Sign Up Report">
+						<TableContainer>
+							<Table size="small">
+								<TableHead>
+									<TableRow sx={{ '& th': { fontWeight: 700, bgcolor: 'action.hover' } }}>
+										<TableCell sx={{ position: 'sticky', left: 0, bgcolor: 'background.paper', zIndex: 1 }}>
+											Platform
 										</TableCell>
+										{week.map((element: any) => (
+											<TableCell key={element.date} align="center">
+												<Typography variant="caption" color="text.secondary">
+													{moment(element.date).format('Do MMM, YYYY')}
+												</Typography>
+											</TableCell>
+										))}
+									</TableRow>
+								</TableHead>
+								<TableBody>
+									{[
+										{ logo: KABBIK_LOGO, alt: 'Kabbik', key: 'kabbikCount' },
+										{ logo: BL_LOGO, alt: 'Banglalink', key: 'myBLCount' },
+										{ logo: TOFFEE_LOGO, alt: 'Toffee', key: 'toffeeCount' },
+									].map(row => (
+										<TableRow key={row.key} hover>
+											<TableCell sx={{ position: 'sticky', left: 0, bgcolor: 'background.paper' }}>
+												<Box
+													component="img"
+													src={row.logo}
+													alt={row.alt}
+													sx={{ width: 64, height: 64, objectFit: 'contain', borderRadius: 2 }}
+												/>
+											</TableCell>
+											{week.map((element: any, index: number) => {
+												const current = element[row.key] as number;
+												const previous = index < 7 ? week[index + 1]?.[row.key] : undefined;
+												return (
+													<TableCell key={element.date} align="center">
+														<TrendValue current={current} previous={previous} showTrend={index < 7} />
+													</TableCell>
+												);
+											})}
+										</TableRow>
 									))}
-								</TableRow>
-								<TableRow>
-									<TableCell>
-										<Box component="img" 
-											h={80}
-											w={80}
-											style={{ objectFit: 'contain' }}
-											sx={{ borderRadius: 2 }}
-											src={'https://kabbik-space.sgp1.digitaloceanspaces.com/1713780521478.png'}
-											alt="Kabbik"
-										/>
-									</TableCell>
-									{trackUser.slice(0, 7).map((element: any, index: any) => (
-										<TableCell key={element.date}>{compareCount(index)}</TableCell>
-									))}
-								</TableRow>
-								<TableRow>
-									<TableCell>
-										<Box component="img" 
-											h={80}
-											w={80}
-											style={{ objectFit: 'contain' }}
-											sx={{ borderRadius: 2 }}
-											src={'https://kabbik-space.sgp1.digitaloceanspaces.com/1713780481387.png'}
-											alt="Banglalink"
-										/>
-									</TableCell>
-									{trackUser.slice(0, 7).map((element: any, index: any) => (
-										<TableCell key={element.date}>{compareMyBlCount(index)}</TableCell>
-									))}
-								</TableRow>
-								<TableRow>
-									<TableCell>
-										<Box component="img" 
-											h={80}
-											w={80}
-											style={{ objectFit: 'contain' }}
-											sx={{ borderRadius: 2 }}
-											src={'https://kabbik-space.sgp1.digitaloceanspaces.com/1713780502718.png'}
-											alt="Toffee"
-										/>
-									</TableCell>
-									{trackUser.slice(0, 7).map((element: any, index: any) => (
-										<TableCell key={element.date}>{compareToffeCount(index)}</TableCell>
-									))}
-								</TableRow>
-							</TableBody>
-						</Table>
-					</Paper>
+								</TableBody>
+							</Table>
+						</TableContainer>
+					</MainCard>
 				</>
 			)}
 		</PageContainer>

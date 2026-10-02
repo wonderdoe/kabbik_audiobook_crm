@@ -2,14 +2,16 @@
 import {
 	Box,
 	Button,
+	Chip,
 	CircularProgress,
 	Dialog,
+	DialogActions,
 	DialogContent,
 	DialogTitle,
 	Divider,
+	IconButton,
+	InputAdornment,
 	Pagination,
-	Paper,
-	Tab,
 	Table,
 	TableBody,
 	TableCell,
@@ -19,6 +21,7 @@ import {
 	TextField,
 	Typography,
 } from '@mui/material';
+import { DetailGrid } from '@/components/ui/DetailGrid';
 import { PageContainer } from '@/components/PageContainer/PageContainer';
 import { MainCard } from '@/components/mantis/MainCard';
 import { TableThumbnail } from '@/components/mantis/TableThumbnail';
@@ -117,11 +120,18 @@ export default function ManualSubscriptionLog() {
 		<TableRow key={element.id}>
 			<TableCell>{element.user_id}</TableCell>
 			<TableCell>
-				{element.package_id === '1'
-					? 'Monthly'
-					: element.package_id === '2'
-						? 'Half Yearly'
-						: 'Yearly'}
+				<Chip
+					size="small"
+					variant="outlined"
+					color="primary"
+					label={
+						element.package_id === '1'
+							? 'Monthly'
+							: element.package_id === '2'
+								? 'Half Yearly'
+								: 'Yearly'
+					}
+				/>
 			</TableCell>
 			<TableCell>{element.payment_method}</TableCell>
 			<TableCell sx={{ maxWidth: 300 }}>
@@ -145,14 +155,25 @@ export default function ManualSubscriptionLog() {
 			title="Manual Subscription"
 			items={[{ label: 'Manual Subscription', href: '/dashboard/manual-subscription-log' }]}
 		>
-			<form style={{ display: 'flex' }} onSubmit={handleSubmit}>
+			<MainCard title="Search logs">
+			<form onSubmit={handleSubmit}>
 				<TextField
 					name="searchkey"
+					fullWidth
+					size="small"
 					placeholder="Search by subscription id or transaction id..."
-					endIcon={<IconSearch size={16} />}
-					style={{ width: '100%' }}
+					InputProps={{
+						endAdornment: (
+							<InputAdornment position="end">
+								<IconButton type="submit" edge="end" aria-label="Search">
+									<IconSearch size={18} />
+								</IconButton>
+							</InputAdornment>
+						),
+					}}
 				/>
 			</form>
+			</MainCard>
 			<Box sx={{ height: 16 }} />
 			<MainCard contentSX={{ p: 0 }}>
 				{initialLoader ? (
@@ -164,10 +185,9 @@ export default function ManualSubscriptionLog() {
 				) : (
 					<>
 						<TableContainer sx={{ minWidth: 800 }}>
-							<Table verticalSpacing="xs" horizontalSpacing="xs" captionSide="top">
-								<Table.Caption>{displayData?.length === 0 ? 'No data found' : ''}</Table.Caption>
+							<Table size="small">
 								<TableHead>
-									<TableRow>
+									<TableRow sx={{ '& th': { fontWeight: 700, bgcolor: 'action.hover' } }}>
 										<TableCell component="th">User Id</TableCell>
 										<TableCell component="th">Package Id</TableCell>
 										<TableCell component="th">Payment Method</TableCell>
@@ -187,34 +207,33 @@ export default function ManualSubscriptionLog() {
 				)}
 			</MainCard>
 
-			<Dialog
-				
-				open={detailsModalOpened}
-				onClose={closeDetailsModal}
-				maxWidth="xl" sx={{ width: "100%" }}
-			>
-<DialogTitle>Details</DialogTitle>
-<DialogContent>
-				<TableContainer sx={{ minWidth: 200 }}>
-					<Table>
-						<TableHead>
-							<TableCell component="th">Subscription Id</TableCell>
-							<TableCell component="th">Transaction Id</TableCell>
-							<TableCell component="th">Subscription Date</TableCell>
-							<TableCell component="th">Created At</TableCell>
-							<TableCell component="th">Modified By</TableCell>
-						</TableHead>
-						<TableBody>
-							<TableCell>{details?.subscription_id}</TableCell>
-							<TableCell>{details?.transaction_id}</TableCell>
-							<TableCell>{moment(details?.subscription_date).format('Do MMM YYYY h:mma')}</TableCell>
-							<TableCell>{moment(details?.created_at).format('Do MMM YYYY h:mma')}</TableCell>
-							<TableCell>{details?.modified_by}</TableCell>
-						</TableBody>
-					</Table>
-				</TableContainer>
-			</DialogContent>
-</Dialog>
+			<Dialog open={detailsModalOpened} onClose={closeDetailsModal} maxWidth="md" fullWidth>
+				<DialogTitle>Details</DialogTitle>
+				<DialogContent>
+					<DetailGrid
+						fields={[
+							{ label: 'Subscription Id', value: details?.subscription_id },
+							{ label: 'Transaction Id', value: details?.transaction_id },
+							{
+								label: 'Subscription date',
+								value: details?.subscription_date
+									? moment(details.subscription_date).format('Do MMM YYYY h:mma')
+									: '—',
+							},
+							{
+								label: 'Created at',
+								value: details?.created_at
+									? moment(details.created_at).format('Do MMM YYYY h:mma')
+									: '—',
+							},
+							{ label: 'Modified by', value: details?.modified_by },
+						]}
+					/>
+				</DialogContent>
+				<DialogActions>
+					<Button onClick={closeDetailsModal}>Close</Button>
+				</DialogActions>
+			</Dialog>
 		</PageContainer>
 	);
 }

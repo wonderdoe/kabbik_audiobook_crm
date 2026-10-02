@@ -486,7 +486,7 @@ export const getRentRevenueReport = async (data: {
 		return result;
 	} catch (error) {
 		console.error(error);
-		return error;
+		throw error;
 	}
 };
 
