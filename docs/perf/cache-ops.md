@@ -19,7 +19,7 @@ Expect every **15 minutes** (Asia/Dhaka):
 
 At **02:00** daily: `[cron:daywise-promo-cache-warm] ok` — **daywise promo** default range (`warmDaywisePromoCache`). Daywise API is cache-only; manual: `node scripts/warm-daywise-promo-cache.mjs`.
 
-At **03:00** daily: `[cron:user-report-daily] ok` — heavy **user-report** warm only (`warmUserReport`). Redis logical TTL **25h** (`USER_REPORT_TTL`). Snapshot API serves cache only (no on-demand SQL).
+At **03:30** daily: `[cron:user-report-daily] ok` — heavy **user-report** warm only (`warmUserReport`). Redis logical TTL **25h** (`USER_REPORT_TTL`). Snapshot API serves cache only (no on-demand SQL).
 
 At **00:10** daily: `[cron:rollup-and-warm] ok` (daily rollups + `warmSecondaryReportCaches` — signup, play, rent, package-wise; not daywise)
 

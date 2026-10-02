@@ -1,31 +1,32 @@
 'use client';
 import {
-	Avatar,
 	Box,
 	Button,
 	Dialog,
+	DialogActions,
 	DialogContent,
 	DialogTitle,
-	Divider,
-	FormControl,
-	InputLabel,
-	Pagination,
-	Paper,
+	Grid,
 	Stack,
-	Tab,
 	Table,
 	TableBody,
 	TableCell,
-	TableContainer,
 	TableHead,
 	TableRow,
 	TextField,
 	Typography,
 } from '@mui/material';
 import { PageContainer } from '@/components/PageContainer/PageContainer';
-import { MainCard } from '@/components/mantis/MainCard';
+import {
+	DirectoryAvatar,
+	DirectoryListCard,
+	directoryTableSx,
+} from '@/components/directory/directoryListUi';
+import { StatCard } from '@/components/ui/StatCard';
+import { IconPencil, IconPlus, IconQuote, IconUsers } from '@tabler/icons-react';
 
 import { useDisclosure } from '@/hooks/use-disclosure';
+import { useIsMobileSm } from '@/hooks/use-is-mobile-sm';
 import moment from 'moment';
 
 import { useEffect, useState } from 'react';
@@ -33,6 +34,7 @@ import Loader from '@/components/Loader';
 import { createActivityLog } from '@/helper/Commonfunction';
 
 export default function Authors() {
+	const isMobileSm = useIsMobileSm();
 	const [authorList, setAuthorList] = useState([]);
 	const [offset, setOffset] = useState(0);
 	const [limit, setLimit] = useState(10);
@@ -51,38 +53,51 @@ export default function Authors() {
 
 	const rows = authorList.map((element: any, index: any) => {
 		return (
-			<TableRow key={element.id}>
+			<TableRow key={element.id} hover sx={{ '&:last-child td': { borderBottom: 0 } }}>
 				<TableCell>
-					<Avatar
-						style={{ objectFit: 'contain' }}
-						src={element.imageUrl}
-						alt={element.imageUrl}
-						radius={'xs'}
-						size={'100px'}
-					/>
-					<Avatar
-						style={{ objectFit: 'contain' }}
-						src={element.imageUrl}
-						alt={element.imageUrl}
-						radius={'xs'}
-					/>
+					<DirectoryAvatar src={element.imageUrl} name={element.name} />
 				</TableCell>
-				<TableCell>{element.name || 'N/A'}</TableCell>
-				<TableCell>{element.en_name || 'N/A'}</TableCell>
 				<TableCell>
-					<div
-						className={`${showFullDescription === index ? '' : 'three-line-ellipsis'}`}
-						style={{ width: '200px' }}
-						onClick={() =>
-							setShowFullDescription(index === showFullDescription ? undefined : index)
-						}
+					<Typography variant="body2" fontWeight={600}>
+						{element.name || 'N/A'}
+					</Typography>
+				</TableCell>
+				<TableCell>
+					<Typography variant="body2" color="text.secondary">
+						{element.en_name || 'N/A'}
+					</Typography>
+				</TableCell>
+				<TableCell sx={{ maxWidth: 320 }}>
+					<Typography
+						variant="body2"
+						color="text.secondary"
+						onClick={() => setShowFullDescription(index === showFullDescription ? undefined : index)}
+						sx={{
+							cursor: 'pointer',
+							display: '-webkit-box',
+							WebkitLineClamp: showFullDescription === index ? 'unset' : 3,
+							WebkitBoxOrient: 'vertical',
+							overflow: 'hidden',
+							'&:hover': { color: 'text.primary' },
+						}}
 					>
 						{element.description || 'N/A'}
-					</div>
+					</Typography>
 				</TableCell>
-				<TableCell>{moment(element.created_at).format('Do MMM YYYY h:mma') || 'N/A'}</TableCell>
 				<TableCell>
-					<Button onClick={() => handleEditId(index)}>Edit</Button>
+					<Typography variant="body2" color="text.secondary" whiteSpace="nowrap">
+						{moment(element.created_at).format('Do MMM YYYY, h:mm a') || 'N/A'}
+					</Typography>
+				</TableCell>
+				<TableCell align="right">
+					<Button
+						size="small"
+						variant="outlined"
+						startIcon={<IconPencil size={16} />}
+						onClick={() => handleEditId(index)}
+					>
+						Edit
+					</Button>
 				</TableCell>
 			</TableRow>
 		);
@@ -104,12 +119,16 @@ export default function Authors() {
 
 	async function getData() {
 		try {
+			setLoading(true);
 			const response = await fetch(`/api/routes/authors?offset=${offset}&limit=${limit}`);
 			const apidata = await response.json();
-			setLoading(false);
 			setAuthorList(apidata.data);
 			setTotalData(apidata.total.count);
-		} catch (error) {}
+		} catch (error) {
+			console.error(error);
+		} finally {
+			setLoading(false);
+		}
 	}
 
 	const totalPage = Math.ceil(totalData / limit);
@@ -243,148 +262,181 @@ export default function Authors() {
 			{loading ? (
 				<Loader />
 			) : (
-			<PageContainer title="Author List" items={[{ label: 'Authors', href: '/dashboard/authors' }]}
+			<PageContainer
+				title="Author List"
+				subtitle="Browse and manage audiobook authors"
+				items={[{ label: 'Authors', href: '/dashboard/authors' }]}
 				actions={
-					<Button onClick={openAuthorModal} variant="contained">
-							Add Author
-						</Button>
-				}>
+					<Button onClick={openAuthorModal} variant="contained" startIcon={<IconPlus size={18} />}>
+						Add author
+					</Button>
+				}
+			>
+				<Stack spacing={2}>
+					<Grid container spacing={2}>
+						<Grid item xs={12} sm={6} md={4}>
+							<StatCard
+								title="Total authors"
+								value={totalData.toLocaleString()}
+								color="primary"
+								icon={<IconUsers size={22} />}
+							/>
+						</Grid>
+						<Grid item xs={12} sm={6} md={4}>
+							<StatCard
+								title="On this page"
+								value={authorList.length}
+								color="secondary"
+								icon={<IconQuote size={22} />}
+							/>
+						</Grid>
+					</Grid>
 
-<MainCard contentSX={{ p: 0 }}>
-						<TableContainer sx={{ minWidth: 100 }}>
-							<Table>
-								<TableHead>
-									<TableRow>
-										<TableCell component="th">Image</TableCell>
-										<TableCell component="th">Name</TableCell>
-										<TableCell component="th">En Name</TableCell>
-										<TableCell component="th">Description</TableCell>
-										<TableCell component="th">Created At</TableCell>
-										<TableCell component="th">Action</TableCell>
-									</TableRow>
-								</TableHead>
-								<TableBody>{rows}</TableBody>
-							</Table>
-						</TableContainer>
-						<Divider sx={{ my: 1 }} />
-						<Pagination page={currentPage}
-							onChange={handlePageChange}
-							count={totalPage}
-						/>
-					</MainCard>
-
-					<Dialog
-						open={addAuthorModal}
-						onClose={closeAuthorModal}
-						
-						maxWidth="lg" sx={{ width: "100%" }}
+					<DirectoryListCard
+						title="All authors"
+						totalCount={totalData}
+						currentPage={currentPage}
+						totalPages={totalPage}
+						onPageChange={handlePageChange}
+						isEmpty={!loading && authorList.length === 0}
+						emptyMessage="No authors yet. Add your first author to get started."
 					>
-<DialogTitle>Add Author</DialogTitle>
-<DialogContent>
-						<form onSubmit={handleAddAuthor} action="">
-							<TextField
-								label="Name"
-								onChange={e => setName(e.target.value)}
-								required
-								placeholder="Name"
-							/>
-							<TextField
-								label="En Name"
-								onChange={e => setEnName(e.target.value)}
-								required
-								placeholder="En Name"
-							/>
-							<TextField multiline minRows={3}
-								label="Description"
-								onChange={e => setDescription(e.target.value)}
-								required
-								placeholder="Description"
-							/>
+						<Table size="small" sx={directoryTableSx}>
+							<TableHead>
+								<TableRow>
+									<TableCell width={80}>Photo</TableCell>
+									<TableCell>Name</TableCell>
+									<TableCell>English name</TableCell>
+									<TableCell>Description</TableCell>
+									<TableCell>Created</TableCell>
+									<TableCell align="right">Actions</TableCell>
+								</TableRow>
+							</TableHead>
+							<TableBody>{rows}</TableBody>
+						</Table>
+					</DirectoryListCard>
 
-							<FormControl><InputLabel>Image</InputLabel>
-								<Stack direction="row" flexWrap="wrap"
-									mih={50}
-									gap="md"
-									justifyContent="flex-start"
-									alignItems="flex-start"
-									direction="column"
-									wrap="wrap"
-								>
-									<input type="file" onChange={handleAddImage} />
-
-									{addImage && (
-										<Box component="img" 
-											style={{ paddingBottom: 10 }}
+					<Dialog open={addAuthorModal} onClose={closeAuthorModal} maxWidth="sm" fullWidth fullScreen={isMobileSm}>
+						<DialogTitle>Add author</DialogTitle>
+						<DialogContent>
+							<Stack component="form" spacing={2} onSubmit={handleAddAuthor} sx={{ pt: 0.5 }}>
+								<TextField
+									label="Name"
+									size="small"
+									fullWidth
+									onChange={e => setName(e.target.value)}
+									required
+								/>
+								<TextField
+									label="English name"
+									size="small"
+									fullWidth
+									onChange={e => setEnName(e.target.value)}
+									required
+								/>
+								<TextField
+									multiline
+									minRows={3}
+									label="Description"
+									size="small"
+									fullWidth
+									onChange={e => setDescription(e.target.value)}
+									required
+								/>
+								<Box>
+									<Typography variant="caption" color="text.secondary" fontWeight={600} display="block" sx={{ mb: 0.75 }}>
+										Photo
+									</Typography>
+									<input type="file" accept="image/*" onChange={handleAddImage} />
+									{addImage ? (
+										<Box
+											component="img"
 											src={addImage}
-											height={150}
-											width={'auto'}
-											alt={addImage}
-											radius={'md'}
+											alt="Preview"
+											sx={{
+												mt: 1.5,
+												maxHeight: 140,
+												maxWidth: '100%',
+												borderRadius: 2,
+												border: 1,
+												borderColor: 'divider',
+											}}
 										/>
-									)}
-								</Stack>
-							</FormControl>
-							<Button type="submit">
-								Create
-							</Button>
-						</form>
-					</DialogContent>
-</Dialog>
+									) : null}
+								</Box>
+								<DialogActions sx={{ px: 0, pb: 0 }}>
+									<Button onClick={closeAuthorModal}>Cancel</Button>
+									<Button type="submit" variant="contained">
+										Create
+									</Button>
+								</DialogActions>
+							</Stack>
+						</DialogContent>
+					</Dialog>
 
-					<Dialog
-						open={editAuthorModal}
-						onClose={closeEditModal}
-						
-						maxWidth="lg" sx={{ width: "100%" }}
-					>
-<DialogTitle>Edit Author</DialogTitle>
-<DialogContent>
-						<form onSubmit={handleEditAuthor} action="">
-							<TextField
-								label="Name"
-								value={name ? name : ''}
-								onChange={e => setName(e.target.value)}
-								required
-								placeholder="Name"
-							/>
-							<TextField
-								label="En Name"
-								value={enName ? enName : ''}
-								onChange={e => setEnName(e.target.value)}
-								required
-								placeholder="En Name"
-							/>
-							<TextField multiline minRows={3}
-								label="Description"
-								value={description ? description : ''}
-								onChange={e => setDescription(e.target.value)}
-								required
-								placeholder="Description"
-							/>
-
-							<FormControl><InputLabel>Image</InputLabel>
-								<Stack direction="row" flexWrap="wrap" justify={'space-between'}>
-									<Stack direction="row" flexWrap="wrap" direction={'column'} justify={'space-between'}>
-										<input type="file" onChange={handleEditImage} />
-										<Button type="submit">
-											Update
-										</Button>
-									</Stack>
-									{editImage && (
-										<Box component="img" 
-											style={{ paddingBottom: 10 }}
+					<Dialog open={editAuthorModal} onClose={closeEditModal} maxWidth="sm" fullWidth fullScreen={isMobileSm}>
+						<DialogTitle>Edit author</DialogTitle>
+						<DialogContent>
+							<Stack component="form" spacing={2} onSubmit={handleEditAuthor} sx={{ pt: 0.5 }}>
+								<TextField
+									label="Name"
+									size="small"
+									fullWidth
+									value={name ? name : ''}
+									onChange={e => setName(e.target.value)}
+									required
+								/>
+								<TextField
+									label="English name"
+									size="small"
+									fullWidth
+									value={enName ? enName : ''}
+									onChange={e => setEnName(e.target.value)}
+									required
+								/>
+								<TextField
+									multiline
+									minRows={3}
+									label="Description"
+									size="small"
+									fullWidth
+									value={description ? description : ''}
+									onChange={e => setDescription(e.target.value)}
+									required
+								/>
+								<Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems={{ sm: 'flex-start' }}>
+									<Box sx={{ flex: 1 }}>
+										<Typography variant="caption" color="text.secondary" fontWeight={600} display="block" sx={{ mb: 0.75 }}>
+											Photo
+										</Typography>
+										<input type="file" accept="image/*" onChange={handleEditImage} />
+									</Box>
+									{editImage ? (
+										<Box
+											component="img"
 											src={editImage}
-											height={150}
-											width={'auto'}
-											alt={editImage}
-											radius={'md'}
+											alt="Preview"
+											sx={{
+												maxHeight: 140,
+												maxWidth: 120,
+												borderRadius: 2,
+												border: 1,
+												borderColor: 'divider',
+												objectFit: 'cover',
+											}}
 										/>
-									)}
+									) : null}
 								</Stack>
-							</FormControl>
-						</form>
-					</DialogContent>
-</Dialog>
+								<DialogActions sx={{ px: 0, pb: 0 }}>
+									<Button onClick={closeEditModal}>Cancel</Button>
+									<Button type="submit" variant="contained">
+										Update
+									</Button>
+								</DialogActions>
+							</Stack>
+						</DialogContent>
+					</Dialog>
+				</Stack>
 			</PageContainer>
 			)}
 		</>

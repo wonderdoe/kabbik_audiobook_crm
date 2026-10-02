@@ -36,9 +36,9 @@ class PromoController {
 		}
 	}
 
-	async dateWisePromo(offset, limit) {
+	async dateWisePromo(offset, limit, startDate, endDate) {
 		try {
-			const results = await PromoModel.dateWisePromo(offset, limit);
+			const results = await PromoModel.dateWisePromo(offset, limit, startDate, endDate);
 			return results;
 		} catch (err) {
 			throw err;

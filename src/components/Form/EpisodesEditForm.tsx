@@ -187,7 +187,7 @@ export const EpisodesEditForm = ({
 										p: 1.5,
 										borderRadius: 2,
 										transition: 'box-shadow 0.2s ease',
-										'&:hover': { boxShadow: '0 4px 12px rgba(0,0,0,0.06)' },
+										'&:hover': { boxShadow: '0 2px 6px rgba(0,0,0,0.03)' },
 									}}
 								>
 									<Stack

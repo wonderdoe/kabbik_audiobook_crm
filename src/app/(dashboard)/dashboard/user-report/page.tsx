@@ -1,6 +1,6 @@
 'use client';
 
-import { Box, Stack, ToggleButton, ToggleButtonGroup } from '@mui/material';
+import { Alert, Box, Button, Stack, ToggleButton, ToggleButtonGroup, Typography } from '@mui/material';
 import { PageContainer } from '@/components/PageContainer/PageContainer';
 import { MainCard } from '@/components/mantis/MainCard';
 import { StatCard } from '@/components/ui/StatCard';
@@ -11,6 +11,52 @@ import { getUserReportFormat } from '@/helper/Commonfunction';
 import styles from './styles.module.css';
 import { PlayCountGrid } from './components/PlayCountGrid';
 import { SubscriberCard } from './components/SubscriberCard';
+import {
+	UserReportNotCachedError,
+	USER_REPORT_NOT_CACHED_MESSAGE,
+	fetchUserReportSnapshot,
+} from './fetchSnapshot';
+
+const SESSION_SNAPSHOT_KEY = 'user-report-snapshot-v1';
+const SESSION_SNAPSHOT_MAX_AGE_MS = 15 * 60 * 1000;
+
+function readSessionSnapshot(): Record<string, unknown> | null {
+	try {
+		const raw = sessionStorage.getItem(SESSION_SNAPSHOT_KEY);
+		if (!raw) return null;
+		const parsed = JSON.parse(raw) as { savedAt: number; data: Record<string, unknown> };
+		if (Date.now() - parsed.savedAt > SESSION_SNAPSHOT_MAX_AGE_MS) return null;
+		return parsed.data;
+	} catch {
+		return null;
+	}
+}
+
+function applySnapshotToState(
+	data: Record<string, unknown>,
+	setters: {
+		setUserCountData: (v: any) => void;
+		setBlSubsData: (v: any) => void;
+		setSubsData: (v: any) => void;
+		setPlayCount: (v: any) => void;
+		setRentData: (v: any) => void;
+		setActiveRentCount: (v: any) => void;
+		setUniqueTotalRentUserCount: (v: any) => void;
+		setActiveRentUserCount: (v: any) => void;
+	},
+) {
+	const userCount = data.userCount as { result?: unknown };
+	const blSubscriber = data.blSubscriber as { result?: unknown };
+	const subscribedUser = data.subscribedUser as { result?: unknown };
+	setters.setUserCountData(getUserReportFormat(userCount?.result));
+	setters.setBlSubsData(getUserReportFormat(blSubscriber?.result));
+	setters.setSubsData(getUserReportFormat(subscribedUser?.result));
+	setters.setPlayCount((data.playCount as unknown[]) ?? []);
+	setters.setRentData((data.rentTotal as unknown[]) ?? []);
+	setters.setActiveRentCount((data.rentActive as unknown[]) ?? []);
+	setters.setUniqueTotalRentUserCount((data.rentUniqueTotal as unknown[]) ?? []);
+	setters.setActiveRentUserCount((data.rentActiveUnique as unknown[]) ?? []);
+}
 
 export default function UserReport() {
 	const [userCountData, setUserCountData] = useState<any>([]);
@@ -24,39 +70,93 @@ export default function UserReport() {
 	const [activeRentUserCount, setActiveRentUserCount] = useState<any>([]);
 	const [showTotalRentUniqUserCount, setShowTotalRentUniqUserCount] = useState(false);
 	const [showActiveRentUniqUserCount, setShowActiveRentUniqUserCount] = useState(false);
+	const [loadError, setLoadError] = useState<string | null>(null);
+	const [reloadNonce, setReloadNonce] = useState(0);
 
 	useEffect(() => {
 		let cancelled = false;
+		setLoadError(null);
+		const setters = {
+			setUserCountData,
+			setBlSubsData,
+			setSubsData,
+			setPlayCount,
+			setRentData,
+			setActiveRentCount,
+			setUniqueTotalRentUserCount,
+			setActiveRentUserCount,
+		};
+
+		const cached = readSessionSnapshot();
+		const hadCached = Boolean(cached);
+		if (cached) {
+			applySnapshotToState(cached, setters);
+			setLoading(false);
+		} else {
+			setLoading(true);
+		}
+
 		(async () => {
 			try {
-				const response = await fetch('/api/routes/user-report-snapshot', { cache: 'no-store' });
-				if (!response.ok) throw new Error(`user-report-snapshot ${response.status}`);
-				const data = await response.json();
+				const data = await fetchUserReportSnapshot();
 				if (cancelled) return;
-				setUserCountData(getUserReportFormat(data.userCount?.result));
-				setBlSubsData(getUserReportFormat(data.blSubscriber?.result));
-				setSubsData(getUserReportFormat(data.subscribedUser?.result));
-				setPlayCount(data.playCount ?? []);
-				setRentData(data.rentTotal ?? []);
-				setActiveRentCount(data.rentActive ?? []);
-				setUniqueTotalRentUserCount(data.rentUniqueTotal ?? []);
-				setActiveRentUserCount(data.rentActiveUnique ?? []);
+				applySnapshotToState(data, setters);
+				setLoadError(null);
+				try {
+					sessionStorage.setItem(
+						SESSION_SNAPSHOT_KEY,
+						JSON.stringify({ savedAt: Date.now(), data }),
+					);
+				} catch {
+					/* ignore quota / private mode */
+				}
 			} catch (error) {
 				console.error('Error fetching user report snapshot:', error);
+				if (!cancelled && !hadCached) {
+					if (error instanceof UserReportNotCachedError) {
+						setLoadError(error.message);
+					} else {
+						setLoadError(USER_REPORT_NOT_CACHED_MESSAGE);
+					}
+				}
 			} finally {
 				if (!cancelled) setLoading(false);
 			}
 		})();
+
 		return () => {
 			cancelled = true;
 		};
-	}, []);
+	}, [reloadNonce]);
 
 	const sumSubs = (list: any[]) =>
 		list.reduce((a: number, c: any) => a + Number(c?.recurring) + Number(c?.is_onetime), 0);
 	const sumRent = (list: any[]) => list?.reduce((a: number, c: any) => a + Number(c.count), 0) ?? 0;
 
-	if (loading) return <Loader />;
+	const hasData =
+		userCountData.length > 0 ||
+		subsData.length > 0 ||
+		blSubsData.length > 0 ||
+		(playCount?.length ?? 0) > 0;
+
+	if (loading && !hasData) return <Loader />;
+
+	if (loadError && !hasData) {
+		return (
+			<PageContainer title="User Report" items={[{ label: 'User Report', href: '/dashboard/user-report' }]}>
+				<Alert severity="info" sx={{ mb: 2 }}>
+					{loadError}
+				</Alert>
+				<Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+					This report is refreshed once per day at <strong>3:30 AM Bangladesh time</strong>. After that time,
+					reload this page or tap Check again. If it is still empty, contact your administrator.
+				</Typography>
+				<Button variant="outlined" onClick={() => setReloadNonce(n => n + 1)}>
+					Check again
+				</Button>
+			</PageContainer>
+		);
+	}
 
 	return (
 		<PageContainer title="User Report" items={[{ label: 'User Report', href: '/dashboard/user-report' }]}>
@@ -68,7 +168,7 @@ export default function UserReport() {
 						value={sumSubs(userCountData).toLocaleString()}
 						subtitle="All platforms combined"
 					/>
-					<Box sx={{ mt: 2 }}>
+					<Box sx={{ mt: 2, width: '100%', overflowX: 'auto' }}>
 						<TreeDiagram
 							headingChildren={
 								<div className={styles.totalUsers}>
@@ -85,7 +185,7 @@ export default function UserReport() {
 
 				<MainCard title="Active Subscribed Users">
 					<StatCard title="Active total" color="success" value={sumSubs(subsData).toLocaleString()} />
-					<Box sx={{ mt: 2 }}>
+					<Box sx={{ mt: 2, width: '100%', overflowX: 'auto' }}>
 						<TreeDiagram
 							headingChildren={
 								<div className={styles.totalUsers}>
@@ -121,7 +221,7 @@ export default function UserReport() {
 						color="info"
 						value={sumRent(showTotalRentUniqUserCount ? uniqueTotalRentUserCount : rentData).toLocaleString()}
 					/>
-					<Box sx={{ mt: 2 }}>
+					<Box sx={{ mt: 2, width: '100%', overflowX: 'auto' }}>
 						<TreeDiagram
 							headingChildren={
 								<div className={styles.totalUsers}>
@@ -157,7 +257,7 @@ export default function UserReport() {
 						color="warning"
 						value={sumRent(showActiveRentUniqUserCount ? activeRentUserCount : activeRentCount).toLocaleString()}
 					/>
-					<Box sx={{ mt: 2 }}>
+					<Box sx={{ mt: 2, width: '100%', overflowX: 'auto' }}>
 						<TreeDiagram
 							headingChildren={
 								<div className={styles.totalUsers}>
@@ -174,7 +274,7 @@ export default function UserReport() {
 
 				<MainCard title="Active Subscriber From Banglalink App">
 					<StatCard title="Banglalink active" color="secondary" value={sumSubs(blSubsData).toLocaleString()} />
-					<Box sx={{ mt: 2 }}>
+					<Box sx={{ mt: 2, width: '100%', overflowX: 'auto' }}>
 						<TreeDiagram
 							headingChildren={
 								<div className={styles.totalUsers}>

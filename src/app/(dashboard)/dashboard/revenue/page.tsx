@@ -12,7 +12,6 @@ import {
 	Divider,
 	IconButton,
 	Stack,
-	Tooltip,
 	Typography,
 	alpha,
 	useTheme,
@@ -20,17 +19,12 @@ import {
 import { PageContainer } from '@/components/PageContainer/PageContainer';
 import { MainCard } from '@/components/mantis/MainCard';
 import { zodResolver } from '@hookform/resolvers/zod';
-import {
-	IconCoin,
-	IconMoodEmpty,
-	IconRefresh,
-	IconRepeat,
-	IconSearch,
-	IconShoppingCart,
-	IconX,
-} from '@tabler/icons-react';
+import { IconMoodEmpty, IconRefresh, IconSearch, IconX } from '@tabler/icons-react';
+import { GatewayBreakdownGrid } from '@/components/revenue/GatewayBreakdownGrid';
+import { getBreakdown } from '@/components/revenue/subscription-gateway-breakdown';
 import { motion } from 'framer-motion';
 import { useDisclosure } from '@/hooks/use-disclosure';
+import { useIsMobileSm } from '@/hooks/use-is-mobile-sm';
 import moment from 'moment';
 import { useCallback, useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
@@ -38,29 +32,6 @@ import { z } from 'zod';
 import { CustomDatePicker } from '@/components/Form/CustomDatePicker';
 import Loader from '@/components/Loader';
 import { checkgetPermission } from '@/helper/Commonfunction';
-
-/* ── Gateway key map ─────────────────────────── */
-const GATEWAYS = ['Bkash','Nagad','Upay','Robi','GP','BL','ApplePay','GooglePay','Stripe','Aamarpay'] as const;
-const GW_KEYS: Record<string, [string,string,string]> = {
-	Bkash:     ['Bkash-onetime0',     'Bkash-recurring0',     'bkash-onetime1'],
-	Nagad:     ['NAGAD-onetime0',     'NAGAD-recurring0',     'nagad-onetime1'],
-	Upay:      ['UPAY-onetime0',      'UPAY-recurring0',      'upay-onetime1'],
-	Robi:      ['ROBI-onetime0',      'ROBI-recurring0',      'robi-onetime1'],
-	GP:        ['GP-onetime0',        'GP-recurring0',        'gp-onetime1'],
-	BL:        ['BL-onetime0',        'BL-recurring0',        'BL-onetime1'],
-	ApplePay:  ['APP_STORE-onetime0', 'APP_STORE-recurring0', 'app_store-onetime1'],
-	GooglePay: ['PLAY_STORE-onetime0','PLAY_STORE-recurring0','play_store-onetime1'],
-	Stripe:    ['STRIPE-onetime0',    'STRIPE-recurring0',    'stripe-onetime1'],
-	Aamarpay:  ['AAMARPAY-onetime0',  'AAMARPAY-recurring0',  'aamarpay-onetime1'],
-};
-
-function getBreakdown(list: any[]) {
-	return GATEWAYS.map(name => {
-		const [k0,k1,k2] = GW_KEYS[name];
-		const f = (k: string) => list.find((i:any) => i[0]?.toLowerCase() === k.toLowerCase())?.[1] ?? 0;
-		return { name, onetime: f(k0), recurring: f(k1), rent: f(k2) };
-	}).filter(g => g.onetime + g.recurring + g.rent > 0);
-}
 
 /* ── Day pill ─────────────────────────────────── */
 function DayPill({ date, total, onClick }: { date: string; total: number; onClick: () => void }) {
@@ -91,59 +62,16 @@ function DayPill({ date, total, onClick }: { date: string; total: number; onClic
 	);
 }
 
-/* ── Gateway card in modal ────────────────────── */
-function GatewayCard({ name, onetime, recurring, rent, pct }: {
-	name: string; onetime: number; recurring: number; rent: number; pct: number;
-}) {
-	const theme = useTheme();
-	const main = theme.palette.primary.main;
-	const total = onetime + recurring + rent;
-	return (
-		<Box sx={{
-			p: 2, borderRadius: 2,
-			border: `1px solid ${theme.palette.divider}`,
-			bgcolor: 'background.paper', flex: '1 1 160px', minWidth: 150,
-		}}>
-			<Stack spacing={1.25}>
-				<Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1 }}>
-					<Typography variant="caption" fontWeight={700} textTransform="uppercase" letterSpacing="0.06em" color="text.secondary" noWrap>
-						{name}
-					</Typography>
-					<Chip label={total} size="small" color="primary" sx={{ fontWeight: 700, fontSize: '0.72rem' }} />
-				</Box>
-				<Box sx={{ height: 4, borderRadius: 2, bgcolor: alpha(main, 0.1) }}>
-					<Box component={motion.div} initial={{ width: 0 }} animate={{ width: `${pct}%` }} transition={{ duration: 0.5, ease: 'easeOut' }}
-						sx={{ height: '100%', borderRadius: 2, bgcolor: main }} />
-				</Box>
-				<Stack direction="row" spacing={1} justifyContent="space-between">
-					{[
-						{ icon: <IconShoppingCart size={12} stroke={1.5} />, label: 'One-time', val: onetime },
-						{ icon: <IconRepeat size={12} stroke={1.5} />, label: 'Recurring', val: recurring },
-						{ icon: <IconCoin size={12} stroke={1.5} />, label: 'Rent', val: rent },
-					].map(({ icon, label, val }) => (
-						<Tooltip key={label} title={label}>
-							<Stack alignItems="center" spacing={0.25}>
-								<Box sx={{ color: 'text.disabled' }}>{icon}</Box>
-								<Typography variant="caption" fontWeight={700}>{val}</Typography>
-							</Stack>
-						</Tooltip>
-					))}
-				</Stack>
-			</Stack>
-		</Box>
-	);
-}
-
 /* ── Revenue section block ────────────────────── */
 function RevenueSection({ title, imageUrl, list, onDayClick, modalOpened, closeModal, modalTitle, nestedList }: {
 	title: string; imageUrl: string; list: any[]; onDayClick: (d: any) => void;
 	modalOpened: boolean; closeModal: () => void; modalTitle: string; nestedList: any[];
 }) {
 	const theme = useTheme();
+	const isMobileSm = useIsMobileSm();
 	const grandTotal = list.reduce((acc: number, item: any) =>
 		acc + Object.values(item[1] as object).reduce((s: number, v: number) => s + v, 0), 0);
 	const breakdown = getBreakdown(nestedList);
-	const maxVal = Math.max(...breakdown.map(b => b.onetime + b.recurring + b.rent), 1);
 
 	return (
 		<>
@@ -180,8 +108,14 @@ function RevenueSection({ title, imageUrl, list, onDayClick, modalOpened, closeM
 			</Box>
 
 			{/* Detail modal */}
-			<Dialog open={modalOpened} onClose={closeModal} maxWidth="md" fullWidth
-				PaperProps={{ sx: { borderRadius: 3 } }}>
+			<Dialog
+				open={modalOpened}
+				onClose={closeModal}
+				maxWidth="md"
+				fullWidth
+				fullScreen={isMobileSm}
+				PaperProps={{ sx: { borderRadius: { xs: 0, sm: 3 } } }}
+			>
 				<DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', pb: 1.5 }}>
 					<Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
 						<Avatar src={imageUrl} alt={title} variant="rounded" sx={{ width: 30, height: 30, bgcolor: 'grey.100', '& img': { objectFit: 'contain' } }} />
@@ -193,16 +127,7 @@ function RevenueSection({ title, imageUrl, list, onDayClick, modalOpened, closeM
 				</DialogTitle>
 				<Divider />
 				<DialogContent sx={{ pt: 2.5 }}>
-					{breakdown.length > 0 ? (
-						<Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2 }}>
-							{breakdown.map(({ name, onetime, recurring, rent }) => (
-								<GatewayCard key={name} name={name} onetime={onetime} recurring={recurring} rent={rent}
-									pct={Math.round(((onetime + recurring + rent) / maxVal) * 100)} />
-							))}
-						</Box>
-					) : (
-						<Typography variant="body2" color="text.disabled" textAlign="center" sx={{ py: 4 }}>No gateway data</Typography>
-					)}
+					<GatewayBreakdownGrid rows={breakdown} />
 				</DialogContent>
 			</Dialog>
 		</>
@@ -307,8 +232,17 @@ export default function Revenue() {
 									<CustomDatePicker name="endDate" label="End Date" control={form.control}
 										placeholder="Pick a date" error={(form.formState.errors.endDate?.message) as string} />
 								</Box>
-								<Button type="submit" variant="contained" startIcon={<IconSearch size={15} />}
-									sx={{ px: 3, whiteSpace: 'nowrap', flexShrink: 0 }}>
+								<Button
+									type="submit"
+									variant="contained"
+									startIcon={<IconSearch size={15} />}
+									sx={{
+										px: 3,
+										whiteSpace: 'nowrap',
+										flexShrink: 0,
+										width: { xs: '100%', sm: 'auto' },
+									}}
+								>
 									Apply
 								</Button>
 							</Stack>

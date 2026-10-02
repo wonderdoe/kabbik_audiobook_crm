@@ -25,6 +25,7 @@ import { DataSelect } from '@/components/Form/DataSelect';
 import Loader from '@/components/Loader';
 import { createActivityLog } from '@/helper/Commonfunction';
 import { useDisclosure } from '@/hooks/use-disclosure';
+import { useIsMobileSm } from '@/hooks/use-is-mobile-sm';
 import { IconEdit, IconPlus, IconTrash, IconX } from '@tabler/icons-react';
 import { motion } from 'framer-motion';
 import moment from 'moment';
@@ -102,6 +103,7 @@ const formatPayload = (banner: PromotionBanner) => {
 };
 
 export default function PromotionBannerPage() {
+	const isMobileSm = useIsMobileSm();
 	const [bannerList, setBannerList] = useState<PromotionBanner[]>([]);
 	const [categoryList, setCategoryList] = useState<Category[]>([]);
 	const [loading, setLoading] = useState(true);
@@ -616,7 +618,7 @@ export default function PromotionBannerPage() {
 			)}
 
 			{/* Create / Edit dialog */}
-			<Dialog open={modalOpened} onClose={closeFormModal} maxWidth="sm" fullWidth>
+			<Dialog open={modalOpened} onClose={closeFormModal} maxWidth="sm" fullWidth fullScreen={isMobileSm}>
 				<DialogTitle sx={{ fontWeight: 600 }}>
 					{editingId ? 'Edit promotion banner' : 'Add promotion banner'}
 				</DialogTitle>

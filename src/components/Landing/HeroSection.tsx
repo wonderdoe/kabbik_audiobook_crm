@@ -17,15 +17,15 @@ export function HeroSection() {
 		<Container sx={{ pt: 1 }}>
 			<div className={classes.inner}>
 				<Typography className={classes.title} component="h1" variant="h2">
-					MantineAdmin
+					Kabbik CRM
 				</Typography>
 				<Typography className={classes.subtitle} component="h2" variant="h5">
-					A Next.js 13 Admin template build with Mantine UI
+					Audiobook operations dashboard on Next.js and MUI
 				</Typography>
 
 				<Typography className={classes.description} mt={30}>
-					Build fully functional dashboard web applications with ease – Mantine-Admin includes all
-					components and hooks to cover you in any situation
+					Manage users, content, subscriptions, and reports from one admin workspace built for the
+					Kabbik Audiobook platform.
 				</Typography>
 
 				<Stack direction="row" alignItems="center" mt={40}>
@@ -45,7 +45,7 @@ export function HeroSection() {
 						className={classes.control}
 						onClick={() => {
 							// open github
-							window.open('https://github.com/jotyy/mantine-admin');
+							window.open('https://www.kabbik.com');
 						}}
 						endIcon={<IconStar />}
 					>

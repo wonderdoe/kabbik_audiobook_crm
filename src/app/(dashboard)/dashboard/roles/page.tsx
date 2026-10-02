@@ -19,10 +19,12 @@ import { PageContainer } from '@/components/PageContainer/PageContainer';
 import { MainCard } from '@/components/mantis/MainCard';
 
 import { useDisclosure } from '@/hooks/use-disclosure';
+import { useIsMobileSm } from '@/hooks/use-is-mobile-sm';
 import { useEffect, useState } from 'react';
 import Loader from '@/components/Loader';
 
 export default function Roles() {
+	const isMobileSm = useIsMobileSm();
 	const [loading, setLoading] = useState(true);
 	const [addRoleOpened, { open: openAddRole, close: closeAddRole }] = useDisclosure(false);
 	const [assignOpened, { open: openAssign, close: closeAssign }] = useDisclosure(false);

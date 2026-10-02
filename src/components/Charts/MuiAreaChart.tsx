@@ -1,5 +1,6 @@
 'use client';
 
+import { useTheme } from '@mui/material/styles';
 import {
 	Area,
 	AreaChart,
@@ -39,6 +40,7 @@ export function MuiAreaChart({
 	withLegend,
 	valueFormatter,
 }: MuiAreaChartProps) {
+	const theme = useTheme();
 	const curve = 'monotone';
 
 	return (
@@ -52,7 +54,10 @@ export function MuiAreaChart({
 				/>
 				{withLegend ? <Legend /> : null}
 				{series.map(s => {
-					const color = MANTINE_COLOR_MAP[s.color ?? ''] ?? '#4c6ef5';
+					const color =
+						s.color === 'primary'
+							? theme.palette.primary.main
+							: (MANTINE_COLOR_MAP[s.color ?? ''] ?? theme.palette.primary.main);
 					return (
 						<Area
 							key={s.name}

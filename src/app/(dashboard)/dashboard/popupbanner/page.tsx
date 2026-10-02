@@ -23,6 +23,7 @@ import { DataSelect } from '@/components/Form/DataSelect';
 import Loader from '@/components/Loader';
 import { createActivityLog } from '@/helper/Commonfunction';
 import { useDisclosure } from '@/hooks/use-disclosure';
+import { useIsMobileSm } from '@/hooks/use-is-mobile-sm';
 import { IconPlus, IconRefresh, IconX } from '@tabler/icons-react';
 import { motion } from 'framer-motion';
 import { useEffect, useState } from 'react';
@@ -38,6 +39,7 @@ const TYPE_CHIP_COLOR: Record<string, 'primary' | 'secondary' | 'info' | 'defaul
 };
 
 export default function PopupBanner() {
+	const isMobileSm = useIsMobileSm();
 	const [popupList, setPopupList] = useState<any[]>([]);
 	const [addImage, setAddImage] = useState<string>();
 	const [audioBookId, setAudioBookId] = useState('');
@@ -299,7 +301,7 @@ export default function PopupBanner() {
 						)}
 					</Stack>
 
-					<Dialog open={assignOpened} onClose={closeAddModal} maxWidth="sm" fullWidth>
+					<Dialog open={assignOpened} onClose={closeAddModal} maxWidth="sm" fullWidth fullScreen={isMobileSm}>
 						<DialogTitle sx={{ fontWeight: 600 }}>Add Popup Banner</DialogTitle>
 						<DialogContent dividers>
 							<Stack component="form" id="popup-add-form" spacing={2} onSubmit={handleAddPopup} sx={{ pt: 0.5 }}>
@@ -352,7 +354,7 @@ export default function PopupBanner() {
 						</DialogActions>
 					</Dialog>
 
-					<Dialog open={Boolean(previewPopup)} onClose={() => setPreviewPopup(null)} maxWidth="md" fullWidth>
+					<Dialog open={Boolean(previewPopup)} onClose={() => setPreviewPopup(null)} maxWidth="md" fullWidth fullScreen={isMobileSm}>
 						<DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', py: 1.5 }}>
 							<Typography variant="subtitle1" fontWeight={600}>{previewPopup?.title}</Typography>
 							<IconButton aria-label="Close preview" size="small" onClick={() => setPreviewPopup(null)}>

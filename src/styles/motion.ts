@@ -1,6 +1,7 @@
 'use client';
 
 import { useReducedMotion } from 'framer-motion';
+import { cardShadow } from './cardShadow';
 
 export const easing = [0.4, 0, 0.2, 1] as const;
 
@@ -23,8 +24,8 @@ export const pageEnter = {
 };
 
 export const cardHover = {
-	rest: { y: 0, boxShadow: '0 1px 2px rgba(0,0,0,0.06)' },
-	hover: { y: -2, boxShadow: '0 8px 24px rgba(0,0,0,0.08)' },
+	rest: { y: 0, boxShadow: cardShadow.rest },
+	hover: { y: -1, boxShadow: cardShadow.hover },
 };
 
 export const staggerContainer = {

@@ -6,9 +6,13 @@ const enabled = () => process.env.CACHE_ENABLED !== 'false';
 export const CACHE_HARD_TTL_SECONDS = 86400;
 
 /** Holder lock TTL for cache miss / stale refresh (heavy report loaders can run minutes). */
-const LOCK_TTL_SECONDS = 300;
-const MISS_WAIT_ITERATIONS = 60;
+const LOCK_TTL_SECONDS = 1800;
+const MISS_WAIT_ITERATIONS = 120;
 const MISS_WAIT_MS = 1000;
+
+/** User-report snapshot can exceed 10+ minutes on cold DB. */
+export const USER_REPORT_LOCK_TTL_SECONDS = 2400;
+export const USER_REPORT_POPULATE_MAX_WAIT_MS = 20 * 60 * 1000;
 
 export class CacheStampedeError extends Error {
 	constructor(key) {
@@ -70,7 +74,7 @@ export async function cacheGet(key) {
 	return entry ? entry.payload : null;
 }
 
-export async function cacheSet(key, value, freshTtlSeconds) {
+export async function cacheSet(key, value, freshTtlSeconds, hardTtlSeconds = CACHE_HARD_TTL_SECONDS) {
 	if (!enabled()) return;
 	try {
 		if (!(await ensureRedisReady())) {
@@ -78,7 +82,8 @@ export async function cacheSet(key, value, freshTtlSeconds) {
 			return;
 		}
 		const envelope = wrapPayload(value, freshTtlSeconds);
-		await redis.set(key, JSON.stringify(envelope), 'EX', CACHE_HARD_TTL_SECONDS);
+		const redisTtl = Math.max(hardTtlSeconds, freshTtlSeconds, 60);
+		await redis.set(key, JSON.stringify(envelope), 'EX', redisTtl);
 	} catch (e) {
 		console.warn('[cache] set failed', key, e?.message || e);
 	}
@@ -93,11 +98,11 @@ export async function getOrSet(key, freshTtlSeconds, loader) {
 	return fresh;
 }
 
-async function refreshUnderLock(key, freshTtlSeconds, loader) {
+async function refreshUnderLock(key, freshTtlSeconds, loader, lockTtlSeconds = LOCK_TTL_SECONDS) {
 	let locked = false;
 	try {
 		if (await ensureRedisReady()) {
-			locked = (await redis.set(`lock:${key}`, '1', 'EX', LOCK_TTL_SECONDS, 'NX')) === 'OK';
+			locked = (await redis.set(`lock:${key}`, '1', 'EX', lockTtlSeconds, 'NX')) === 'OK';
 		}
 	} catch (e) {
 		console.warn('[cache] refresh lock failed', key, e?.message || e);
@@ -119,23 +124,33 @@ async function refreshUnderLock(key, freshTtlSeconds, loader) {
 	}
 }
 
-function triggerStaleRefresh(key, freshTtlSeconds, loader) {
-	void refreshUnderLock(key, freshTtlSeconds, loader);
+function triggerStaleRefresh(key, freshTtlSeconds, loader, lockTtlSeconds) {
+	void refreshUnderLock(key, freshTtlSeconds, loader, lockTtlSeconds);
 }
 
-/** Prevents cache stampede; serves stale payload while revalidating in background. */
-export async function getOrSetLocked(key, freshTtlSeconds, loader) {
+/**
+ * Prevents cache stampede; serves stale payload while revalidating in background.
+ * @param {object} [options]
+ * @param {number} [options.lockTtlSeconds]
+ * @param {number} [options.maxWaitMs] max wait when another holder populates the key
+ */
+export async function getOrSetLocked(key, freshTtlSeconds, loader, options = {}) {
+	const lockTtlSeconds = options.lockTtlSeconds ?? LOCK_TTL_SECONDS;
+	const waitStepMs = options.waitStepMs ?? MISS_WAIT_MS;
+	const maxWaitMs = options.maxWaitMs ?? MISS_WAIT_ITERATIONS * MISS_WAIT_MS;
+	const waitIterations = Math.max(1, Math.ceil(maxWaitMs / waitStepMs));
+
 	const entry = await cacheGetEntry(key);
 	if (entry?.isFresh) return entry.payload;
 	if (entry && !entry.isFresh) {
-		triggerStaleRefresh(key, freshTtlSeconds, loader);
+		triggerStaleRefresh(key, freshTtlSeconds, loader, lockTtlSeconds);
 		return entry.payload;
 	}
 
 	let locked = false;
 	try {
 		if (await ensureRedisReady()) {
-			locked = (await redis.set(`lock:${key}`, '1', 'EX', LOCK_TTL_SECONDS, 'NX')) === 'OK';
+			locked = (await redis.set(`lock:${key}`, '1', 'EX', lockTtlSeconds, 'NX')) === 'OK';
 		}
 	} catch (e) {
 		console.warn('[cache] lock failed', key, e?.message || e);
@@ -148,12 +163,12 @@ export async function getOrSetLocked(key, freshTtlSeconds, loader) {
 			await cacheSet(key, fresh, freshTtlSeconds);
 			return fresh;
 		}
-		for (let i = 0; i < MISS_WAIT_ITERATIONS; i += 1) {
-			await sleep(MISS_WAIT_MS);
+		for (let i = 0; i < waitIterations; i += 1) {
+			await sleep(waitStepMs);
 			const retry = await cacheGetEntry(key);
 			if (retry?.isFresh) return retry.payload;
 			if (retry && !retry.isFresh) {
-				triggerStaleRefresh(key, freshTtlSeconds, loader);
+				triggerStaleRefresh(key, freshTtlSeconds, loader, lockTtlSeconds);
 				return retry.payload;
 			}
 		}

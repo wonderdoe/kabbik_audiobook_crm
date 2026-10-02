@@ -35,6 +35,7 @@ import { MainCard } from '@/components/mantis/MainCard';
 import { DataSelect } from '@/components/Form/DataSelect';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useDisclosure } from '@/hooks/use-disclosure';
+import { useIsMobileSm } from '@/hooks/use-is-mobile-sm';
 import moment from 'moment';
 import { useCallback, useEffect, useState } from 'react';
 import { FieldErrors, useFieldArray, useForm } from 'react-hook-form';
@@ -136,6 +137,7 @@ const PROMO_TYPE_COLOR: Record<string, 'default' | 'primary' | 'secondary'> = {
 };
 
 export default function PromoCode() {
+	const isMobileSm = useIsMobileSm();
 	const [activeTab, setActiveTab] = useState<string>('all');
 	const [promocodeType, setPromocodeType] = useState<string>('all');
 	const [date, setDate] = useState({
@@ -368,11 +370,16 @@ export default function PromoCode() {
 		<PageContainer title="Promo Code Details" items={[{ label: 'Promocode', href: '/dashboard/promocode' }]}>
 			<Stack spacing={3}>
 				{/* Header */}
-				<Stack direction="row" justifyContent="space-between" alignItems="center">
+				<Stack
+					direction={{ xs: 'column', sm: 'row' }}
+					justifyContent="space-between"
+					alignItems={{ xs: 'stretch', sm: 'center' }}
+					gap={1}
+				>
 					<Typography variant="h5" fontWeight={600}>
 						Promo Codes
 					</Typography>
-					<Button onClick={openAddPromo} variant="contained" size="medium">
+					<Button onClick={openAddPromo} variant="contained" size="medium" sx={{ width: { xs: '100%', sm: 'auto' } }}>
 						+ Add Promo
 					</Button>
 				</Stack>
@@ -559,7 +566,7 @@ export default function PromoCode() {
 			</Stack>
 
 			{/* Add Promo Dialog */}
-			<Dialog open={addPromoOpened} onClose={closeAddPromo} maxWidth="sm" fullWidth>
+			<Dialog open={addPromoOpened} onClose={closeAddPromo} maxWidth="sm" fullWidth fullScreen={isMobileSm}>
 				<DialogTitle sx={{ fontWeight: 600 }}>Add Promo Code</DialogTitle>
 				<DialogContent>
 					<form onSubmit={addPromoCode}>
@@ -626,7 +633,7 @@ export default function PromoCode() {
 			</Dialog>
 
 			{/* BIN Mapping Dialog */}
-			<Dialog open={binMappingModalOpened} onClose={closeBinMappingModal} maxWidth="sm" fullWidth>
+			<Dialog open={binMappingModalOpened} onClose={closeBinMappingModal} maxWidth="sm" fullWidth fullScreen={isMobileSm}>
 				<DialogTitle sx={{ fontWeight: 600 }}>BIN Mapping</DialogTitle>
 				<DialogContent>
 					<Stack spacing={2} sx={{ mt: 1 }}>
@@ -710,7 +717,7 @@ export default function PromoCode() {
 			</Dialog>
 
 			{/* Extra Details Dialog */}
-			<Dialog open={extraDetailsModalOpened} onClose={closeExtraDetailsModal} maxWidth="sm" fullWidth>
+			<Dialog open={extraDetailsModalOpened} onClose={closeExtraDetailsModal} maxWidth="sm" fullWidth fullScreen={isMobileSm}>
 				<DialogTitle sx={{ fontWeight: 600 }}>Promo Details</DialogTitle>
 				<DialogContent>
 					<TableContainer sx={{ mt: 1 }}>

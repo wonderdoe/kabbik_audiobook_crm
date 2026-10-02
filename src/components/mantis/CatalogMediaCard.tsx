@@ -3,6 +3,7 @@
 import { Box, Card, CardActions, CardContent, CardMedia, Typography } from '@mui/material';
 import { IconEye } from '@tabler/icons-react';
 import type { ReactNode } from 'react';
+import { cardShadow } from '@/styles/cardShadow';
 
 export type CatalogMediaCardProps = {
 	imageSrc?: string | null;
@@ -49,13 +50,13 @@ export function CatalogMediaCard({
 				height: '100%',
 				display: 'flex',
 				flexDirection: 'column',
-				borderRadius: 2,
+				borderRadius: 1,
 				overflow: 'hidden',
 				transition: 'box-shadow 0.25s ease, transform 0.25s ease',
-				boxShadow: '0 1px 2px rgba(0, 0, 0, 0.04)',
+				boxShadow: cardShadow.rest,
 				'&:hover': {
-					boxShadow: '0 8px 24px rgba(0, 0, 0, 0.12)',
-					transform: 'translateY(-2px)',
+					boxShadow: cardShadow.hoverLift,
+					transform: 'translateY(-1px)',
 					[`& .${imgClass}`]: {
 						transform: 'scale(1.08)',
 					},

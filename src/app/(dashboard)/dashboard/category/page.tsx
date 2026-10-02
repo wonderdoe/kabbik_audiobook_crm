@@ -20,6 +20,7 @@ import { PageContainer } from '@/components/PageContainer/PageContainer';
 import Loader from '@/components/Loader';
 import { createActivityLog } from '@/helper/Commonfunction';
 import { useDisclosure } from '@/hooks/use-disclosure';
+import { useIsMobileSm } from '@/hooks/use-is-mobile-sm';
 import { transition } from '@/styles/motion';
 import { createToast2 } from 'helpers/SweetAlert';
 import { IconEdit, IconPlus, IconSearch, IconX } from '@tabler/icons-react';
@@ -29,6 +30,7 @@ import { useEffect, useMemo, useState } from 'react';
 const IMAGE_UPLOAD_URL = 'https://api.kabbik.com/v3/audiobooks/upload-image-in-stack';
 
 export default function AdminCategory() {
+	const isMobileSm = useIsMobileSm();
 	const [categoryList, setCategoryList] = useState<any[]>([]);
 	const [name, setName] = useState('');
 	const [image, setImage] = useState('');
@@ -365,6 +367,7 @@ export default function AdminCategory() {
 						onClose={() => { resetAddForm(); closeAddCategory(); }}
 						maxWidth="sm"
 						fullWidth
+						fullScreen={isMobileSm}
 					>
 						<DialogTitle sx={{ fontWeight: 600 }}>Add category</DialogTitle>
 						<DialogContent dividers>
@@ -380,7 +383,7 @@ export default function AdminCategory() {
 						</DialogActions>
 					</Dialog>
 
-					<Dialog open={updateCategory} onClose={closeUpdateCategory} maxWidth="sm" fullWidth>
+					<Dialog open={updateCategory} onClose={closeUpdateCategory} maxWidth="sm" fullWidth fullScreen={isMobileSm}>
 						<DialogTitle sx={{ fontWeight: 600 }}>Update category</DialogTitle>
 						<DialogContent dividers>
 							<Stack component="form" id="category-edit-form" spacing={2} onSubmit={handleUpdate} sx={{ pt: 0.5 }}>
@@ -400,7 +403,7 @@ export default function AdminCategory() {
 						</DialogActions>
 					</Dialog>
 
-					<Dialog open={changePriority} onClose={closeChangePriority} maxWidth="xs" fullWidth>
+					<Dialog open={changePriority} onClose={closeChangePriority} maxWidth="xs" fullWidth fullScreen={isMobileSm}>
 						<DialogTitle sx={{ fontWeight: 600 }}>Change priority</DialogTitle>
 						<DialogContent dividers>
 							<Stack component="form" id="category-priority-form" spacing={2} onSubmit={changePriorityApi} sx={{ pt: 0.5 }}>
@@ -413,7 +416,7 @@ export default function AdminCategory() {
 						</DialogActions>
 					</Dialog>
 
-					<Dialog open={Boolean(previewImage)} onClose={() => setPreviewImage(null)} maxWidth="md" fullWidth>
+					<Dialog open={Boolean(previewImage)} onClose={() => setPreviewImage(null)} maxWidth="md" fullWidth fullScreen={isMobileSm}>
 						<DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', py: 1.5 }}>
 							<Typography variant="subtitle1" fontWeight={600}>{previewImage?.title}</Typography>
 							<IconButton aria-label="Close preview" size="small" onClick={() => setPreviewImage(null)}>

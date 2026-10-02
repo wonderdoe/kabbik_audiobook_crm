@@ -1,11 +1,3 @@
-// module.exports = {
-// 	reactStrictMode: true,
-// 	swcMinify: true,
-// 	experimental: {
-// 		optimizePackageImports: ['@mantine/core', '@mantine/hooks'],
-// 	},
-// };
-
 /** @type {import('next').NextConfig} */
 const nextConfig = {
 	images: {

@@ -34,7 +34,7 @@ export function SubscriberCard({ item, showBreakdown = true }: SubscriberCardPro
 				p: 1.5,
 				borderRadius: 2,
 				transition: 'box-shadow 0.2s',
-				'&:hover': { boxShadow: 4 },
+				'&:hover': { boxShadow: 2 },
 			}}
 		>
 			<Stack alignItems="center" spacing={0.75}>

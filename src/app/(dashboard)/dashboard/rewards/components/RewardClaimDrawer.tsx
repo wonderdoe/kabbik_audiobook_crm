@@ -43,7 +43,7 @@ const claimStatusSelectData = ALLOWED_CLAIM_STATUSES.map(value => {
 	return { value, label: badge.label };
 });
 
-function chipColor(mantineColor: string): 'default' | 'error' | 'info' | 'success' | 'warning' {
+function chipColor(legacyToken: string): 'default' | 'error' | 'info' | 'success' | 'warning' {
 	const map: Record<string, 'default' | 'error' | 'info' | 'success' | 'warning'> = {
 		yellow: 'warning',
 		red: 'error',
@@ -51,7 +51,7 @@ function chipColor(mantineColor: string): 'default' | 'error' | 'info' | 'succes
 		gray: 'default',
 		blue: 'info',
 	};
-	return map[mantineColor] ?? 'default';
+	return map[legacyToken] ?? 'default';
 }
 
 function userDisplayName(claim: RewardClaimRow) {
