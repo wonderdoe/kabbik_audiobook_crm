@@ -17,3 +17,4 @@ for (const spec of modules) {
 }
 
 console.log('[verify-worker-imports] all imports resolved');
+process.exit(0);
