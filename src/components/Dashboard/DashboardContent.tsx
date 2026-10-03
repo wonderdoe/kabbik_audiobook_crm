@@ -46,12 +46,13 @@ import {
 	breakdownDayTotal,
 	type GatewayBreakdownRow,
 } from '@/components/revenue/subscription-gateway-breakdown';
+import { dhakaTodayYmd } from '@/utils/dhaka-date-client';
 
 const PREDICTION_TOOLTIP =
 	"Estimated end-of-day total (Asia/Dhaka): extrapolates today's run rate through the remaining hours, with a small historical adjustment on quiet days. Always at least today's total.";
 
-const GATEWAY_REVENUE_TOOLTIP =
-	'Sum from payment gateway tables plus GP/BL from subscription payment log (gross). In-app amounts use USD × 121.14. Robi/GP/BL shares are not applied here; Kabbik breakdown uses operator share.';
+const KABBIK_REVENUE_TREND_TOOLTIP =
+	'Kabbik segment from subscription payment log (succeeded, not cancelled). Net after operator share for Robi, GP, and BL. Same basis as Subscription Revenue report and today’s breakdown below.';
 
 const KABBIK_BREAKDOWN_TOOLTIP =
 	'Kabbik segment from subscription payment log (succeeded, not cancelled). Same basis as Subscription Revenue report. Robi, GP, and BL use operator revenue share.';
@@ -123,10 +124,11 @@ export function DashboardContent({
 	kabbikTodayBreakdown = [],
 }: DashboardContentProps) {
 	const theme = useTheme();
-	const todayYmd = moment().format('YYYY-MM-DD');
+	const todayYmd = dhakaTodayYmd();
 	const kabbikDayTotal = breakdownDayTotal(kabbikTodayBreakdown);
 	const scalars = (dashboardData ?? []).filter(
-		(d): d is { title: string; count: number } => typeof d.count === 'number',
+		(d): d is { title: string; count: number } =>
+			typeof d.count === 'number' && d.title !== 'Total Subscribers',
 	);
 
 	const bkashSeriesEntry = (dashboardData ?? []).find(
@@ -268,12 +270,12 @@ export function DashboardContent({
 							</Grid>
 						)}
 
-						{/* Gateway revenue */}
+						{/* Kabbik revenue trend */}
 						{(recentTotalPayments?.length ?? 0) > 0 && (
 							<Grid item xs={12} md={6}>
 								<MainCard
 									title={
-										<Tooltip title={GATEWAY_REVENUE_TOOLTIP} arrow placement="top">
+										<Tooltip title={KABBIK_REVENUE_TREND_TOOLTIP} arrow placement="top">
 											<Typography
 												component="span"
 												variant="subtitle1"
@@ -282,11 +284,11 @@ export function DashboardContent({
 												lineHeight={1.3}
 												sx={{ borderBottom: '1px dotted', borderColor: 'text.disabled', cursor: 'help' }}
 											>
-												Gateway-source revenue
+												Kabbik revenue
 											</Typography>
 										</Tooltip>
 									}
-									subtitle="Last 7 days · gross gateway totals (BDT)"
+									subtitle="Last 7 days · net after operator share (BDT)"
 								>
 									<Stack spacing={2}>
 										<MuiAreaChart

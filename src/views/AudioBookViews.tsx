@@ -30,6 +30,8 @@ import {
 	TextField,
 	Tooltip,
 	Typography,
+	alpha,
+	type Theme,
 } from '@mui/material';
 import { DataSelect } from '@/components/Form/DataSelect';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
@@ -75,6 +77,7 @@ import {
 	updateApproveAudiobook,
 } from '@/services/services';
 import { Artist, AudiobookCategory, Author, Episode, Publisher } from '@/types/global';
+import { formatCompactNumber } from '@/utils/formatCompactNumber';
 import { createToast, createToast2 } from 'helpers/SweetAlert';
 import { createActivityLog } from '@/helper/Commonfunction';
 
@@ -149,6 +152,32 @@ const actionBtnSx = {
 	'& .MuiButton-startIcon': { mr: 0.25 },
 };
 
+/** Single horizontal scroll host for catalog table (avoid nested overflow scrollbars). */
+function catalogTableScrollSx(theme: Theme) {
+	const thumb = alpha(theme.palette.primary.main, 0.45);
+	const track = alpha(theme.palette.primary.main, 0.08);
+	return {
+		width: '100%',
+		maxWidth: '100%',
+		overflowX: 'auto',
+		overflowY: 'hidden',
+		WebkitOverflowScrolling: 'touch',
+		scrollbarWidth: 'thin',
+		scrollbarColor: `${thumb} ${track}`,
+		'&::-webkit-scrollbar': { height: 8 },
+		'&::-webkit-scrollbar-track': {
+			bgcolor: track,
+			borderRadius: 4,
+			margin: '0 4px',
+		},
+		'&::-webkit-scrollbar-thumb': {
+			bgcolor: thumb,
+			borderRadius: 4,
+			'&:hover': { bgcolor: theme.palette.primary.main },
+		},
+	};
+}
+
 function countActiveFilters(filters: AudiobookFilterState) {
 	let count = 0;
 	if (filters.category) count += 1;
@@ -167,6 +196,58 @@ function approvalStatusMeta(status: number) {
 	if (status === 1) return { label: 'Approved', color: 'success' as const };
 	if (status === 2) return { label: 'Rejected', color: 'error' as const };
 	return { label: 'Pending', color: 'warning' as const };
+}
+
+function AudiobookListenCount({
+	playCount,
+	myblPlayCount,
+}: {
+	playCount: unknown;
+	myblPlayCount: unknown;
+}) {
+	const kabbik = Number(playCount) || 0;
+	const bl = Number(myblPlayCount) || 0;
+
+	return (
+		<Tooltip
+			title={`Kabbik: ${kabbik.toLocaleString()} · MyBL: ${bl.toLocaleString()}`}
+			arrow
+			placement="top"
+		>
+			<Stack spacing={0.5} alignItems="center" sx={{ minWidth: 76 }}>
+				<Stack
+					direction="row"
+					alignItems="center"
+					justifyContent="center"
+					spacing={0.5}
+					sx={{
+						px: 1,
+						py: 0.4,
+						borderRadius: 2,
+						bgcolor: theme => alpha(theme.palette.success.main, 0.1),
+						border: 1,
+						borderColor: theme => alpha(theme.palette.success.main, 0.28),
+					}}
+				>
+					<Box component="span" sx={{ color: 'success.dark', display: 'flex', lineHeight: 0 }}>
+						<IconHeadphones size={14} stroke={1.75} />
+					</Box>
+					<Typography variant="caption" fontWeight={700} color="success.dark" lineHeight={1.2}>
+						{formatCompactNumber(kabbik)}
+					</Typography>
+				</Stack>
+				{bl > 0 ? (
+					<Chip
+						label={`BL ${formatCompactNumber(bl)}`}
+						size="small"
+						variant="outlined"
+						color="warning"
+						sx={{ height: 18, fontSize: '0.6rem', fontWeight: 600, '& .MuiChip-label': { px: 0.75 } }}
+					/>
+				) : null}
+			</Stack>
+		</Tooltip>
+	);
 }
 
 function buildAudiobookQueryParams(
@@ -775,6 +856,9 @@ export default function AudiobookViews({ cookie }: any) {
 					৳{element.price}
 				</Typography>
 			</TableCell>
+			<TableCell align="center" sx={{ py: 1, px: 1, verticalAlign: 'middle' }}>
+				<AudiobookListenCount playCount={element.play_count} myblPlayCount={element.mybl_play_count} />
+			</TableCell>
 			<TableCell sx={{ py: 1, px: 1.5, maxWidth: 140 }}>
 				<Typography variant="caption" noWrap title={element.author_name}>
 					{element.author_name || '—'}
@@ -1121,7 +1205,11 @@ export default function AudiobookViews({ cookie }: any) {
 										<Grid item xs={12} sm={6} lg={4} sx={{ minWidth: 0 }}>
 											<DatePicker
 												label="Created from"
-												value={filterDraft.date_from ? dayjs(filterDraft.date_from) : null}
+												value={
+													filterDraft.date_from && dayjs(filterDraft.date_from).isValid()
+														? dayjs(filterDraft.date_from)
+														: null
+												}
 												onChange={d =>
 													setFilterDraft(prev => ({
 														...prev,
@@ -1143,7 +1231,11 @@ export default function AudiobookViews({ cookie }: any) {
 										<Grid item xs={12} sm={6} lg={4} sx={{ minWidth: 0 }}>
 											<DatePicker
 												label="Created to"
-												value={filterDraft.date_to ? dayjs(filterDraft.date_to) : null}
+												value={
+													filterDraft.date_to && dayjs(filterDraft.date_to).isValid()
+														? dayjs(filterDraft.date_to)
+														: null
+												}
 												onChange={d =>
 													setFilterDraft(prev => ({
 														...prev,
@@ -1221,15 +1313,12 @@ export default function AudiobookViews({ cookie }: any) {
 						subtitle={`Page ${currentPage} of ${totalPages || 1}`}
 						contentSX={{ p: 0, pt: 0 }}
 					>
-						<Box
-							sx={{
-								width: '100%',
-								maxWidth: '100%',
-								overflowX: 'auto',
-								WebkitOverflowScrolling: 'touch',
-							}}
+						<TableContainer
+							sx={theme => ({
+								minWidth: 1200,
+								...catalogTableScrollSx(theme),
+							})}
 						>
-							<TableContainer sx={{ minWidth: 1200 }}>
 								<Table
 									size="small"
 									stickyHeader
@@ -1274,6 +1363,11 @@ export default function AudiobookViews({ cookie }: any) {
 													Price
 												</Typography>
 											</TableCell>
+											<TableCell component="th" align="center">
+												<Typography variant="overline" color="text.secondary" fontWeight={700}>
+													Listens
+												</Typography>
+											</TableCell>
 											<TableCell component="th">
 												<Typography variant="overline" color="text.secondary" fontWeight={700}>
 													Author
@@ -1314,7 +1408,7 @@ export default function AudiobookViews({ cookie }: any) {
 									<TableBody>
 										{rows?.length ? rows : (
 											<TableRow>
-												<TableCell colSpan={12}>
+												<TableCell colSpan={13}>
 													<Typography textAlign="center" color="text.secondary" variant="body2">
 														No audiobooks match your filters. Try adjusting search or filters.
 													</Typography>
@@ -1323,8 +1417,7 @@ export default function AudiobookViews({ cookie }: any) {
 										)}
 									</TableBody>
 								</Table>
-							</TableContainer>
-						</Box>
+						</TableContainer>
 						<Divider />
 						<Stack direction="row" flexWrap="wrap" justifyContent="space-between" alignItems="center" sx={{ p: 2, gap: 1 }}>
 							<Typography variant="body2" color="text.secondary">

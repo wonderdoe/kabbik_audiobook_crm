@@ -10,14 +10,6 @@ class TotalUserModel {
 				FROM users
 				WHERE DATE(CONVERT_TZ(created_at, '+00:00', '+06:00')) <= ?
 			`;
-			const sql2 = `
-				SELECT COUNT(*) AS total_subscribers
-				FROM users
-				WHERE is_subscribed = 1
-					AND canceled_subscription = 0
-					AND NOW() <= FROM_UNIXTIME(next_purchase_time / 1000)
-					AND DATE(CONVERT_TZ(created_at, '+00:00', '+06:00')) <= ?
-			`;
 			const sql3 = `
 				SELECT SUM(play_count) AS play_count
 				FROM audiobooks
@@ -31,10 +23,10 @@ class TotalUserModel {
 					FROM date_range
 					WHERE n < 6
 				)
-				SELECT dr.date, COALESCE(COUNT(bw.id), 0) AS Count
+				SELECT dr.date, COALESCE(COUNT(DISTINCT bw.subscriptionRequestId), 0) AS Count
 				FROM date_range dr
 				LEFT JOIN bkash_webhook bw
-					ON DATE(CONVERT_TZ(bw.created_at, '+00:00', '+06:00')) = dr.date
+					ON DATE(CONVERT_TZ(bw.trxDate, 'UTC', '+06:00')) = dr.date
 					AND bw.firstPayment = 1
 					AND bw.paymentStatus = 'SUCCEEDED_PAYMENT'
 				GROUP BY dr.date
@@ -58,13 +50,11 @@ class TotalUserModel {
 			`;
 
 			const sqlResponse = await DB.query(sql, [date]);
-			const sqlResponse2 = await DB.query(sql2, [date]);
 			const sqlResponse3 = await DB.query(sql3, [date]);
 			const sqlResponse4 = await DB.query(sql4, [date, date]);
 			const sqlResponse5 = await DB.query(sql5, [date, date]);
 			const results = [
 				{ title: 'Total Users', count: sqlResponse[0]?.total_users || 0 },
-				{ title: 'Total Subscribers', count: sqlResponse2[0]?.total_subscribers || 0 },
 				{ title: 'Total Play Count', count: sqlResponse3[0]?.play_count || 0 },
 				{
 					title: 'Bkash New Recurring Subscribers',

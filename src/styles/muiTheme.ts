@@ -34,6 +34,35 @@ const grey = {
 	900: '#000000',
 };
 
+function containedGradient(main: string, dark: string, hoverMain?: string, hoverDark?: string) {
+	const base = `linear-gradient(135deg, ${main} 0%, ${dark} 100%)`;
+	const hover = `linear-gradient(135deg, ${hoverMain ?? main} 0%, ${hoverDark ?? dark} 100%)`;
+	return {
+		background: base,
+		backgroundColor: main,
+		color: '#fff',
+		'&:hover': {
+			background: hover,
+			backgroundColor: hoverMain ?? main,
+		},
+		'&.Mui-disabled': {
+			background: grey[200],
+			backgroundColor: grey[200],
+			backgroundImage: 'none',
+			color: grey[500],
+		},
+	};
+}
+
+function outlinedGradientHover(tint: string, tintDark: string) {
+	return {
+		'&:hover': {
+			background: `linear-gradient(135deg, ${alpha(tint, 0.1)} 0%, ${alpha(tintDark, 0.08)} 100%)`,
+			borderColor: tint,
+		},
+	};
+}
+
 export const muiTheme = createTheme({
 	shadows: softenElevationShadows(),
 	palette: {
@@ -88,15 +117,45 @@ export const muiTheme = createTheme({
 		MuiButton: {
 			defaultProps: { disableElevation: true },
 			styleOverrides: {
-				root: { borderRadius: 4, fontWeight: 600 },
-				containedPrimary: {
-					backgroundColor: primaryMain,
-					boxShadow: `0 2px 8px ${alpha(primaryMain, 0.24)}`,
+				root: {
+					borderRadius: 4,
+					fontWeight: 600,
+					transition: 'background 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease',
+				},
+				contained: {
+					boxShadow: `0 1px 4px ${alpha('#000', 0.08)}`,
 					'&:hover': {
-						backgroundColor: '#c41070',
-						boxShadow: `0 4px 12px ${alpha(primaryMain, 0.32)}`,
+						boxShadow: `0 3px 10px ${alpha('#000', 0.12)}`,
 					},
 				},
+				containedPrimary: {
+					...containedGradient(primaryMain, primaryDark, '#f0329a', '#5a1094'),
+					boxShadow: `0 2px 8px ${alpha(primaryMain, 0.22)}`,
+					'&:hover': {
+						background: `linear-gradient(135deg, #f0329a 0%, #5a1094 100%)`,
+						boxShadow: `0 4px 14px ${alpha(primaryMain, 0.28)}`,
+					},
+				},
+				containedSecondary: {
+					...containedGradient(primaryDark, '#2d004d', '#5c1294', '#3a0066'),
+					boxShadow: `0 2px 8px ${alpha(primaryDark, 0.2)}`,
+				},
+				containedSuccess: containedGradient('#00a854', '#007a3d', '#00c261', '#008f47'),
+				containedWarning: containedGradient('#faad14', '#d48806', '#ffc53d', '#e6a000'),
+				containedError: containedGradient('#ff4d4f', '#cf1322', '#ff7875', '#d9363e'),
+				containedInfo: containedGradient('#1677ff', '#0958d9', '#4096ff', '#1677ff'),
+				outlinedPrimary: {
+					borderColor: alpha(primaryMain, 0.45),
+					...outlinedGradientHover(primaryMain, primaryDark),
+				},
+				outlinedSecondary: {
+					borderColor: alpha(primaryDark, 0.4),
+					...outlinedGradientHover(primaryDark, '#2d004d'),
+				},
+				outlinedSuccess: outlinedGradientHover('#00a854', '#007a3d'),
+				outlinedWarning: outlinedGradientHover('#faad14', '#d48806'),
+				outlinedError: outlinedGradientHover('#ff4d4f', '#cf1322'),
+				textPrimary: outlinedGradientHover(primaryMain, primaryDark),
 			},
 		},
 		MuiCard: {

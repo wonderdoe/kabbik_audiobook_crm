@@ -46,7 +46,11 @@ Set the same value on **Next app** and **worker** (`scripts/load-env.mjs`).
 
 | Date | Owner | Path | Notes |
 |------|-------|------|-------|
-| _pending_ | | log / users | Run validation on staging/prod replica and fill this row |
+| 2026-10-03 | CRM | log | Active query dedupes latest row via `ROW_NUMBER` + `sub_request_id` on `created_at` ties; validate script checks active ≤ lifetime |
+
+## Active vs lifetime invariant
+
+Snapshot **Active Subscribers** (Kabbik) should be **≤** **Lifetime Subscribers**. If not, run `node scripts/validate-user-report-metrics.mjs` and check `created_at tie groups` plus `USER_REPORT_ACTIVE_SOURCE`.
 
 ## Indexes
 

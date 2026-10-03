@@ -32,30 +32,37 @@ export function calculatePercentage(value:number|string, percentage:number) {
 }
 
 
+/** Sum backend user-report rows (matches worker sumMappedCounts / dashboard extractReportSummary). */
+export function sumUserReportMappedRows(data: unknown): number {
+  if (!Array.isArray(data)) return 0;
+  return data.reduce((acc, row) => acc + Number((row as { count?: number })?.count ?? 0), 0);
+}
+
 export const getUserReportFormat=(data:any)=>{
   if(data==null ) return [];
   const result:any = {
   };
   data.forEach((item:any) => {
-    if(item==null) return; // Skip if payment_source or count is not present
-    if (!result[item.payment_source.toLowerCase()]) {
-      result[item.payment_source.toLowerCase()] = {
+    if(item==null ) return; // Skip if payment_source or count is not present
+    const key = item.payment_source.toLowerCase();
+    const displayName = item.name || key;
+    if (!result[key]) {
+      result[key] = {
         recurring: item.is_recurring ? item.count : 0,
         is_onetime: !item.is_recurring ? item.count : 0,
         image:item.image || '',
         count: item.count ?? 0,
-        name: item.payment_source.toLowerCase(),
+        name: displayName,
+        title: displayName,
       }
     }else{
-        let currentItem = result[item.payment_source.toLowerCase()];
-        result[item.payment_source.toLowerCase()].name = {
-          ...result[item.payment_source.toLowerCase()],
-          count: Number(item.count) + Number(currentItem.count),
-        };
+        const currentItem = result[key];
+        const nextCount = Number(item.count) + Number(currentItem.count);
+        result[key].count = nextCount;
         if (item.is_recurring) {
-          result[item.payment_source.toLowerCase()].recurring += item.count;
+          result[key].recurring += item.count;
         } else {
-          result[item.payment_source.toLowerCase()].is_onetime += item.count;
+          result[key].is_onetime += item.count;
         }
       }
     // Add more payment sources as needed

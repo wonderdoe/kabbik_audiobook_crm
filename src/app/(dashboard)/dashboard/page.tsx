@@ -12,8 +12,41 @@ import { DashboardContent } from '@/components/Dashboard/DashboardContent';
 import Loader from '@/components/Loader';
 import { PageContainer } from '@/components/PageContainer/PageContainer';
 import { checkgetPermission } from '@/helper/Commonfunction';
-import { getBreakdown, type GatewayBreakdownRow } from '@/components/revenue/subscription-gateway-breakdown';
+import {
+	breakdownDayTotal,
+	getBreakdown,
+	type GatewayBreakdownRow,
+} from '@/components/revenue/subscription-gateway-breakdown';
 import { dashboardSummaryUrl, subscriptionRevenueUrl } from '@/utils/constant';
+import { dhakaTodayYmd } from '@/utils/dhaka-date-client';
+
+function last7DhakaDays(anchorYmd: string): string[] {
+	return Array.from({ length: 7 }, (_, i) =>
+		moment(anchorYmd, 'YYYY-MM-DD').subtract(i, 'days').format('YYYY-MM-DD'),
+	);
+}
+
+function kabbikTotalsFromReport(
+	kabbik: Record<string, Record<string, number>>,
+	anchorYmd: string,
+): {
+	recentTotalPayments: { date: string; Amount: number }[];
+	kabbikTodayBreakdown: GatewayBreakdownRow[];
+} {
+	const dayStrings = last7DhakaDays(anchorYmd);
+	const recentTotalPayments = dayStrings.map(day => {
+		const nested = Object.entries(kabbik[day] ?? {}) as [string, number][];
+		return {
+			date: moment(day, 'YYYY-MM-DD').format('Do MMM, YYYY'),
+			Amount: breakdownDayTotal(getBreakdown(nested)),
+		};
+	});
+	const todayNested = Object.entries(kabbik[anchorYmd] ?? {}) as [string, number][];
+	return {
+		recentTotalPayments,
+		kabbikTodayBreakdown: getBreakdown(todayNested),
+	};
+}
 
 type ReportSummary = {
 	lifetimeSubscribers: number;
@@ -52,32 +85,38 @@ export default function Dashboard() {
 	const applySnapshot = (data: DashboardSummaryResponse) => {
 		setUpdatedAt(data.updatedAt);
 		setRes(data.dashboardData ?? []);
-		setRecentTotalPayments(data.recentTotalPayments ?? []);
 		setTopMostUsedPromos(
 			data.topMostUsedPromos ?? { today: [], yesterday: [] },
 		);
 		setReportSummary(data.reportSummary ?? null);
 	};
 
-	const loadKabbikTodayBreakdown = useCallback(async () => {
-		const date = moment().format('YYYY-MM-DD');
+	const loadKabbikRevenueWeek = useCallback(async () => {
+		const anchorYmd = dhakaTodayYmd();
+		const startDate = moment(anchorYmd, 'YYYY-MM-DD').subtract(6, 'days').format('YYYY-MM-DD');
 		try {
 			const res = await fetch(
-				`${subscriptionRevenueUrl}?startDate=${date}&endDate=${date}`,
+				`${subscriptionRevenueUrl}?startDate=${startDate}&endDate=${anchorYmd}`,
 				{ cache: 'no-store' },
 			);
-			if (!res.ok) return;
+			if (!res.ok) {
+				setRecentTotalPayments([]);
+				setKabbikTodayBreakdown([]);
+				return;
+			}
 			const json = await res.json() as { kabbik?: Record<string, Record<string, number>> };
-			const dayMap = json.kabbik?.[date] ?? {};
-			const nested = Object.entries(dayMap) as [string, number][];
-			setKabbikTodayBreakdown(getBreakdown(nested));
+			const { recentTotalPayments: series, kabbikTodayBreakdown: breakdown } =
+				kabbikTotalsFromReport(json.kabbik ?? {}, anchorYmd);
+			setRecentTotalPayments(series);
+			setKabbikTodayBreakdown(breakdown);
 		} catch {
+			setRecentTotalPayments([]);
 			setKabbikTodayBreakdown([]);
 		}
 	}, []);
 
 	const loadSummary = useCallback(async (refresh = false) => {
-		const date = moment().format('YYYY-MM-DD');
+		const date = dhakaTodayYmd();
 		const url = refresh
 			? `${dashboardSummaryUrl}?date=${date}&refresh=1`
 			: `${dashboardSummaryUrl}?date=${date}`;
@@ -93,14 +132,14 @@ export default function Dashboard() {
 		loadSummary()
 			.catch(console.error)
 			.finally(() => setLoading(false));
-		loadKabbikTodayBreakdown();
-	}, [loadSummary, loadKabbikTodayBreakdown]);
+		loadKabbikRevenueWeek();
+	}, [loadSummary, loadKabbikRevenueWeek]);
 
 	const handleRefresh = async () => {
 		if (!checkgetPermission('dashboard')) return;
 		setRefreshing(true);
 		try {
-			await Promise.all([loadSummary(true), loadKabbikTodayBreakdown()]);
+			await Promise.all([loadSummary(true), loadKabbikRevenueWeek()]);
 		} catch (e) {
 			console.error(e);
 		} finally {
