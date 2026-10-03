@@ -8,7 +8,6 @@ import { requireMaintenanceAccess } from '../../../../server/maintenance/require
 
 export const dynamic = 'force-dynamic';
 
-/** @deprecated Prefer GET /api/maintenance/history */
 export async function GET(req: NextRequest) {
 	const access = requireMaintenanceAccess(req);
 	if (access.error) return access.error;
@@ -33,7 +32,7 @@ export async function GET(req: NextRequest) {
 		const entries = await getMaintenanceHistory({ platform, limit });
 		return NextResponse.json({ entries }, { headers: { 'Cache-Control': 'no-store' } });
 	} catch (error) {
-		console.error('[maintenance log GET]', access.admin?.id, error);
+		console.error('[maintenance history GET]', access.admin?.id, error);
 		if (isMaintenanceConfigError(error)) {
 			return NextResponse.json({ message: (error as Error).message }, { status: 503 });
 		}

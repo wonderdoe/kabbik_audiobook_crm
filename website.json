@@ -1,0 +1,11 @@
+{
+    "schemaVersion": 1,
+    "platform": "website",
+    "isUnderMaintenance": false,
+    "title": { "en": "Under Maintenance", "bn": "রক্ষণাবেক্ষণ চলছে" },
+    "message": { "en": "We will be back shortly.", "bn": "আমরা শীঘ্রই ফিরে আসব।" },
+    "startsAt": null,
+    "endsAt": null,
+    "updatedBy": "system",
+    "updatedAt": "2026-10-03T00:00:00.000Z"
+  }
