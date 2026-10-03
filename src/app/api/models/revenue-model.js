@@ -455,6 +455,16 @@ class RevenueModel {
 				WHERE DATE(CONVERT_TZ(created_at, 'UTC', '+06:00')) = '${day}'
 						AND status = 'Success'
 
+				UNION ALL
+
+				SELECT SUM(spl.amount) AS total
+				FROM user_subscription_payment_log AS spl
+				WHERE DATE(CONVERT_TZ(spl.created_at, 'UTC', '+06:00')) = '${day}'
+					AND spl.payment_status = 'SUCCEEDED_PAYMENT'
+					AND spl.isCancelled = 0
+					AND spl.payment_method IN ('GP', 'BL')
+					AND spl.amount IS NOT NULL
+
 				) AS total
 			`;
 			const result = await DB.query(query);

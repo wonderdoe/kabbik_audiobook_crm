@@ -41,6 +41,12 @@ import { cardShadow } from '@/styles/cardShadow';
 
 const PREDICTION_TOOLTIP =
 	'Estimated end-of-day total from recent 6-day trend and today’s pace (Asia/Dhaka).';
+
+const GATEWAY_REVENUE_TOOLTIP =
+	'Sum from payment gateway tables plus GP/BL from subscription payment log (gross). In-app amounts use USD × 121.14. Robi/GP/BL shares are not applied here; Kabbik breakdown uses operator share.';
+
+const KABBIK_BREAKDOWN_TOOLTIP =
+	'Kabbik segment from subscription payment log (succeeded, not cancelled). Same basis as Subscription Revenue report. Robi, GP, and BL use operator revenue share.';
 import { GatewayBreakdownChart } from '@/components/revenue/GatewayBreakdownChart';
 import {
 	breakdownDayTotal,
@@ -232,8 +238,21 @@ export function DashboardContent({
 					{(recentTotalPayments?.length ?? 0) > 0 && (
 						<Grid item xs={12} md={6}>
 							<MainCard
-								title="Total Payment Revenue"
-								subtitle="Daily payment totals (BDT)"
+								title={
+									<Tooltip title={GATEWAY_REVENUE_TOOLTIP} arrow placement="top">
+										<Typography
+											component="span"
+											variant="subtitle1"
+											fontWeight={700}
+											color="text.primary"
+											lineHeight={1.3}
+											sx={{ borderBottom: '1px dotted', borderColor: 'text.disabled', cursor: 'help' }}
+										>
+											Gateway-source revenue
+										</Typography>
+									</Tooltip>
+								}
+								subtitle="Last 7 days · gross gateway totals (BDT)"
 							>
 								<Stack spacing={2}>
 									<MuiAreaChart
@@ -283,8 +302,21 @@ export function DashboardContent({
 
 			{/* ── Today's Kabbik subscription revenue breakdown ── */}
 			<MainCard
-				title="Today's Kabbik Payment Breakdown"
-				subtitle={todayYmd}
+				title={
+					<Tooltip title={KABBIK_BREAKDOWN_TOOLTIP} arrow placement="top">
+						<Typography
+							component="span"
+							variant="subtitle1"
+							fontWeight={700}
+							color="text.primary"
+							lineHeight={1.3}
+							sx={{ borderBottom: '1px dotted', borderColor: 'text.disabled', cursor: 'help' }}
+						>
+							Today&apos;s Kabbik payment breakdown
+						</Typography>
+					</Tooltip>
+				}
+				subtitle={`${todayYmd} · net after operator share`}
 				secondary={
 					<Chip
 						label={`${kabbikDayTotal.toLocaleString()} total`}
