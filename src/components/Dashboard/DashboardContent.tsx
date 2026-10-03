@@ -58,12 +58,12 @@ const KABBIK_BREAKDOWN_TOOLTIP =
 
 function pickIcon(title: string) {
 	const t = title.toLowerCase();
-	if (t.includes('user') && !t.includes('subscriber')) return <IconUsers size={20} stroke={1.75} />;
-	if (t.includes('subscriber')) return <IconUserCheck size={20} stroke={1.75} />;
-	if (t.includes('play')) return <IconTrendingUp size={20} stroke={1.75} />;
-	if (t.includes('payment') || t.includes('amount')) return <IconCash size={20} stroke={1.75} />;
-	if (t.includes('bkash') || t.includes('recurring')) return <IconRepeat size={20} stroke={1.75} />;
-	return <IconChartBar size={20} stroke={1.75} />;
+	if (t.includes('user') && !t.includes('subscriber')) return <IconUsers size={18} stroke={1.75} />;
+	if (t.includes('subscriber')) return <IconUserCheck size={18} stroke={1.75} />;
+	if (t.includes('play')) return <IconTrendingUp size={18} stroke={1.75} />;
+	if (t.includes('payment') || t.includes('amount')) return <IconCash size={18} stroke={1.75} />;
+	if (t.includes('bkash') || t.includes('recurring')) return <IconRepeat size={18} stroke={1.75} />;
+	return <IconChartBar size={18} stroke={1.75} />;
 }
 
 function pickColor(title: string): 'primary' | 'success' | 'warning' | 'error' {
@@ -190,11 +190,11 @@ export function DashboardContent({
 					<Box sx={{ overflow: 'hidden' }}>
 					<Grid container spacing={2}>
 						{([
-								{ label: 'Lifetime Subscribers', value: reportSummary?.lifetimeSubscribers, icon: <IconUsers size={20} stroke={1.75} />, color: 'primary' as const },
-								{ label: 'Active Subscribers', value: reportSummary?.activeSubscribers, icon: <IconUserCheck size={20} stroke={1.75} />, color: 'success' as const },
-								{ label: 'BL Subscribers', value: reportSummary?.blSubscribers, icon: <IconRepeat size={20} stroke={1.75} />, color: 'warning' as const },
-								{ label: 'Active Rents', value: reportSummary?.activeRentCount, icon: <IconBook size={20} stroke={1.75} />, color: 'error' as const },
-								{ label: 'Total Play Count', value: reportSummary?.totalPlayCount, icon: <IconHeadphones size={20} stroke={1.75} />, color: 'primary' as const },
+								{ label: 'Lifetime Subscribers', value: reportSummary?.lifetimeSubscribers, icon: <IconUsers size={18} stroke={1.75} />, color: 'primary' as const },
+								{ label: 'Active Subscribers', value: reportSummary?.activeSubscribers, icon: <IconUserCheck size={18} stroke={1.75} />, color: 'success' as const },
+								{ label: 'BL Subscribers', value: reportSummary?.blSubscribers, icon: <IconRepeat size={18} stroke={1.75} />, color: 'warning' as const },
+								{ label: 'Active Rents', value: reportSummary?.activeRentCount, icon: <IconBook size={18} stroke={1.75} />, color: 'error' as const },
+								{ label: 'Total Play Count', value: reportSummary?.totalPlayCount, icon: <IconHeadphones size={18} stroke={1.75} />, color: 'primary' as const },
 							]).map((item, index) => (
 								<Grid
 									item

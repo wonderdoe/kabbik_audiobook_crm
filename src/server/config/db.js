@@ -40,6 +40,47 @@ class DB {
 			throw err;
 		});
 	};
+
+	withTransaction = async fn => {
+		const connection = await new Promise((resolve, reject) => {
+			this.db.getConnection((error, conn) => {
+				if (error) reject(error);
+				else resolve(conn);
+			});
+		});
+
+		const queryOnConnection = (sql, values) =>
+			new Promise((resolve, reject) => {
+				connection.query(sql, values, (error, result) => {
+					if (error) reject(error);
+					else resolve(result);
+				});
+			});
+
+		try {
+			await new Promise((resolve, reject) => {
+				connection.beginTransaction(error => {
+					if (error) reject(error);
+					else resolve();
+				});
+			});
+			const result = await fn(queryOnConnection);
+			await new Promise((resolve, reject) => {
+				connection.commit(error => {
+					if (error) reject(error);
+					else resolve();
+				});
+			});
+			return result;
+		} catch (error) {
+			await new Promise(resolve => {
+				connection.rollback(() => resolve());
+			});
+			throw error;
+		} finally {
+			connection.release();
+		}
+	};
 }
 
 export default new DB();
