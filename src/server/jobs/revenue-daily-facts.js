@@ -44,6 +44,11 @@ export function todayDhaka() {
 	return moment().format('YYYY-MM-DD');
 }
 
+/** Normalize mysql2 DATE (Date object or string) to YYYY-MM-DD for comparisons. */
+function factDateYmd(statDate) {
+	return moment(statDate).format('YYYY-MM-DD');
+}
+
 async function queryKabbikLogDay(day) {
 	return DB.query(
 		`SELECT ROUND(SUM(spl.amount)) AS total, spl.payment_method AS payment_type,
@@ -192,7 +197,7 @@ export async function assembleSubscriptionRevenueReport(startDate, endDate) {
 
 	if (moment(today).isBetween(startDate, endDate, 'day', '[]')) {
 		const live = await buildDailyRevenueFacts(today);
-		allFacts = allFacts.filter(r => r.stat_date !== today);
+		allFacts = allFacts.filter(r => factDateYmd(r.stat_date) !== today);
 		allFacts = allFacts.concat(live.subscriptionRows);
 	}
 
@@ -201,7 +206,7 @@ export async function assembleSubscriptionRevenueReport(startDate, endDate) {
 	const courseRevenue = {};
 
 	for (const row of allFacts) {
-		const date = moment(row.stat_date).format('YYYY-MM-DD');
+		const date = factDateYmd(row.stat_date);
 		if (row.segment === 'mybl') {
 			if (!(date in myblRevenue)) myblRevenue[date] = {};
 			myblRevenue[date][subscriptionKey(row)] = Number(row.raw_total);
@@ -303,7 +308,7 @@ export async function assemblePgwRevenueReport(startDate, endDate) {
 
 	if (moment(today).isBetween(startDate, endDate, 'day', '[]')) {
 		const live = await buildDailyRevenueFacts(today);
-		facts = facts.filter(r => r.stat_date !== today);
+		facts = facts.filter(r => factDateYmd(r.stat_date) !== today);
 		facts = facts.concat(live.pgwFactRows);
 	}
 
