@@ -14,6 +14,11 @@ import {
 import { DataSelect } from '@/components/Form/DataSelect';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import dayjs from 'dayjs';
+import {
+	formatScheduledPushDateTimeForApi,
+	getScheduledPushNotificationMessage,
+	isScheduledPushNotificationCreated,
+} from '@/utils/pushNotificationSchedule';
 import { zodResolver } from '@hookform/resolvers/zod';
 import moment from 'moment';
 import { useEffect, useState } from 'react';
@@ -41,11 +46,16 @@ const CommonFormSchema = z.object({
 type CommonFormDataType = z.infer<typeof CommonFormSchema>;
 type SelectProps = 'allUsers' | 'unSubscribedUsers' | 'subscribedUsers';
 
-export const PNCommonForm = () => {
-	const initDate = new Date();
-	initDate.setMinutes(initDate.getMinutes() + 5);
+type PNCommonFormProps = {
+	onScheduleSuccess?: () => void;
+};
 
-	const [dateTime, setDateTime] = useState<DateValue | null>(initDate);
+export const PNCommonForm = ({ onScheduleSuccess }: PNCommonFormProps) => {
+	const [dateTime, setDateTime] = useState<DateValue | null>(() => {
+		const d = new Date();
+		d.setMinutes(d.getMinutes() + 5);
+		return d;
+	});
 	const [isSchedule, setIsSchedule] = useState(true);
 	const [dateTimeError, setDateTimeError] = useState(false);
 	const [isLoading, setIsLoading] = useState(false);
@@ -67,9 +77,26 @@ export const PNCommonForm = () => {
 			defaultValues: { title: '', description: '', imageUrl: '' },
 		});
 
+	const defaultScheduleDate = () => {
+		const d = new Date();
+		d.setMinutes(d.getMinutes() + 5);
+		return d;
+	};
+
 	const resetAll = () => {
 		reset({ title: '', description: '', imageUrl: '' });
-		setDateTime(null);
+		setIsSchedule(true);
+		setDateTime(defaultScheduleDate());
+		setDateTimeError(false);
+		setType('allUsers');
+		setGotoPage('');
+		setAudiobook_id('');
+		setAudiobookTitle('');
+		setAutoSplit('auto');
+		setCatItems(undefined);
+		setError('');
+		setStartDate(new Date(moment().startOf('month').toDate()));
+		setEndDate(new Date());
 		setResetImagePath(prev => !prev);
 	};
 
@@ -120,7 +147,7 @@ export const PNCommonForm = () => {
 
 		const newFormData: any = {
 			redirectRoute: type === 'allUsers' ? pushNotificationToallUsersUrl : pushNotificationToSpecificUsersUrl,
-			dateTime: dayjs(dateTime).format('YYYY-MM-DD HH:mm:ss'),
+			dateTime: formatScheduledPushDateTimeForApi(dateTime),
 			payload: buildGotoPayload({ ...formData, type }),
 		};
 		if (autoSplit === 'not' && startDate && endDate) {
@@ -133,7 +160,13 @@ export const PNCommonForm = () => {
 		});
 		createActivityLog({ name: 'scheduledPushNotification', action_type: 'create', payload: JSON.stringify({ newFormData }), api_end_point: scheduledPushNotificationUrl });
 		const result = await response.json();
-		if (result?.data?.success) { createToast2('Notification scheduled'); resetAll(); } else { createToast2('Something went wrong'); }
+		if (isScheduledPushNotificationCreated(result)) {
+			createToast2('Notification scheduled');
+			resetAll();
+			onScheduleSuccess?.();
+		} else {
+			createToast2(getScheduledPushNotificationMessage(result) ?? 'Schedule was not created');
+		}
 	};
 
 	const onSubmitCommonForm = async (formData: CommonFormDataType) => {
@@ -151,10 +184,7 @@ export const PNCommonForm = () => {
 		const result = await sendPushNotification({ ...payload, type });
 		if (type === 'allUsers' ? result.data.name : result.data.success) {
 			createToast2(type === 'allUsers' ? 'Notification sent' : `Sent. OK: ${result.data.Successful} / Fail: ${result.data.UnSuccessful}`);
-			reset({ title: '', description: '', imageUrl: '' });
-			setStartDate(new Date(moment().startOf('month').toDate()));
-			setEndDate(new Date());
-			setResetImagePath(prev => !prev);
+			resetAll();
 		} else {
 			createToast('Common notification failed');
 		}
@@ -252,6 +282,7 @@ export const PNCommonForm = () => {
 									size="small"
 									fullWidth
 									required
+									value={audiobook_id}
 									onChange={e => { setAudiobook_id(e.target.value.trim()); setError(''); }}
 								/>
 								<TextField
@@ -260,6 +291,7 @@ export const PNCommonForm = () => {
 									size="small"
 									fullWidth
 									required
+									value={audiobook_title}
 									onChange={e => { setAudiobookTitle(e.target.value); setError(''); }}
 								/>
 							</Stack>

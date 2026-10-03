@@ -1,14 +1,34 @@
 'use client';
 
-import { Alert, Box, Button, Stack, ToggleButton, ToggleButtonGroup, Typography } from '@mui/material';
-import { PageContainer } from '@/components/PageContainer/PageContainer';
-import { MainCard } from '@/components/mantis/MainCard';
-import { StatCard } from '@/components/ui/StatCard';
+import {
+	Alert,
+	Box,
+	Button,
+	Chip,
+	Grid,
+	Stack,
+	ToggleButton,
+	ToggleButtonGroup,
+	Typography,
+	alpha,
+	useTheme,
+} from '@mui/material';
+import {
+	IconBook,
+	IconHeadphones,
+	IconRepeat,
+	IconTrendingUp,
+	IconUserCheck,
+	IconUsers,
+} from '@tabler/icons-react';
+import { motion } from 'framer-motion';
 import { useEffect, useState } from 'react';
 import Loader from '@/components/Loader';
-import TreeDiagram from '@/components/Tree/Tree';
+import { PageContainer } from '@/components/PageContainer/PageContainer';
+import { MainCard } from '@/components/mantis/MainCard';
+import { StatCardValue } from '@/components/ui/StatCardValue';
 import { getUserReportFormat } from '@/helper/Commonfunction';
-import styles from './styles.module.css';
+import { cardShadow } from '@/styles/cardShadow';
 import { PlayCountGrid } from './components/PlayCountGrid';
 import { SubscriberCard } from './components/SubscriberCard';
 import {
@@ -58,7 +78,131 @@ function applySnapshotToState(
 	setters.setActiveRentUserCount((data.rentActiveUnique as unknown[]) ?? []);
 }
 
+function SummaryStatCard({
+	label,
+	value,
+	icon,
+	color,
+	delay = 0,
+}: {
+	label: string;
+	value: number;
+	icon: React.ReactNode;
+	color: string;
+	delay?: number;
+}) {
+	const theme = useTheme();
+	return (
+		<Box
+			component={motion.div}
+			initial={{ opacity: 0, y: 14 }}
+			animate={{ opacity: 1, y: 0 }}
+			transition={{ duration: 0.28, delay, ease: 'easeOut' }}
+			whileHover={{ y: -2, boxShadow: `0 6px 16px ${alpha(color, 0.12)}` }}
+			sx={{
+				bgcolor: 'background.paper',
+				border: `1px solid ${theme.palette.divider}`,
+				borderRadius: 1,
+				overflow: 'hidden',
+				position: 'relative',
+				height: '100%',
+				boxShadow: cardShadow.rest,
+				transition: 'box-shadow 0.2s, transform 0.2s',
+				'&::before': {
+					content: '""',
+					position: 'absolute',
+					left: 0, top: 0, bottom: 0,
+					width: 4,
+					background: `linear-gradient(180deg, ${color}, ${alpha(color, 0.4)})`,
+				},
+			}}
+		>
+			<Box sx={{ pl: 2.5, pr: 2, pt: 2, pb: 2, display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 1.5 }}>
+				<Stack spacing={0.75}>
+					<Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+						{label}
+					</Typography>
+					<Typography variant="h4" fontWeight={800} lineHeight={1.15} color="text.primary">
+						<StatCardValue value={value} />
+					</Typography>
+				</Stack>
+				<Box sx={{ width: 44, height: 44, bgcolor: alpha(color, 0.1), color, borderRadius: 1, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: `0 0 0 1px ${alpha(color, 0.15)}` }}>
+					{icon}
+				</Box>
+			</Box>
+		</Box>
+	);
+}
+
+function SectionLabel({ icon, label }: { icon: React.ReactNode; label: string }) {
+	const theme = useTheme();
+	return (
+		<Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+			<Box sx={{ color: theme.palette.primary.main, display: 'flex' }}>{icon}</Box>
+			<Typography variant="overline" sx={{ color: 'text.secondary', fontWeight: 700, letterSpacing: '0.08em', lineHeight: 1 }}>
+				{label}
+			</Typography>
+			<Box sx={{ flex: 1, height: 1, bgcolor: 'divider', ml: 1 }} />
+		</Box>
+	);
+}
+
+/** Horizontal scrollable platform card row */
+function PlatformRow({
+	items,
+	showBreakdown = true,
+	color,
+}: {
+	items: any[];
+	showBreakdown?: boolean;
+	color?: string;
+}) {
+	const theme = useTheme();
+	const resolved = color ?? theme.palette.primary.main;
+	const max = items.length
+		? Math.max(...items.map(i => {
+			const r = Number(i.recurring ?? 0);
+			const o = Number(i.is_onetime ?? 0);
+			return i.count !== undefined ? Number(i.count) : r + o;
+		}))
+		: 1;
+
+	if (!items.length) {
+		return (
+			<Typography variant="body2" color="text.disabled" sx={{ py: 2 }}>
+				No data
+			</Typography>
+		);
+	}
+
+	return (
+		<Box
+			sx={{
+				display: 'flex',
+				gap: 1.5,
+				overflowX: 'auto',
+				pb: 0.5,
+				/* hide scrollbar on desktop, keep functional */
+				'&::-webkit-scrollbar': { height: 4 },
+				'&::-webkit-scrollbar-track': { bgcolor: 'transparent' },
+				'&::-webkit-scrollbar-thumb': { bgcolor: alpha(resolved, 0.2), borderRadius: 2 },
+			}}
+		>
+			{items.map((item: any) => (
+				<SubscriberCard
+					key={item.title}
+					item={item}
+					showBreakdown={showBreakdown}
+					color={resolved}
+					max={max}
+				/>
+			))}
+		</Box>
+	);
+}
+
 export default function UserReport() {
+	const theme = useTheme();
 	const [userCountData, setUserCountData] = useState<any>([]);
 	const [subsData, setSubsData] = useState<any>([]);
 	const [playCount, setPlayCount] = useState([]);
@@ -76,16 +220,7 @@ export default function UserReport() {
 	useEffect(() => {
 		let cancelled = false;
 		setLoadError(null);
-		const setters = {
-			setUserCountData,
-			setBlSubsData,
-			setSubsData,
-			setPlayCount,
-			setRentData,
-			setActiveRentCount,
-			setUniqueTotalRentUserCount,
-			setActiveRentUserCount,
-		};
+		const setters = { setUserCountData, setBlSubsData, setSubsData, setPlayCount, setRentData, setActiveRentCount, setUniqueTotalRentUserCount, setActiveRentUserCount };
 
 		const cached = readSessionSnapshot();
 		const hadCached = Boolean(cached);
@@ -103,195 +238,190 @@ export default function UserReport() {
 				applySnapshotToState(data, setters);
 				setLoadError(null);
 				try {
-					sessionStorage.setItem(
-						SESSION_SNAPSHOT_KEY,
-						JSON.stringify({ savedAt: Date.now(), data }),
-					);
-				} catch {
-					/* ignore quota / private mode */
-				}
+					sessionStorage.setItem(SESSION_SNAPSHOT_KEY, JSON.stringify({ savedAt: Date.now(), data }));
+				} catch { /* ignore quota */ }
 			} catch (error) {
 				console.error('Error fetching user report snapshot:', error);
 				if (!cancelled && !hadCached) {
-					if (error instanceof UserReportNotCachedError) {
-						setLoadError(error.message);
-					} else {
-						setLoadError(USER_REPORT_NOT_CACHED_MESSAGE);
-					}
+					setLoadError(error instanceof UserReportNotCachedError ? error.message : USER_REPORT_NOT_CACHED_MESSAGE);
 				}
 			} finally {
 				if (!cancelled) setLoading(false);
 			}
 		})();
 
-		return () => {
-			cancelled = true;
-		};
+		return () => { cancelled = true; };
 	}, [reloadNonce]);
 
 	const sumSubs = (list: any[]) =>
-		list.reduce((a: number, c: any) => a + Number(c?.recurring) + Number(c?.is_onetime), 0);
+		list.reduce((a: number, c: any) => a + Number(c?.recurring ?? 0) + Number(c?.is_onetime ?? 0), 0);
 	const sumRent = (list: any[]) => list?.reduce((a: number, c: any) => a + Number(c.count), 0) ?? 0;
 
 	const hasData =
-		userCountData.length > 0 ||
-		subsData.length > 0 ||
-		blSubsData.length > 0 ||
-		(playCount?.length ?? 0) > 0;
+		userCountData.length > 0 || subsData.length > 0 || blSubsData.length > 0 || (playCount?.length ?? 0) > 0;
 
 	if (loading && !hasData) return <Loader />;
 
 	if (loadError && !hasData) {
 		return (
 			<PageContainer title="User Report" items={[{ label: 'User Report', href: '/dashboard/user-report' }]}>
-				<Alert severity="info" sx={{ mb: 2 }}>
-					{loadError}
-				</Alert>
+				<Alert severity="info" sx={{ mb: 2 }}>{loadError}</Alert>
 				<Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
 					This report is refreshed once per day at <strong>3:30 AM Bangladesh time</strong>. After that time,
 					reload this page or tap Check again. If it is still empty, contact your administrator.
 				</Typography>
-				<Button variant="outlined" onClick={() => setReloadNonce(n => n + 1)}>
-					Check again
-				</Button>
+				<Button variant="outlined" onClick={() => setReloadNonce(n => n + 1)}>Check again</Button>
 			</PageContainer>
 		);
 	}
 
+	const totalRentItems = showTotalRentUniqUserCount ? uniqueTotalRentUserCount : rentData;
+	const activeRentItems = showActiveRentUniqUserCount ? activeRentUserCount : activeRentCount;
+
+	const snapshotCards = [
+		{ label: 'Lifetime Subscribers', value: sumSubs(userCountData), icon: <IconUsers size={20} stroke={1.75} />, color: theme.palette.primary.main },
+		{ label: 'Active Subscribers', value: sumSubs(subsData), icon: <IconUserCheck size={20} stroke={1.75} />, color: theme.palette.success.main },
+		{ label: 'BL Subscribers', value: sumSubs(blSubsData), icon: <IconRepeat size={20} stroke={1.75} />, color: '#2e7d32' },
+		{ label: 'Total Rent', value: sumRent(rentData), icon: <IconBook size={20} stroke={1.75} />, color: theme.palette.warning.main },
+		{ label: 'Active Rent', value: sumRent(activeRentCount), icon: <IconTrendingUp size={20} stroke={1.75} />, color: theme.palette.error.main },
+	];
+
 	return (
 		<PageContainer title="User Report" items={[{ label: 'User Report', href: '/dashboard/user-report' }]}>
 			<Stack spacing={3}>
-				<MainCard title="Total Lifetime Subscribers">
-					<StatCard
-						title="Lifetime total"
-						color="primary"
-						value={sumSubs(userCountData).toLocaleString()}
-						subtitle="All platforms combined"
-					/>
-					<Box sx={{ mt: 2, width: '100%', overflowX: 'auto' }}>
-						<TreeDiagram
-							headingChildren={
-								<div className={styles.totalUsers}>
-									<h2>LifeTime Subscribers</h2>
-									<p>{sumSubs(userCountData)}</p>
-								</div>
-							}
-							childNodes={userCountData.map((item: any) => (
-								<SubscriberCard key={item.title} item={item} />
+
+				{/* ── Snapshot ── */}
+				<Stack spacing={1.5}>
+					<SectionLabel icon={<IconTrendingUp size={15} stroke={2} />} label="Snapshot" />
+					<Box sx={{ overflow: 'hidden' }}>
+						<Grid container spacing={2}>
+							{snapshotCards.map((s, i) => (
+								<Grid item xs={12} sm={6} md={4} lg key={s.label}>
+									<SummaryStatCard label={s.label} value={s.value} icon={s.icon} color={s.color} delay={i * 0.06} />
+								</Grid>
 							))}
-						/>
+						</Grid>
 					</Box>
+				</Stack>
+
+				{/* ── Lifetime subscribers ── */}
+				<MainCard
+					title="Lifetime Subscribers"
+					secondary={
+						<Chip
+							label={<StatCardValue value={sumSubs(userCountData)} />}
+							color="primary"
+							size="small"
+							sx={{ fontWeight: 700 }}
+						/>
+					}
+				>
+					<PlatformRow items={userCountData} showBreakdown color={theme.palette.primary.main} />
 				</MainCard>
 
-				<MainCard title="Active Subscribed Users">
-					<StatCard title="Active total" color="success" value={sumSubs(subsData).toLocaleString()} />
-					<Box sx={{ mt: 2, width: '100%', overflowX: 'auto' }}>
-						<TreeDiagram
-							headingChildren={
-								<div className={styles.totalUsers}>
-									<h2>Subscribed Users</h2>
-									<p>{sumSubs(subsData)}</p>
-								</div>
-							}
-							childNodes={subsData.map((item: any) => (
-								<SubscriberCard key={item.title} item={item} />
-							))}
+				{/* ── Active subscribers ── */}
+				<MainCard
+					title="Active Subscribed Users"
+					secondary={
+						<Chip
+							label={<StatCardValue value={sumSubs(subsData)} />}
+							color="success"
+							size="small"
+							sx={{ fontWeight: 700 }}
 						/>
-					</Box>
+					}
+				>
+					<PlatformRow items={subsData} showBreakdown color={theme.palette.success.main} />
 				</MainCard>
 
+				{/* ── Total rent ── */}
 				<MainCard
 					title="Total Rent Count"
 					secondary={
-						<ToggleButtonGroup
-							size="small"
-							exclusive
-							value={showTotalRentUniqUserCount ? 'unique' : 'total'}
-							onChange={(_, v) => {
-								if (v) setShowTotalRentUniqUserCount(v === 'unique');
-							}}
-						>
-							<ToggleButton value="total">Total count</ToggleButton>
-							<ToggleButton value="unique">Unique users</ToggleButton>
-						</ToggleButtonGroup>
+						<Box sx={{ display: 'flex', gap: 1, alignItems: 'center', flexWrap: 'wrap' }}>
+							<Chip
+								label={<StatCardValue value={sumRent(totalRentItems)} />}
+								color="warning"
+								size="small"
+								sx={{ fontWeight: 700 }}
+							/>
+							<ToggleButtonGroup
+								size="small"
+								exclusive
+								value={showTotalRentUniqUserCount ? 'unique' : 'total'}
+								onChange={(_, v) => { if (v) setShowTotalRentUniqUserCount(v === 'unique'); }}
+								sx={{ '& .MuiToggleButton-root': { py: 0.25, px: 1, fontSize: '0.75rem' } }}
+							>
+								<ToggleButton value="total">Total</ToggleButton>
+								<ToggleButton value="unique">Unique</ToggleButton>
+							</ToggleButtonGroup>
+						</Box>
 					}
 				>
-					<StatCard
-						title="Rent total"
-						color="info"
-						value={sumRent(showTotalRentUniqUserCount ? uniqueTotalRentUserCount : rentData).toLocaleString()}
-					/>
-					<Box sx={{ mt: 2, width: '100%', overflowX: 'auto' }}>
-						<TreeDiagram
-							headingChildren={
-								<div className={styles.totalUsers}>
-									<h2>Total rent</h2>
-									<p>{sumRent(showTotalRentUniqUserCount ? uniqueTotalRentUserCount : rentData)}</p>
-								</div>
-							}
-							childNodes={(showTotalRentUniqUserCount ? uniqueTotalRentUserCount : rentData)?.map(
-								(item: any) => <SubscriberCard key={item.title} item={item} showBreakdown={false} />,
-							)}
-						/>
-					</Box>
+					<PlatformRow items={totalRentItems} showBreakdown={false} color={theme.palette.warning.main} />
 				</MainCard>
 
+				{/* ── Active rent ── */}
 				<MainCard
 					title="Active Rent Count"
 					secondary={
-						<ToggleButtonGroup
-							size="small"
-							exclusive
-							value={showActiveRentUniqUserCount ? 'unique' : 'total'}
-							onChange={(_, v) => {
-								if (v) setShowActiveRentUniqUserCount(v === 'unique');
-							}}
-						>
-							<ToggleButton value="total">Total count</ToggleButton>
-							<ToggleButton value="unique">Unique users</ToggleButton>
-						</ToggleButtonGroup>
+						<Box sx={{ display: 'flex', gap: 1, alignItems: 'center', flexWrap: 'wrap' }}>
+							<Chip
+								label={<StatCardValue value={sumRent(activeRentItems)} />}
+								color="error"
+								size="small"
+								sx={{ fontWeight: 700 }}
+							/>
+							<ToggleButtonGroup
+								size="small"
+								exclusive
+								value={showActiveRentUniqUserCount ? 'unique' : 'total'}
+								onChange={(_, v) => { if (v) setShowActiveRentUniqUserCount(v === 'unique'); }}
+								sx={{ '& .MuiToggleButton-root': { py: 0.25, px: 1, fontSize: '0.75rem' } }}
+							>
+								<ToggleButton value="total">Total</ToggleButton>
+								<ToggleButton value="unique">Unique</ToggleButton>
+							</ToggleButtonGroup>
+						</Box>
 					}
 				>
-					<StatCard
-						title="Active rent"
-						color="warning"
-						value={sumRent(showActiveRentUniqUserCount ? activeRentUserCount : activeRentCount).toLocaleString()}
-					/>
-					<Box sx={{ mt: 2, width: '100%', overflowX: 'auto' }}>
-						<TreeDiagram
-							headingChildren={
-								<div className={styles.totalUsers}>
-									<h2>Active rent</h2>
-									<p>{sumRent(showActiveRentUniqUserCount ? activeRentUserCount : activeRentCount)}</p>
-								</div>
-							}
-							childNodes={(showActiveRentUniqUserCount ? activeRentUserCount : activeRentCount)?.map(
-								(item: any) => <SubscriberCard key={item.title} item={item} showBreakdown={false} />,
-							)}
-						/>
-					</Box>
+					<PlatformRow items={activeRentItems} showBreakdown={false} color={theme.palette.error.main} />
 				</MainCard>
 
-				<MainCard title="Active Subscriber From Banglalink App">
-					<StatCard title="Banglalink active" color="secondary" value={sumSubs(blSubsData).toLocaleString()} />
-					<Box sx={{ mt: 2, width: '100%', overflowX: 'auto' }}>
-						<TreeDiagram
-							headingChildren={
-								<div className={styles.totalUsers}>
-									<h2>Banglalink Subscribed Users</h2>
-									<p>{sumSubs(blSubsData)}</p>
-								</div>
-							}
-							childNodes={blSubsData.map((item: any) => (
-								<SubscriberCard key={item.title} item={item} />
-							))}
+				{/* ── BL subscribers ── */}
+				<MainCard
+					title="Active Subscribers from Banglalink"
+					secondary={
+						<Chip
+							label={<StatCardValue value={sumSubs(blSubsData)} />}
+							color="success"
+							size="small"
+							variant="outlined"
+							sx={{ fontWeight: 700 }}
 						/>
-					</Box>
+					}
+				>
+					<PlatformRow items={blSubsData} showBreakdown color="#2e7d32" />
 				</MainCard>
 
-				<MainCard title="Total Play Count">
+				{/* ── Play count ── */}
+				<MainCard
+					title="Total Play Count"
+					secondary={
+						<Chip
+							label={<>
+								<IconHeadphones size={12} style={{ verticalAlign: 'middle', marginRight: 4 }} />
+								{playCount.length} platforms
+							</>}
+							size="small"
+							variant="outlined"
+							sx={{ fontWeight: 600 }}
+						/>
+					}
+				>
 					<PlayCountGrid list={playCount} />
 				</MainCard>
+
 			</Stack>
 		</PageContainer>
 	);

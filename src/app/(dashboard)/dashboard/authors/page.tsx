@@ -277,7 +277,7 @@ export default function Authors() {
 						<Grid item xs={12} sm={6} md={4}>
 							<StatCard
 								title="Total authors"
-								value={totalData.toLocaleString()}
+								value={totalData}
 								color="primary"
 								icon={<IconUsers size={22} />}
 							/>
