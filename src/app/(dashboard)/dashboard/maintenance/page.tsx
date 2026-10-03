@@ -13,6 +13,7 @@ import {
 	Divider,
 	FormControlLabel,
 	Grid,
+	Link,
 	Paper,
 	Stack,
 	Switch,
@@ -47,10 +48,12 @@ export type MaintenanceStatusDto = {
 	endsAt: string | null;
 	updatedBy: string | null;
 	updatedAt: string | null;
+	etag?: string | null;
 };
 
 type MaintenanceLogEntry = {
 	platform: string;
+	versionId?: string;
 	isUnderMaintenance: boolean;
 	titleEn: string;
 	messageEn: string;
@@ -118,22 +121,28 @@ function MaintenancePlatformCard({
 	platform,
 	label,
 	initial,
+	etag,
 	onSaved,
+	onConflict,
 }: {
 	platform: PlatformKey;
 	label: string;
 	initial: FormState;
+	etag: string | null;
 	onSaved: (platform: PlatformKey, data: MaintenanceStatusDto) => void;
+	onConflict: () => void;
 }) {
 	const [saved, setSaved] = useState<FormState>(initial);
 	const [form, setForm] = useState<FormState>(initial);
+	const [savedEtag, setSavedEtag] = useState<string | null>(etag);
 	const [saving, setSaving] = useState(false);
 	const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
 	useEffect(() => {
 		setSaved(initial);
 		setForm(initial);
-	}, [initial]);
+		setSavedEtag(etag);
+	}, [initial, etag]);
 
 	const dirty = !formsEqual(form, saved);
 	const display = computeDisplayStatus(form);
@@ -170,9 +179,13 @@ function MaintenancePlatformCard({
 
 		setSaving(true);
 		try {
+			const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+			if (savedEtag) {
+				headers['If-Match'] = savedEtag;
+			}
 			const response = await fetch(`/api/maintenance/${platform}`, {
 				method: 'PUT',
-				headers: { 'Content-Type': 'application/json' },
+				headers,
 				body: JSON.stringify({
 					isUnderMaintenance: form.isUnderMaintenance,
 					titleEn: form.titleEn,
@@ -184,6 +197,15 @@ function MaintenancePlatformCard({
 				}),
 			});
 			const data = await response.json().catch(() => ({}));
+			if (response.status === 409) {
+				await Swal.fire({
+					title: 'Conflict',
+					text: data.message || 'Someone else saved changes. Reload and try again.',
+					icon: 'warning',
+				});
+				onConflict();
+				return;
+			}
 			if (!response.ok) {
 				if (data.field && data.message) {
 					setFieldErrors({ [data.field]: data.message });
@@ -195,6 +217,7 @@ function MaintenancePlatformCard({
 			const next = data as MaintenanceStatusDto;
 			setSaved(next);
 			setForm(next);
+			setSavedEtag(next.etag ?? null);
 			onSaved(platform, next);
 		} finally {
 			setSaving(false);
@@ -345,12 +368,17 @@ export default function MaintenancePage() {
 	const canManage = checkNavPermission('assign_roles');
 	const [loading, setLoading] = useState(true);
 	const [loadError, setLoadError] = useState<string | null>(null);
+	const [environmentLabel, setEnvironmentLabel] = useState<string>('STAGING');
+	const [publicBaseUrl, setPublicBaseUrl] = useState<string>('');
 	const [appStatus, setAppStatus] = useState<FormState>(emptyForm);
 	const [websiteStatus, setWebsiteStatus] = useState<FormState>(emptyForm);
+	const [appEtag, setAppEtag] = useState<string | null>(null);
+	const [websiteEtag, setWebsiteEtag] = useState<string | null>(null);
 	const [logEntries, setLogEntries] = useState<MaintenanceLogEntry[]>([]);
+	const [restoringKey, setRestoringKey] = useState<string | null>(null);
 
 	const fetchLog = useCallback(async () => {
-		const response = await fetch('/api/maintenance/log?limit=20');
+		const response = await fetch('/api/maintenance/history?limit=20');
 		if (!response.ok) return;
 		const data = await response.json();
 		setLogEntries(data.entries ?? []);
@@ -370,8 +398,16 @@ export default function MaintenancePage() {
 				return;
 			}
 			const data = await response.json();
-			if (data.app) setAppStatus({ ...emptyForm, ...data.app });
-			if (data.website) setWebsiteStatus({ ...emptyForm, ...data.website });
+			if (data.environmentLabel) setEnvironmentLabel(data.environmentLabel);
+			if (data.publicBaseUrl != null) setPublicBaseUrl(data.publicBaseUrl);
+			if (data.app) {
+				setAppStatus({ ...emptyForm, ...data.app });
+				setAppEtag(data.app.etag ?? null);
+			}
+			if (data.website) {
+				setWebsiteStatus({ ...emptyForm, ...data.website });
+				setWebsiteEtag(data.website.etag ?? null);
+			}
 			await fetchLog();
 		} catch {
 			setLoadError('Failed to load maintenance status');
@@ -385,6 +421,42 @@ export default function MaintenancePage() {
 	}, [fetchAll]);
 
 	const historyRows = useMemo(() => logEntries, [logEntries]);
+
+	const handleRestore = async (row: MaintenanceLogEntry) => {
+		if (!row.versionId) return;
+		const result = await Swal.fire({
+			title: 'Restore this version?',
+			text: `Restore ${row.platform} to the state from ${formatDhakaDisplay(row.changedAt)}? This writes a new version.`,
+			icon: 'question',
+			showCancelButton: true,
+			confirmButtonText: 'Restore',
+		});
+		if (!result.isConfirmed) return;
+		const key = `${row.platform}-${row.versionId}`;
+		setRestoringKey(key);
+		try {
+			const response = await fetch('/api/maintenance/history/restore', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ platform: row.platform, versionId: row.versionId }),
+			});
+			const data = await response.json().catch(() => ({}));
+			if (!response.ok) {
+				await Swal.fire({
+					title: 'Restore failed',
+					text: data.message || 'Could not restore version',
+					icon: 'error',
+				});
+				return;
+			}
+			await fetchAll();
+		} finally {
+			setRestoringKey(null);
+		}
+	};
+
+	const envChipColor =
+		environmentLabel === 'PRODUCTION' ? ('error' as const) : ('info' as const);
 
 	if (!canManage) {
 		return (
@@ -404,6 +476,27 @@ export default function MaintenancePage() {
 
 	return (
 		<PageContainer title="Maintenance" items={[{ label: 'Maintenance', href: '/dashboard/maintenance' }]}>
+			<Stack direction="row" alignItems="center" flexWrap="wrap" gap={1} sx={{ mb: 2 }}>
+				<Chip label={environmentLabel} color={envChipColor} size="medium" />
+				{publicBaseUrl ? (
+					<Box>
+						<Typography variant="body2" color="text.secondary" component="span">
+							Public read (CDN):{' '}
+							<Link href={`${publicBaseUrl}/app.json`} target="_blank" rel="noopener noreferrer">
+								app.json
+							</Link>
+							{' · '}
+							<Link href={`${publicBaseUrl}/website.json`} target="_blank" rel="noopener noreferrer">
+								website.json
+							</Link>
+						</Typography>
+						<Typography variant="caption" color="text.secondary" display="block">
+							Open the links above (must include <strong>cdn</strong> in the hostname). Origin URLs without{' '}
+							cdn return AccessDenied. After Save, CRM sets objects to public-read for CDN.
+						</Typography>
+					</Box>
+				) : null}
+			</Stack>
 			{loadError && (
 				<Alert severity="error" sx={{ mb: 2 }}>{loadError}</Alert>
 			)}
@@ -413,8 +506,13 @@ export default function MaintenancePage() {
 						platform="app"
 						label="App"
 						initial={appStatus}
+						etag={appEtag}
+						onConflict={fetchAll}
 						onSaved={(p, data) => {
-							if (p === 'app') setAppStatus(data);
+							if (p === 'app') {
+								setAppStatus(data);
+								setAppEtag(data.etag ?? null);
+							}
 							fetchLog();
 						}}
 					/>
@@ -424,8 +522,13 @@ export default function MaintenancePage() {
 						platform="website"
 						label="Website"
 						initial={websiteStatus}
+						etag={websiteEtag}
+						onConflict={fetchAll}
 						onSaved={(p, data) => {
-							if (p === 'website') setWebsiteStatus(data);
+							if (p === 'website') {
+								setWebsiteStatus(data);
+								setWebsiteEtag(data.etag ?? null);
+							}
 							fetchLog();
 						}}
 					/>
@@ -444,18 +547,19 @@ export default function MaintenancePage() {
 								<TableCell>State</TableCell>
 								<TableCell>Title (EN)</TableCell>
 								<TableCell>Who</TableCell>
+								<TableCell align="right">Actions</TableCell>
 							</TableRow>
 						</TableHead>
 						<TableBody>
 							{historyRows.length === 0 ? (
 								<TableRow>
-									<TableCell colSpan={5} align="center">
+									<TableCell colSpan={6} align="center">
 										No changes recorded yet.
 									</TableCell>
 								</TableRow>
 							) : (
 								historyRows.map((row, index) => (
-									<TableRow key={`${row.changedAt}-${row.platform}-${index}`}>
+									<TableRow key={row.versionId ?? `${row.changedAt}-${row.platform}-${index}`}>
 										<TableCell>{formatDhakaDisplay(row.changedAt)}</TableCell>
 										<TableCell>{row.platform}</TableCell>
 										<TableCell>
@@ -463,6 +567,17 @@ export default function MaintenancePage() {
 										</TableCell>
 										<TableCell>{row.titleEn || '—'}</TableCell>
 										<TableCell>{row.changedBy}</TableCell>
+										<TableCell align="right">
+											{row.versionId ? (
+												<Button
+													size="small"
+													disabled={restoringKey === `${row.platform}-${row.versionId}`}
+													onClick={() => handleRestore(row)}
+												>
+													Restore
+												</Button>
+											) : null}
+										</TableCell>
 									</TableRow>
 								))
 							)}

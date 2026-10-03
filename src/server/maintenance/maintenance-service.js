@@ -1,56 +1,20 @@
 import DB from '../config/db.js';
+import {
+	getMaintenanceEnvironmentLabel,
+	getMaintenancePublicReadBaseUrl,
+} from './maintenance-config.js';
+import {
+	crmPayloadToPublicDocument,
+	historyEntryFromDocument,
+	publicDocumentToAuditPayload,
+	publicDocumentToCrmDto,
+	toLogEntryShape,
+} from './maintenance-json.js';
+import { getObject, getObjectVersion, listVersions, putObject } from './maintenance-storage.js';
 
 const PLATFORMS = ['app', 'website'];
 const TITLE_MAX = 150;
 const MESSAGE_MAX = 500;
-
-function datetimeToIsoUtc(value) {
-	if (value == null) return null;
-	if (value instanceof Date) return value.toISOString();
-	const s = String(value).trim();
-	if (!s) return null;
-	if (s.includes('T')) {
-		const d = new Date(s);
-		return Number.isNaN(d.getTime()) ? null : d.toISOString();
-	}
-	const d = new Date(`${s.replace(' ', 'T')}Z`);
-	return Number.isNaN(d.getTime()) ? null : d.toISOString();
-}
-
-function isoToMysqlUtc(iso) {
-	if (iso == null) return null;
-	const d = new Date(iso);
-	if (Number.isNaN(d.getTime())) return null;
-	return d.toISOString().slice(0, 19).replace('T', ' ');
-}
-
-function mapStatusRow(row) {
-	if (!row) return null;
-	return {
-		isUnderMaintenance: Boolean(row.is_under_maintenance),
-		titleEn: row.title_en ?? '',
-		titleBn: row.title_bn ?? '',
-		messageEn: row.message_en ?? '',
-		messageBn: row.message_bn ?? '',
-		startsAt: datetimeToIsoUtc(row.starts_at),
-		endsAt: datetimeToIsoUtc(row.ends_at),
-		updatedBy: row.updated_by ?? null,
-		updatedAt: datetimeToIsoUtc(row.updated_at),
-	};
-}
-
-function mapLogRow(row) {
-	return {
-		platform: row.platform,
-		isUnderMaintenance: Boolean(row.is_under_maintenance),
-		titleEn: row.title_en ?? '',
-		messageEn: row.message_en ?? '',
-		startsAt: datetimeToIsoUtc(row.starts_at),
-		endsAt: datetimeToIsoUtc(row.ends_at),
-		changedBy: row.changed_by,
-		changedAt: datetimeToIsoUtc(row.changed_at),
-	};
-}
 
 function parseOptionalIso(field, raw) {
 	if (raw === null || raw === undefined || raw === '') return { value: null };
@@ -126,96 +90,131 @@ export function validateMaintenancePutBody(body) {
 		messageBn,
 		startsAt,
 		endsAt,
-		startsAtMysql: isoToMysqlUtc(startsAt),
-		endsAtMysql: isoToMysqlUtc(endsAt),
 	};
 }
 
-export async function getMaintenanceStatus() {
-	const rows = await DB.query(
-		`SELECT platform, is_under_maintenance, title_en, title_bn,
-       message_en, message_bn, starts_at, ends_at, updated_by, updated_at
-     FROM app_maintenance_status`,
-	);
-	const result = { app: null, website: null };
-	for (const row of rows) {
-		const mapped = mapStatusRow(row);
-		if (row.platform === 'app') result.app = mapped;
-		if (row.platform === 'website') result.website = mapped;
-	}
-	return result;
-}
-
-export async function updateMaintenanceStatus(platform, payload, changedBy) {
+async function insertAuditLogBestEffort(platform, doc, changedBy) {
+	const audit = publicDocumentToAuditPayload(platform, doc);
 	const by = String(changedBy).slice(0, 100);
-
-	return DB.withTransaction(async query => {
-		const updateResult = await query(
-			`UPDATE app_maintenance_status
-       SET is_under_maintenance = ?, title_en = ?, title_bn = ?,
-           message_en = ?, message_bn = ?, starts_at = ?, ends_at = ?,
-           updated_by = ?
-       WHERE platform = ?`,
-			[
-				payload.isUnderMaintenance ? 1 : 0,
-				payload.titleEn || null,
-				payload.titleBn || null,
-				payload.messageEn || null,
-				payload.messageBn || null,
-				payload.startsAtMysql,
-				payload.endsAtMysql,
-				by,
-				platform,
-			],
-		);
-
-		if (!updateResult?.affectedRows) {
-			return { notFound: true };
-		}
-
-		await query(
+	try {
+		await DB.query(
 			`INSERT INTO app_maintenance_status_log
          (platform, is_under_maintenance, title_en, title_bn, message_en, message_bn,
           starts_at, ends_at, changed_by)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 			[
 				platform,
-				payload.isUnderMaintenance ? 1 : 0,
-				payload.titleEn || null,
-				payload.titleBn || null,
-				payload.messageEn || null,
-				payload.messageBn || null,
-				payload.startsAtMysql,
-				payload.endsAtMysql,
+				audit.isUnderMaintenance ? 1 : 0,
+				audit.titleEn || null,
+				audit.titleBn || null,
+				audit.messageEn || null,
+				audit.messageBn || null,
+				audit.startsAtMysql,
+				audit.endsAtMysql,
 				by,
 			],
 		);
-
-		const rows = await query(
-			`SELECT platform, is_under_maintenance, title_en, title_bn,
-         message_en, message_bn, starts_at, ends_at, updated_by, updated_at
-       FROM app_maintenance_status WHERE platform = ?`,
-			[platform],
-		);
-		return { row: mapStatusRow(rows[0]) };
-	});
+	} catch (error) {
+		console.error('[maintenance] audit log insert failed', platform, error);
+	}
 }
 
-export async function getMaintenanceLog({ platform, limit }) {
-	const capped = Math.min(Math.max(1, limit), 100);
-	const rows = await DB.query(
-		`SELECT platform, is_under_maintenance, title_en, message_en,
-       starts_at, ends_at, changed_by, changed_at
-     FROM app_maintenance_status_log
-     WHERE (? IS NULL OR platform = ?)
-     ORDER BY changed_at DESC
-     LIMIT ?`,
-		[platform ?? null, platform ?? null, capped],
-	);
-	return rows.map(mapLogRow);
+export async function getMaintenanceStatus() {
+	const [appResult, websiteResult] = await Promise.all([
+		getObject('app').catch(err => {
+			if (err.name === 'NoSuchKey' || err.Code === 'NoSuchKey') return null;
+			throw err;
+		}),
+		getObject('website').catch(err => {
+			if (err.name === 'NoSuchKey' || err.Code === 'NoSuchKey') return null;
+			throw err;
+		}),
+	]);
+
+	return {
+		environmentLabel: getMaintenanceEnvironmentLabel(),
+		publicBaseUrl: getMaintenancePublicReadBaseUrl(),
+		app: appResult ? publicDocumentToCrmDto(appResult.document, appResult.etag) : null,
+		website: websiteResult ? publicDocumentToCrmDto(websiteResult.document, websiteResult.etag) : null,
+	};
+}
+
+function etagChecksEnabled() {
+	const v = process.env.MAINTENANCE_ETAG_CHECKS?.trim().toLowerCase();
+	if (v === 'false' || v === '0' || v === 'no') return false;
+	return true;
+}
+
+export async function updateMaintenanceStatus(platform, payload, changedBy, { ifMatch } = {}) {
+	const updatedAtIso = new Date().toISOString();
+	const document = crmPayloadToPublicDocument(platform, payload, changedBy, updatedAtIso);
+	const useIfMatch = etagChecksEnabled() ? ifMatch : undefined;
+	let putResult = await putObject(platform, document, { ifMatch: useIfMatch });
+
+	// DigitalOcean Spaces often returns precondition failed for valid If-Match; retry without it.
+	if (putResult.conflict && useIfMatch) {
+		putResult = await putObject(platform, document, {});
+	}
+
+	if (putResult.conflict) {
+		return { conflict: true };
+	}
+
+	await insertAuditLogBestEffort(platform, document, changedBy);
+
+	const row = publicDocumentToCrmDto(document, putResult.etag);
+	return { row };
+}
+
+export async function getMaintenanceHistory({ platform, limit }) {
+	const capped = Math.min(Math.max(1, limit), 20);
+	const platforms = platform ? [platform] : PLATFORMS;
+	const allEntries = [];
+
+	for (const p of platforms) {
+		const versions = await listVersions(p, capped);
+		for (const v of versions) {
+			allEntries.push(historyEntryFromDocument(p, v.versionId, v.document, v.isLatest));
+		}
+	}
+
+	allEntries.sort((a, b) => {
+		const ta = a.changedAt ? new Date(a.changedAt).getTime() : 0;
+		const tb = b.changedAt ? new Date(b.changedAt).getTime() : 0;
+		return tb - ta;
+	});
+
+	return allEntries.slice(0, capped).map(toLogEntryShape);
+}
+
+/** @deprecated use getMaintenanceHistory — kept for log route alias */
+export async function getMaintenanceLog(opts) {
+	return getMaintenanceHistory(opts);
+}
+
+export async function restoreMaintenanceVersion(platform, versionId, changedBy) {
+	const { document: sourceDoc } = await getObjectVersion(platform, versionId);
+	const payload = {
+		isUnderMaintenance: Boolean(sourceDoc.isUnderMaintenance),
+		titleEn: sourceDoc.title?.en ?? '',
+		titleBn: sourceDoc.title?.bn ?? '',
+		messageEn: sourceDoc.message?.en ?? '',
+		messageBn: sourceDoc.message?.bn ?? '',
+		startsAt: sourceDoc.startsAt ?? null,
+		endsAt: sourceDoc.endsAt ?? null,
+	};
+	const validated = validateMaintenancePutBody(payload);
+	if (!('isUnderMaintenance' in validated)) {
+		return { validationError: validated };
+	}
+	return updateMaintenanceStatus(platform, validated, changedBy, {});
 }
 
 export function actorLabelFromAdmin(admin) {
 	const label = admin.email || admin.name || String(admin.id ?? admin.user_id ?? '');
 	return String(label).slice(0, 100);
+}
+
+export function isMaintenanceConfigError(error) {
+	return Boolean(error && typeof error === 'object' && error.code === 'MAINTENANCE_NOT_CONFIGURED');
 }

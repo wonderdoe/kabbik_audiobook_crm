@@ -2,46 +2,48 @@ import { NextRequest, NextResponse } from 'next/server';
 import {
 	actorLabelFromAdmin,
 	isMaintenanceConfigError,
-	updateMaintenanceStatus,
-	validateMaintenancePutBody,
+	restoreMaintenanceVersion,
 	validatePlatform,
-} from '../../../../server/maintenance/maintenance-service.js';
-import { requireMaintenanceAccess } from '../../../../server/maintenance/require-maintenance-access.js';
+} from '../../../../../server/maintenance/maintenance-service.js';
+import { requireMaintenanceAccess } from '../../../../../server/maintenance/require-maintenance-access.js';
 
 export const dynamic = 'force-dynamic';
 
-type RouteContext = { params: { platform: string } };
-
-export async function PUT(req: NextRequest, context: RouteContext) {
+export async function POST(req: NextRequest) {
 	const access = requireMaintenanceAccess(req);
 	if (access.error) return access.error;
 
-	const platform = context.params.platform;
-	const platformError = validatePlatform(platform);
-	if (platformError) {
-		return NextResponse.json(platformError, { status: 400 });
-	}
-
-	let body: unknown;
+	let body: { platform?: string; versionId?: string };
 	try {
 		body = await req.json();
 	} catch {
 		return NextResponse.json({ field: 'body', message: 'Invalid JSON body' }, { status: 400 });
 	}
 
-	const validated = validateMaintenancePutBody(body);
-	if (!('isUnderMaintenance' in validated)) {
+	const platform = body.platform;
+	const versionId = body.versionId;
+	if (!platform || !versionId) {
 		return NextResponse.json(
-			{ field: validated.field, message: validated.message },
+			{ field: 'body', message: 'platform and versionId are required' },
 			{ status: 400 },
 		);
 	}
 
+	const platformError = validatePlatform(platform);
+	if (platformError) {
+		return NextResponse.json(platformError, { status: 400 });
+	}
+
 	const changedBy = actorLabelFromAdmin(access.admin);
-	const ifMatch = req.headers.get('if-match') ?? req.headers.get('If-Match') ?? undefined;
 
 	try {
-		const result = await updateMaintenanceStatus(platform, validated, changedBy, { ifMatch });
+		const result = await restoreMaintenanceVersion(platform, versionId, changedBy);
+		if (result.validationError) {
+			return NextResponse.json(
+				{ field: result.validationError.field, message: result.validationError.message },
+				{ status: 400 },
+			);
+		}
 		if (result.conflict) {
 			return NextResponse.json(
 				{ field: 'etag', message: 'Someone else saved changes. Reload and try again.' },
@@ -50,7 +52,7 @@ export async function PUT(req: NextRequest, context: RouteContext) {
 		}
 		return NextResponse.json(result.row, { headers: { 'Cache-Control': 'no-store' } });
 	} catch (error) {
-		console.error('[maintenance PUT]', access.admin?.id, platform, error);
+		console.error('[maintenance history restore]', access.admin?.id, platform, error);
 		if (isMaintenanceConfigError(error)) {
 			return NextResponse.json({ message: (error as Error).message }, { status: 503 });
 		}
