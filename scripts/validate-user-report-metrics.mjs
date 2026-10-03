@@ -8,6 +8,7 @@ import {
 	queryActiveLatestOptimized,
 	queryActiveFromUsers,
 	queryLifetimeSubscriberCounts,
+	countActiveCreatedAtTies,
 	describeUsersColumns,
 	sumMappedCounts,
 } from '../src/server/jobs/user-report-queries.js';
@@ -55,9 +56,23 @@ async function main() {
 	const lifetime = await timed('lifetime_usercount', () => queryLifetimeSubscriberCounts());
 	console.log(`\n=== Lifetime (usercount) ===\n  total=${lifetime.total} ms=${lifetime.ms}`);
 
+	const tieGroupsNonBl = await countActiveCreatedAtTies(0);
+	const tieGroupsBl = await countActiveCreatedAtTies(1);
+	console.log(`\n=== created_at tie groups (duplicate rows per user+timestamp) ===`);
+	console.log(`  non_bl=${tieGroupsNonBl} bl=${tieGroupsBl}`);
+
 	const legacyK = kabbikRuns[0].total;
 	const usersK = kabbikRuns[2].total;
 	const optK = kabbikRuns[1].total;
+	console.log('\n=== Active vs lifetime (Kabbik) ===');
+	if (optK > lifetime.total) {
+		console.log(
+			`  WARNING: optimized active (${optK}) > lifetime (${lifetime.total}) — snapshot cards will look wrong`,
+		);
+	} else {
+		console.log(`  OK: optimized active (${optK}) <= lifetime (${lifetime.total})`);
+	}
+
 	console.log('\n=== Suggested decision ===');
 	if (pctDelta(legacyK, optK) < 0.5) {
 		console.log('  Optimized log matches legacy Kabbik total — safe default: USER_REPORT_ACTIVE_SOURCE=log');

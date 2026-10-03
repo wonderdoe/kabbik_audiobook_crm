@@ -1,5 +1,6 @@
 import moment from 'moment';
 import DB from '../../../server/config/db.js';
+import { getUsdToBdtRate, sqlUsdBdtRateLiteral } from '../../../server/utils/usd-bdt-rate.js';
 import {
 	assemblePgwRevenueReport,
 	assembleSubscriptionRevenueReport,
@@ -352,6 +353,7 @@ class RevenueModel {
 
 	getSingleDayTotalPayment = async day => {
 		try {
+			const rate = sqlUsdBdtRateLiteral((await getUsdToBdtRate()).rate);
 			const query = `
 				SELECT IFNULL(SUM(total), 0) AS total FROM (
 
@@ -412,7 +414,7 @@ class RevenueModel {
 							WHEN product_id = 1 THEN 0.99
 							WHEN product_id = 2 THEN 4.99
 							WHEN product_id = 3 THEN 9.99
-						END) * 121.14)), 0) AS total
+						END) * ${rate})), 0) AS total
 					FROM stripe_payment sp
 					JOIN stripe_webhook sw ON sp.customer_id = sw.customer_id
 					WHERE DATE(CONVERT_TZ(sw.created_at, 'UTC', '+06:00')) = '${day}'
@@ -425,7 +427,7 @@ class RevenueModel {
 							WHEN product_id = 1 THEN 0.99
 							WHEN product_id = 2 THEN 4.99
 							WHEN product_id = 3 THEN 9.99
-						END) * 121.14)), 0) AS total
+						END) * ${rate})), 0) AS total
 					FROM stripe_payment
 					WHERE DATE(CONVERT_TZ(created_at, 'UTC', '+06:00')) = '${day}'
 						AND is_succeed = 1
@@ -438,7 +440,7 @@ class RevenueModel {
 						WHEN gp.packageId = 1 THEN 0.99
 						WHEN gp.packageId = 2 THEN 4.99
 						WHEN gp.packageId = 3 THEN 9.99
-					END) * 121.14)) AS total
+					END) * ${rate})) AS total
 				FROM googlepay_invoice gp
 				WHERE DATE(CONVERT_TZ(gp.created_at, 'UTC', '+06:00')) = '${day}'
 						AND gp.status = 'Success'
@@ -450,7 +452,7 @@ class RevenueModel {
 						WHEN packageId = 1 THEN 0.99
 						WHEN packageId = 2 THEN 4.99
 						WHEN packageId = 3 THEN 9.99
-					END) * 121.14)) AS total
+					END) * ${rate})) AS total
 				FROM apple_pay
 				WHERE DATE(CONVERT_TZ(created_at, 'UTC', '+06:00')) = '${day}'
 						AND status = 'Success'
@@ -477,6 +479,7 @@ class RevenueModel {
 
 	getPackageWiseRevenue = async (startDate, endDate) => {
 		try {
+			const rate = sqlUsdBdtRateLiteral((await getUsdToBdtRate()).rate);
 
 			// DATE(CONVERT_TZ(sl.created_at, '+00:00', '+06:00')) AS created_at
 			const query = `
@@ -542,7 +545,7 @@ class RevenueModel {
 									WHEN product_id = 1 THEN 0.99
 									WHEN product_id = 2 THEN 4.99
 									WHEN product_id = 3 THEN 9.99
-								END) * 121.14)), 0) AS amount,
+								END) * ${rate})), 0) AS amount,
 								product_id AS package_id
 							FROM stripe_payment s1
 							WHERE DATE(CONVERT_TZ(created_at, 'UTC', '+06:00')) BETWEEN '${startDate}' AND '${endDate}'
@@ -555,7 +558,7 @@ class RevenueModel {
 									WHEN 1 THEN 0.99
 									WHEN 2 THEN 4.99
 									WHEN 3 THEN 9.99
-								END * 121.14) AS amount,
+								END * ${rate}) AS amount,
 								product_id AS package_id
 							FROM stripe_webhook sw
 							JOIN stripe_payment sp ON sw.customer_id = sp.customer_id
@@ -570,7 +573,7 @@ class RevenueModel {
 								WHEN gp.packageId = 1 THEN 0.99
 								WHEN gp.packageId = 2 THEN 4.99
 								WHEN gp.packageId = 3 THEN 9.99
-							END) * 121.14), 0) AS amount,
+							END) * ${rate}), 0) AS amount,
 							gp.packageId AS package_id
 						FROM googlepay_invoice gp
 						JOIN revenuecat_webhook rw ON gp.userId = rw.app_user_id
@@ -584,7 +587,7 @@ class RevenueModel {
 								WHEN ap.packageId = 1 OR ap.packageId = 'kabbik_99' THEN 0.99
 								WHEN ap.packageId = 2 OR ap.packageId = 'kabbik_499_6m' THEN 4.99
 								WHEN ap.packageId = 3 OR ap.packageId = 'kabbik_999_1y' THEN 9.99
-							END) * 121.14), 0) AS amount,
+							END) * ${rate}), 0) AS amount,
 							ap.packageId AS package_id
 						FROM apple_pay ap
 						LEFT JOIN revenuecat_webhook rw ON ap.userId = rw.app_user_id

@@ -31,6 +31,14 @@ function promoRowsOrEmpty(label, result) {
 	return [];
 }
 
+/** Drop legacy live-metric cards still present in older Redis dash:home payloads. */
+const REMOVED_DASHBOARD_METRIC_TITLES = new Set(['Total Subscribers']);
+
+export function sanitizeDashboardData(dashboardData) {
+	if (!Array.isArray(dashboardData)) return [];
+	return dashboardData.filter(item => !REMOVED_DASHBOARD_METRIC_TITLES.has(item?.title));
+}
+
 export async function buildDailyPaymentRollup(statDate) {
 	const day =
 		statDate || moment().subtract(1, 'day').format('YYYY-MM-DD');
@@ -104,7 +112,7 @@ export async function buildHomeSnapshot(anchorDate) {
 
 	return {
 		updatedAt: new Date().toISOString(),
-		dashboardData,
+		dashboardData: sanitizeDashboardData(dashboardData),
 		recentTotalPayments,
 		payments7d,
 		topMostUsedPromos: {
@@ -121,6 +129,7 @@ export async function enrichHomeSnapshotWithReportSummary(snap, anchorDate) {
 	const date = anchorDate || dhakaTodayYmd();
 	const userReportSnapshot = await cacheGet(userReportSnapshotCacheKey(date)).catch(() => null);
 	const reportSummary = extractReportSummary(userReportSnapshot);
-	if (!reportSummary) return snap;
-	return { ...snap, reportSummary };
+	const base = { ...snap, dashboardData: sanitizeDashboardData(snap.dashboardData) };
+	if (!reportSummary) return base;
+	return { ...base, reportSummary };
 }
