@@ -286,7 +286,7 @@ export default function Publisher() {
 						<Grid item xs={12} sm={6} md={4}>
 							<StatCard
 								title="Total publishers"
-								value={totalData.toLocaleString()}
+								value={totalData}
 								color="primary"
 								icon={<IconBuilding size={22} />}
 							/>

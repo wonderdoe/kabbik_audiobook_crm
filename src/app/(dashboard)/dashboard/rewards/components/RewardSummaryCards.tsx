@@ -44,7 +44,7 @@ export function RewardSummaryCards({ summary, loading }: Props) {
 						color={color}
 						icon={icon}
 						loading={loading}
-						value={loading || !summary ? '—' : Number(summary[key] ?? 0).toLocaleString()}
+						value={loading || !summary ? '—' : Number(summary[key] ?? 0)}
 					/>
 				</Grid>
 			))}

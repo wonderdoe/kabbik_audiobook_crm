@@ -212,7 +212,7 @@ export default function ProductOrders() {
 					<Grid item xs={12} sm={6} md={3} sx={{ display: 'flex' }}>
 						<StatCard
 							title="Total orders"
-							value={orders.length.toLocaleString()}
+							value={orders.length}
 							color="primary"
 							icon={<IconPackage size={22} />}
 							loading={loading}
@@ -221,7 +221,7 @@ export default function ProductOrders() {
 					<Grid item xs={12} sm={6} md={3} sx={{ display: 'flex' }}>
 						<StatCard
 							title="Ordered"
-							value={statusCounts.ordered.toLocaleString()}
+							value={statusCounts.ordered}
 							color="warning"
 							icon={<IconPackage size={22} />}
 							loading={loading}
@@ -230,7 +230,7 @@ export default function ProductOrders() {
 					<Grid item xs={12} sm={6} md={3} sx={{ display: 'flex' }}>
 						<StatCard
 							title="Shipped"
-							value={statusCounts.shipped.toLocaleString()}
+							value={statusCounts.shipped}
 							color="info"
 							icon={<IconTruck size={22} />}
 							loading={loading}
@@ -239,7 +239,7 @@ export default function ProductOrders() {
 					<Grid item xs={12} sm={6} md={3} sx={{ display: 'flex' }}>
 						<StatCard
 							title="Delivered"
-							value={statusCounts.delivered.toLocaleString()}
+							value={statusCounts.delivered}
 							color="success"
 							icon={<IconTruckDelivery size={22} />}
 							loading={loading}

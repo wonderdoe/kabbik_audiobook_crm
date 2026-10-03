@@ -13,7 +13,11 @@ import { CustomInput } from './CustomInput';
 import { CustomSelect } from './CustomSelect';
 type DateValue = Date | null;
 import CustomDateTimePicker from '../CustomDateTimePicker/CustomDateTimePicker';
-import dayjs from 'dayjs';
+import {
+	formatScheduledPushDateTimeForApi,
+	getScheduledPushNotificationMessage,
+	isScheduledPushNotificationCreated,
+} from '@/utils/pushNotificationSchedule';
 import { createActivityLog } from '@/helper/Commonfunction';
 
 const SubscriptionFormSchema = z.object({
@@ -78,7 +82,7 @@ export const PNSubscriptionForm = () => {
 			setDateTimeError(true)
 			return;
 		}
-		newFormData.dateTime=dayjs(dateTime).format('YYYY-MM-DD HH:mm:ss');
+		newFormData.dateTime = formatScheduledPushDateTimeForApi(dateTime);
 		newFormData.payload={...formData};
 		// newFormData.redirectRoute='https://api.kabbik.com/v3/pushnotification/gotoDetailsActivity'
 		newFormData.redirectRoute=pushNotificationGotoSubscriptionPageUrl;
@@ -99,11 +103,11 @@ export const PNSubscriptionForm = () => {
 		createActivityLog(activityLogPayload);
 		const result = await response.json();
 		
-		if(result?.data?.success){
-			createToast2('Audiobook notification succeeded');
-			resetAll()
-		}else{
-			createToast2('Something went wrong');
+		if (isScheduledPushNotificationCreated(result)) {
+			createToast2('Subscription notification scheduled');
+			resetAll();
+		} else {
+			createToast2(getScheduledPushNotificationMessage(result) ?? 'Schedule was not created');
 		}
 	}
 

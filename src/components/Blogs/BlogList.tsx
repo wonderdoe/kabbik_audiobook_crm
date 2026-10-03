@@ -344,7 +344,7 @@ export default function BlogList({ categories }: { categories: string[] }) {
 				<Grid item xs={12} sm={4} sx={{ display: 'flex' }}>
 					<StatCard
 						title="Total"
-						value={totalCount.toLocaleString()}
+						value={totalCount}
 						subtitle={tabLabel}
 						color="primary"
 						icon={<IconArticle size={22} />}
@@ -354,7 +354,7 @@ export default function BlogList({ categories }: { categories: string[] }) {
 				<Grid item xs={12} sm={4} sx={{ display: 'flex' }}>
 					<StatCard
 						title="Published (page)"
-						value={publishedOnPage.toLocaleString()}
+						value={publishedOnPage}
 						color="success"
 						icon={<IconCheck size={22} />}
 						loading={loading}
@@ -363,7 +363,7 @@ export default function BlogList({ categories }: { categories: string[] }) {
 				<Grid item xs={12} sm={4} sx={{ display: 'flex' }}>
 					<StatCard
 						title="Pending (page)"
-						value={pendingOnPage.toLocaleString()}
+						value={pendingOnPage}
 						color="warning"
 						icon={<IconClock size={22} />}
 						loading={loading}

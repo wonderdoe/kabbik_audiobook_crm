@@ -317,7 +317,7 @@ export default function VoiceArtistView() {
 						<Grid item xs={12} sm={6} md={4}>
 							<StatCard
 								title="Total artists"
-								value={totalData.toLocaleString()}
+								value={totalData}
 								color="secondary"
 								icon={<IconMicrophone size={22} />}
 								loading={loading}

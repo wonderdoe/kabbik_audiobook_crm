@@ -1,7 +1,6 @@
 'use client';
 
 import {
-	Avatar,
 	Box,
 	Stack,
 	Typography,
@@ -10,6 +9,7 @@ import {
 } from '@mui/material';
 import { motion } from 'framer-motion';
 import type { ReactNode } from 'react';
+import { StatCardValue } from '@/components/ui/StatCardValue';
 import { cardShadow } from '@/styles/cardShadow';
 
 type AnalyticCardProps = {
@@ -37,10 +37,10 @@ export function AnalyticCard({ title, count, icon, color = 'primary', extra }: A
 	return (
 		<Box
 			component={motion.div}
-			whileHover={{ y: -2, boxShadow: `0 4px 10px ${alpha(main, 0.08)}` }}
+			whileHover={{ y: -2, boxShadow: `0 6px 16px ${alpha(main, 0.1)}` }}
 			transition={{ duration: 0.18 }}
 			sx={{
-				p: 2.5,
+				pl: 0,
 				borderRadius: 1,
 				border: `1px solid ${theme.palette.divider}`,
 				bgcolor: 'background.paper',
@@ -49,53 +49,64 @@ export function AnalyticCard({ title, count, icon, color = 'primary', extra }: A
 				position: 'relative',
 				cursor: 'default',
 				boxShadow: cardShadow.rest,
+				transition: 'box-shadow 0.2s, transform 0.2s',
+				/* left accent bar */
 				'&::before': {
 					content: '""',
 					position: 'absolute',
-					top: 0,
 					left: 0,
-					right: 0,
-					height: 3,
-					bgcolor: main,
-					borderRadius: `${theme.shape.borderRadius}px ${theme.shape.borderRadius}px 0 0`,
-					opacity: 0.85,
+					top: 0,
+					bottom: 0,
+					width: 4,
+					background: `linear-gradient(180deg, ${main}, ${alpha(main, 0.45)})`,
 				},
 			}}
 		>
-			<Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 1.5 }}>
-				<Stack spacing={0.75} sx={{ minWidth: 0, flex: 1 }}>
-					<Typography
-						variant="caption"
+			<Box sx={{ pl: 2.5, pr: 2.5, pt: 2, pb: 2 }}>
+				<Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 1.5 }}>
+					<Stack spacing={0.75} sx={{ minWidth: 0, flex: 1 }}>
+						<Typography
+							variant="caption"
+							sx={{
+								color: 'text.secondary',
+								fontWeight: 600,
+								textTransform: 'uppercase',
+								letterSpacing: '0.06em',
+								lineHeight: 1.4,
+								display: 'block',
+							}}
+						>
+							{title}
+						</Typography>
+						<Typography
+							variant="h4"
+							fontWeight={800}
+							lineHeight={1.15}
+							color="text.primary"
+							sx={{ fontSize: { xs: '1.125rem', sm: '1.35rem', md: '1.5rem' } }}
+						>
+							<StatCardValue value={count} />
+						</Typography>
+					</Stack>
+					<Box
 						sx={{
-							color: 'text.secondary',
-							fontWeight: 600,
-							textTransform: 'uppercase',
-							letterSpacing: '0.06em',
-							lineHeight: 1.4,
+							width: 46,
+							height: 46,
+							bgcolor: light,
+							color: main,
+							borderRadius: 1,
+							flexShrink: 0,
+							display: 'flex',
+							alignItems: 'center',
+							justifyContent: 'center',
+							boxShadow: `0 0 0 1px ${alpha(main, 0.15)}`,
 						}}
 					>
-						{title}
-					</Typography>
-					<Typography variant="h4" fontWeight={800} lineHeight={1.15} color="text.primary">
-						{count}
-					</Typography>
-				</Stack>
-				<Avatar
-					variant="rounded"
-					sx={{
-						width: 46,
-						height: 46,
-						bgcolor: light,
-						color: main,
-						borderRadius: 1,
-						flexShrink: 0,
-						boxShadow: `0 0 0 1px ${alpha(main, 0.1)}`,
-					}}
-				>
-					{icon}
-				</Avatar>
+						{icon}
+					</Box>
+				</Box>
+				{extra ? <Box sx={{ mt: 1.5 }}>{extra}</Box> : null}
 			</Box>
-			{extra ? <Box sx={{ mt: 1.5 }}>{extra}</Box> : null}
 		</Box>
 	);
 }

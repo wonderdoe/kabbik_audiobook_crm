@@ -175,7 +175,7 @@ export default function Subscription() {
 					<Grid item xs={12} sm={6} md={4} sx={{ display: 'flex' }}>
 						<StatCard
 							title="Total users"
-							value={totalUser.toLocaleString()}
+							value={totalUser}
 							color="primary"
 							icon={<IconUsers size={22} />}
 							loading={initialLoader}
@@ -184,7 +184,7 @@ export default function Subscription() {
 					<Grid item xs={12} sm={6} md={4} sx={{ display: 'flex' }}>
 						<StatCard
 							title="Total subscribed"
-							value={subscribedTotal.toLocaleString()}
+							value={subscribedTotal}
 							color="success"
 							icon={<IconUserCheck size={22} />}
 							loading={initialLoader}
