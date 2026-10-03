@@ -27,7 +27,7 @@ import Loader from '@/components/Loader';
 import { PageContainer } from '@/components/PageContainer/PageContainer';
 import { MainCard } from '@/components/mantis/MainCard';
 import { StatCardValue } from '@/components/ui/StatCardValue';
-import { getUserReportFormat } from '@/helper/Commonfunction';
+import { getUserReportFormat, sumUserReportMappedRows } from '@/helper/Commonfunction';
 import { cardShadow } from '@/styles/cardShadow';
 import { PlayCountGrid } from './components/PlayCountGrid';
 import { SubscriberCard } from './components/SubscriberCard';
@@ -63,11 +63,17 @@ function applySnapshotToState(
 		setActiveRentCount: (v: any) => void;
 		setUniqueTotalRentUserCount: (v: any) => void;
 		setActiveRentUserCount: (v: any) => void;
+		setSubscriberSnapshotTotals: (v: { lifetime: number; active: number; bl: number }) => void;
 	},
 ) {
 	const userCount = data.userCount as { result?: unknown };
 	const blSubscriber = data.blSubscriber as { result?: unknown };
 	const subscribedUser = data.subscribedUser as { result?: unknown };
+	setters.setSubscriberSnapshotTotals({
+		lifetime: sumUserReportMappedRows(userCount?.result),
+		active: sumUserReportMappedRows(subscribedUser?.result),
+		bl: sumUserReportMappedRows(blSubscriber?.result),
+	});
 	setters.setUserCountData(getUserReportFormat(userCount?.result));
 	setters.setBlSubsData(getUserReportFormat(blSubscriber?.result));
 	setters.setSubsData(getUserReportFormat(subscribedUser?.result));
@@ -216,11 +222,26 @@ export default function UserReport() {
 	const [showActiveRentUniqUserCount, setShowActiveRentUniqUserCount] = useState(false);
 	const [loadError, setLoadError] = useState<string | null>(null);
 	const [reloadNonce, setReloadNonce] = useState(0);
+	const [subscriberSnapshotTotals, setSubscriberSnapshotTotals] = useState({
+		lifetime: 0,
+		active: 0,
+		bl: 0,
+	});
 
 	useEffect(() => {
 		let cancelled = false;
 		setLoadError(null);
-		const setters = { setUserCountData, setBlSubsData, setSubsData, setPlayCount, setRentData, setActiveRentCount, setUniqueTotalRentUserCount, setActiveRentUserCount };
+		const setters = {
+			setUserCountData,
+			setBlSubsData,
+			setSubsData,
+			setPlayCount,
+			setRentData,
+			setActiveRentCount,
+			setUniqueTotalRentUserCount,
+			setActiveRentUserCount,
+			setSubscriberSnapshotTotals,
+		};
 
 		const cached = readSessionSnapshot();
 		const hadCached = Boolean(cached);
@@ -253,8 +274,6 @@ export default function UserReport() {
 		return () => { cancelled = true; };
 	}, [reloadNonce]);
 
-	const sumSubs = (list: any[]) =>
-		list.reduce((a: number, c: any) => a + Number(c?.recurring ?? 0) + Number(c?.is_onetime ?? 0), 0);
 	const sumRent = (list: any[]) => list?.reduce((a: number, c: any) => a + Number(c.count), 0) ?? 0;
 
 	const hasData =
@@ -279,9 +298,9 @@ export default function UserReport() {
 	const activeRentItems = showActiveRentUniqUserCount ? activeRentUserCount : activeRentCount;
 
 	const snapshotCards = [
-		{ label: 'Lifetime Subscribers', value: sumSubs(userCountData), icon: <IconUsers size={20} stroke={1.75} />, color: theme.palette.primary.main },
-		{ label: 'Active Subscribers', value: sumSubs(subsData), icon: <IconUserCheck size={20} stroke={1.75} />, color: theme.palette.success.main },
-		{ label: 'BL Subscribers', value: sumSubs(blSubsData), icon: <IconRepeat size={20} stroke={1.75} />, color: '#2e7d32' },
+		{ label: 'Lifetime Subscribers', value: subscriberSnapshotTotals.lifetime, icon: <IconUsers size={20} stroke={1.75} />, color: theme.palette.primary.main },
+		{ label: 'Active Subscribers', value: subscriberSnapshotTotals.active, icon: <IconUserCheck size={20} stroke={1.75} />, color: theme.palette.success.main },
+		{ label: 'BL Subscribers', value: subscriberSnapshotTotals.bl, icon: <IconRepeat size={20} stroke={1.75} />, color: '#2e7d32' },
 		{ label: 'Total Rent', value: sumRent(rentData), icon: <IconBook size={20} stroke={1.75} />, color: theme.palette.warning.main },
 		{ label: 'Active Rent', value: sumRent(activeRentCount), icon: <IconTrendingUp size={20} stroke={1.75} />, color: theme.palette.error.main },
 	];
@@ -309,7 +328,7 @@ export default function UserReport() {
 					title="Lifetime Subscribers"
 					secondary={
 						<Chip
-							label={<StatCardValue value={sumSubs(userCountData)} />}
+							label={<StatCardValue value={subscriberSnapshotTotals.lifetime} />}
 							color="primary"
 							size="small"
 							sx={{ fontWeight: 700 }}
@@ -324,7 +343,7 @@ export default function UserReport() {
 					title="Active Subscribed Users"
 					secondary={
 						<Chip
-							label={<StatCardValue value={sumSubs(subsData)} />}
+							label={<StatCardValue value={subscriberSnapshotTotals.active} />}
 							color="success"
 							size="small"
 							sx={{ fontWeight: 700 }}
@@ -393,7 +412,7 @@ export default function UserReport() {
 					title="Active Subscribers from Banglalink"
 					secondary={
 						<Chip
-							label={<StatCardValue value={sumSubs(blSubsData)} />}
+							label={<StatCardValue value={subscriberSnapshotTotals.bl} />}
 							color="success"
 							size="small"
 							variant="outlined"

@@ -1,4 +1,5 @@
 import DB from '../config/db.js';
+import { getUsdToBdtRate, sqlUsdBdtRateLiteral } from '../utils/usd-bdt-rate.js';
 
 /** Dhaka calendar day filter for a column expression (UTC storage). */
 const dhakaDayEq = expr => `DATE(CONVERT_TZ(${expr}, 'UTC', '+06:00')) = ?`;
@@ -7,7 +8,13 @@ const dhakaDayEq = expr => `DATE(CONVERT_TZ(${expr}, 'UTC', '+06:00')) = ?`;
  * Per-package amount rows for a single Dhaka day (before subscription_packages join).
  * @returns {Promise<Array<{ package_id: string|number, raw_total: number }>>}
  */
-export async function queryPackageWiseDay(day) {
+export async function queryPackageWiseDay(day, options = {}) {
+	const usdBdt =
+		options.usdBdtRate != null
+			? options.usdBdtRate
+			: (await getUsdToBdtRate()).rate;
+	const rate = sqlUsdBdtRateLiteral(usdBdt);
+
 	const sql = `
 		SELECT package_id, SUM(amount) AS raw_total
 		FROM (
@@ -67,7 +74,7 @@ export async function queryPackageWiseDay(day) {
 					WHEN product_id = 1 THEN 0.99
 					WHEN product_id = 2 THEN 4.99
 					WHEN product_id = 3 THEN 9.99
-				END) * 121.14)), 0) AS amount,
+				END) * ${rate})), 0) AS amount,
 				product_id AS package_id
 			FROM stripe_payment s1
 			WHERE ${dhakaDayEq('created_at')}
@@ -81,7 +88,7 @@ export async function queryPackageWiseDay(day) {
 					WHEN 1 THEN 0.99
 					WHEN 2 THEN 4.99
 					WHEN 3 THEN 9.99
-				END * 121.14) AS amount,
+				END * ${rate}) AS amount,
 				product_id AS package_id
 			FROM stripe_webhook sw
 			JOIN stripe_payment sp ON sw.customer_id = sp.customer_id
@@ -95,7 +102,7 @@ export async function queryPackageWiseDay(day) {
 					WHEN gp.packageId = 1 THEN 0.99
 					WHEN gp.packageId = 2 THEN 4.99
 					WHEN gp.packageId = 3 THEN 9.99
-				END) * 121.14), 0) AS amount,
+				END) * ${rate}), 0) AS amount,
 				gp.packageId AS package_id
 			FROM googlepay_invoice gp
 			JOIN revenuecat_webhook rw ON gp.userId = rw.app_user_id
@@ -109,7 +116,7 @@ export async function queryPackageWiseDay(day) {
 					WHEN ap.packageId = 1 OR ap.packageId = 'kabbik_99' THEN 0.99
 					WHEN ap.packageId = 2 OR ap.packageId = 'kabbik_499_6m' THEN 4.99
 					WHEN ap.packageId = 3 OR ap.packageId = 'kabbik_999_1y' THEN 9.99
-				END) * 121.14), 0) AS amount,
+				END) * ${rate}), 0) AS amount,
 				ap.packageId AS package_id
 			FROM apple_pay ap
 			LEFT JOIN revenuecat_webhook rw ON ap.userId = rw.app_user_id

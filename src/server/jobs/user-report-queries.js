@@ -21,7 +21,10 @@ export async function queryActiveLatestLegacy(fromBanglalink) {
 			SELECT *
 			FROM (
 				SELECT *,
-					ROW_NUMBER() OVER (PARTITION BY user_id ORDER BY created_at DESC) AS rn
+					ROW_NUMBER() OVER (
+						PARTITION BY user_id
+						ORDER BY created_at DESC, sub_request_id DESC
+					) AS rn
 				FROM user_subscription_payment_log
 				WHERE from_banglalink = ?
 			) t
@@ -30,7 +33,7 @@ export async function queryActiveLatestLegacy(fromBanglalink) {
 		SELECT
 			spl.is_recurring,
 			spl.payment_method AS payment_source,
-			SUM(CASE WHEN spl.is_subscribed = 1 THEN 1 ELSE 0 END) AS count
+			COUNT(DISTINCT CASE WHEN spl.is_subscribed = 1 THEN spl.user_id END) AS count
 		FROM latest_docs AS spl
 		WHERE payment_status = 'SUCCEEDED_PAYMENT'
 			AND from_banglalink = ?
@@ -43,24 +46,39 @@ export async function queryActiveLatestLegacy(fromBanglalink) {
 	return mapPaymentSourceRows(rows);
 }
 
-/** Optimized latest-per-user via MAX(id) — production Path A. */
+/** Optimized latest-per-user — MAX(created_at) with sub_request_id tie-break (no surrogate id on log). */
 export async function queryActiveLatestOptimized(fromBanglalink) {
 	const requireNotCancelled = fromBanglalink === 0;
 	const newQuery = `
 		SELECT
 			spl.is_recurring,
 			spl.payment_method AS payment_source,
-			SUM(CASE WHEN spl.is_subscribed = 1 THEN 1 ELSE 0 END) AS count
+			COUNT(DISTINCT CASE WHEN spl.is_subscribed = 1 THEN spl.user_id END) AS count
 		FROM user_subscription_payment_log spl
 		INNER JOIN (
-			SELECT user_id, MAX(created_at) AS max_created_at
-			FROM user_subscription_payment_log
-			WHERE from_banglalink = ?
-				AND payment_status = 'SUCCEEDED_PAYMENT'
-				AND rent_payment = 0
-				AND amount != '1'
-			GROUP BY user_id
-		) latest ON spl.user_id = latest.user_id AND spl.created_at = latest.max_created_at
+			SELECT
+				spl2.user_id,
+				lc.max_created_at,
+				MAX(COALESCE(spl2.sub_request_id, '')) AS max_sub_request_id
+			FROM user_subscription_payment_log spl2
+			INNER JOIN (
+				SELECT user_id, MAX(created_at) AS max_created_at
+				FROM user_subscription_payment_log
+				WHERE from_banglalink = ?
+					AND payment_status = 'SUCCEEDED_PAYMENT'
+					AND rent_payment = 0
+					AND amount != '1'
+				GROUP BY user_id
+			) lc ON spl2.user_id = lc.user_id AND spl2.created_at = lc.max_created_at
+			WHERE spl2.from_banglalink = ?
+				AND spl2.payment_status = 'SUCCEEDED_PAYMENT'
+				AND spl2.rent_payment = 0
+				AND spl2.amount != '1'
+			GROUP BY spl2.user_id, lc.max_created_at
+		) latest
+			ON spl.user_id = latest.user_id
+			AND spl.created_at = latest.max_created_at
+			AND COALESCE(spl.sub_request_id, '') = latest.max_sub_request_id
 		WHERE spl.payment_status = 'SUCCEEDED_PAYMENT'
 			AND spl.from_banglalink = ?
 			AND spl.amount != '1'
@@ -68,8 +86,27 @@ export async function queryActiveLatestOptimized(fromBanglalink) {
 			${requireNotCancelled ? 'AND spl.isCancelled = 0' : ''}
 		GROUP BY spl.payment_method, spl.is_recurring
 	`;
-	const rows = await DB.query(newQuery, [fromBanglalink, fromBanglalink]);
+	const rows = await DB.query(newQuery, [fromBanglalink, fromBanglalink, fromBanglalink]);
 	return mapPaymentSourceRows(rows);
+}
+
+/** Users with multiple succeeded log rows sharing the same (user_id, created_at) — inflates old active join. */
+export async function countActiveCreatedAtTies(fromBanglalink = 0) {
+	const sql = `
+		SELECT COUNT(*) AS tie_user_groups
+		FROM (
+			SELECT user_id, created_at
+			FROM user_subscription_payment_log
+			WHERE from_banglalink = ?
+				AND payment_status = 'SUCCEEDED_PAYMENT'
+				AND rent_payment = 0
+				AND amount != '1'
+			GROUP BY user_id, created_at
+			HAVING COUNT(*) > 1
+		) ties
+	`;
+	const rows = await DB.query(sql, [fromBanglalink]);
+	return Number(rows[0]?.tie_user_groups ?? 0);
 }
 
 /** Path B — active subscribers from users (BL via client_id heuristic). */

@@ -141,7 +141,7 @@ export async function warmDefaultRentReport(anchorDate) {
 
 export function dashHomeCacheKey(dateYmd) {
 	const date = dateYmd || dhakaTodayYmd();
-	return `dash:home:${date}`;
+	return `dash:home:v2:${date}`;
 }
 
 export function defaultRevenueDateRange(anchorYmd) {
