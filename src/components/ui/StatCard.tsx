@@ -4,6 +4,7 @@ import { Box, Card, Skeleton, Stack, Typography, alpha, useTheme } from '@mui/ma
 import type { ReactNode } from 'react';
 import { StatCardValue } from '@/components/ui/StatCardValue';
 import { cardShadow } from '@/styles/cardShadow';
+import { statCardIconBoxSize, statCardPadding, statCardValueFontSize } from '@/styles/statCard';
 
 export type StatCardColor = 'primary' | 'secondary' | 'success' | 'warning' | 'error' | 'info';
 
@@ -54,7 +55,7 @@ export function StatCard({ title, value, icon, color = 'primary', loading, subti
 				direction="row"
 				alignItems="flex-start"
 				justifyContent="space-between"
-				sx={{ p: 2, pl: 2.5, gap: 1, minWidth: 0 }}
+				sx={{ ...statCardPadding, gap: 1, minWidth: 0 }}
 			>
 				<Box sx={{ minWidth: 0, flex: 1 }}>
 					<Typography
@@ -68,17 +69,17 @@ export function StatCard({ title, value, icon, color = 'primary', loading, subti
 						{title}
 					</Typography>
 					{loading ? (
-						<Skeleton width="70%" height={36} sx={{ mt: 0.5, maxWidth: 120 }} />
+						<Skeleton width="70%" height={28} sx={{ mt: 0.35, maxWidth: 100 }} />
 					) : (
 						<Typography
 							component="div"
 							fontWeight={800}
 							sx={{
-								mt: 0.5,
-								lineHeight: 1.25,
+								mt: 0.35,
+								lineHeight: 1.2,
 								wordBreak: 'break-word',
 								overflowWrap: 'anywhere',
-								fontSize: { xs: '1.125rem', sm: '1.35rem', md: '1.5rem' },
+								fontSize: statCardValueFontSize,
 							}}
 						>
 							<StatCardValue value={value} />
@@ -93,8 +94,8 @@ export function StatCard({ title, value, icon, color = 'primary', loading, subti
 				{icon ? (
 					<Box
 						sx={{
-							width: 44,
-							height: 44,
+							width: statCardIconBoxSize,
+							height: statCardIconBoxSize,
 							borderRadius: 1,
 							display: 'flex',
 							alignItems: 'center',
