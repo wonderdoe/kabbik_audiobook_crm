@@ -156,7 +156,7 @@ export function SponsorTable() {
 				<Grid item xs={12} sm={4} sx={{ display: 'flex' }}>
 					<StatCard
 						title="Total requests"
-						value={rows.length.toLocaleString()}
+						value={rows.length}
 						color="primary"
 						icon={<IconUsers size={22} />}
 						loading={loading}
@@ -165,7 +165,7 @@ export function SponsorTable() {
 				<Grid item xs={12} sm={4} sx={{ display: 'flex' }}>
 					<StatCard
 						title="Last 30 days"
-						value={recentCount.toLocaleString()}
+						value={recentCount}
 						color="info"
 						icon={<IconCalendar size={22} />}
 						loading={loading}
@@ -174,7 +174,7 @@ export function SponsorTable() {
 				<Grid item xs={12} sm={4} sx={{ display: 'flex' }}>
 					<StatCard
 						title="With product link"
-						value={withLinkCount.toLocaleString()}
+						value={withLinkCount}
 						color="success"
 						icon={<IconBuildingStore size={22} />}
 						loading={loading}

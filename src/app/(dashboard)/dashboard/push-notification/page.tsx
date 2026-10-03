@@ -1,14 +1,6 @@
 'use client';
 
-import {
-	Box,
-	FormControlLabel,
-	Stack,
-	Switch,
-	Tab,
-	Tabs,
-	Typography,
-} from '@mui/material';
+import { Box, Tab, Tabs, Typography } from '@mui/material';
 import { PageContainer } from '@/components/PageContainer/PageContainer';
 import { MainCard } from '@/components/mantis/MainCard';
 import { useState } from 'react';
@@ -24,6 +16,8 @@ const TAB_ITEMS = [
 
 export default function PushNotification() {
 	const [activeTab, setActiveTab] = useState('first');
+	const [scheduleListRefreshToken, setScheduleListRefreshToken] = useState(0);
+	const onScheduleSuccess = () => setScheduleListRefreshToken(t => t + 1);
 	return (
 		<PageContainer
 			title="Push Notification"
@@ -51,15 +45,15 @@ export default function PushNotification() {
 				</Box>
 
 				<Box sx={{ p: 3 }}>
-					<Box hidden={activeTab !== 'first'}>
-						<PNAudiobookForm />
-					</Box>
-					<Box hidden={activeTab !== 'third'}>
-						<PNCommonForm />
-					</Box>
-					<Box hidden={activeTab !== 'fourth'}>
-						<ScheduleList />
-					</Box>
+					{activeTab === 'first' && (
+						<PNAudiobookForm onScheduleSuccess={onScheduleSuccess} />
+					)}
+					{activeTab === 'third' && (
+						<PNCommonForm onScheduleSuccess={onScheduleSuccess} />
+					)}
+					{activeTab === 'fourth' && (
+						<ScheduleList refreshToken={scheduleListRefreshToken} />
+					)}
 				</Box>
 			</MainCard>
 		</PageContainer>

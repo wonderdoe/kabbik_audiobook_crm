@@ -12,7 +12,7 @@ export default function DashBoardViews({ data }: { data: { title: string; count?
 				<Grid item xs={12} sm={6} md={4} key={item.title}>
 					<StatCard
 						title={item.title}
-						value={item.count !== undefined ? item.count.toLocaleString() : 'N/A'}
+						value={item.count !== undefined ? item.count : 'N/A'}
 						index={index}
 					/>
 				</Grid>

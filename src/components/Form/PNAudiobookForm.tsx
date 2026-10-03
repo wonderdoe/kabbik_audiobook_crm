@@ -11,7 +11,11 @@ import {
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
-import dayjs from 'dayjs';
+import {
+	formatScheduledPushDateTimeForApi,
+	getScheduledPushNotificationMessage,
+	isScheduledPushNotificationCreated,
+} from '@/utils/pushNotificationSchedule';
 import { z } from 'zod';
 import { pushNotificationGotoDetailsActivityUrl, scheduledPushNotificationUrl } from '@/utils/constant';
 import { createToast2 } from 'helpers/SweetAlert';
@@ -40,7 +44,11 @@ const audiobookFormSchema = z.object({
 
 type AudiobookFormDataType = z.infer<typeof audiobookFormSchema>;
 
-export const PNAudiobookForm = () => {
+type PNAudiobookFormProps = {
+	onScheduleSuccess?: () => void;
+};
+
+export const PNAudiobookForm = ({ onScheduleSuccess }: PNAudiobookFormProps) => {
 	const [dateTime, setDateTime] = useState<DateValue | null>(null);
 	const [isSchedule, setIsSchedule] = useState(false);
 	const [dateTimeError, setDateTimeError] = useState(false);
@@ -60,8 +68,10 @@ export const PNAudiobookForm = () => {
 	});
 
 	const resetAll = () => {
-		reset({ title: '', description: '', audiobookId: 0, audiobookTitle: '', imageUrl: '' });
+		reset({ title: '', description: '', audiobookId: null, audiobookTitle: '', imageUrl: '' });
+		setIsSchedule(false);
 		setDateTime(null);
+		setDateTimeError(false);
 		setResetImagePath(prev => !prev);
 	};
 
@@ -69,7 +79,7 @@ export const PNAudiobookForm = () => {
 		if (!dateTime) { setDateTimeError(true); return; }
 		const newFormData: any = {
 			redirectRoute: pushNotificationGotoDetailsActivityUrl,
-			dateTime: dayjs(dateTime).format('YYYY-MM-DD HH:mm:ss'),
+			dateTime: formatScheduledPushDateTimeForApi(dateTime),
 			payload: { ...formData },
 		};
 		const response = await fetch(scheduledPushNotificationUrl, {
@@ -84,11 +94,12 @@ export const PNAudiobookForm = () => {
 			api_end_point: scheduledPushNotificationUrl,
 		});
 		const result = await response.json();
-		if (result?.data?.success) {
-			createToast2('Audiobook notification succeeded');
+		if (isScheduledPushNotificationCreated(result)) {
+			createToast2('Audiobook notification scheduled');
 			resetAll();
+			onScheduleSuccess?.();
 		} else {
-			createToast2('Something went wrong');
+			createToast2(getScheduledPushNotificationMessage(result) ?? 'Schedule was not created');
 		}
 	};
 
@@ -106,8 +117,12 @@ export const PNAudiobookForm = () => {
 			api_end_point: pushNotificationGotoDetailsActivityUrl,
 		});
 		const result = await response.json();
-		createToast2(result.data.name ? 'Audiobook notification succeeded' : 'Audiobook notification failed');
-		resetAll();
+		if (result?.data?.name) {
+			createToast2('Audiobook notification succeeded');
+			resetAll();
+		} else {
+			createToast2('Audiobook notification failed');
+		}
 	};
 
 	return (

@@ -2,6 +2,7 @@
 
 import { Box, Card, Skeleton, Stack, Typography, alpha, useTheme } from '@mui/material';
 import type { ReactNode } from 'react';
+import { StatCardValue } from '@/components/ui/StatCardValue';
 import { cardShadow } from '@/styles/cardShadow';
 
 export type StatCardColor = 'primary' | 'secondary' | 'success' | 'warning' | 'error' | 'info';
@@ -80,7 +81,7 @@ export function StatCard({ title, value, icon, color = 'primary', loading, subti
 								fontSize: { xs: '1.125rem', sm: '1.35rem', md: '1.5rem' },
 							}}
 						>
-							{value}
+							<StatCardValue value={value} />
 						</Typography>
 					)}
 					{subtitle && !loading ? (

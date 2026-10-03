@@ -1,11 +1,15 @@
 'use client';
 
 import {
+	Alert,
+	Avatar,
 	Box,
 	Button,
 	Chip,
 	CircularProgress,
 	IconButton,
+	Pagination,
+	Skeleton,
 	Stack,
 	Table,
 	TableBody,
@@ -16,36 +20,75 @@ import {
 	Tooltip,
 	Typography,
 } from '@mui/material';
-import { MainCard } from '@/components/mantis/MainCard';
 import { decodeWord } from '@/helper/Commonfunction';
 import { deleteScheduleUrl, scheduleListUrl } from '@/utils/constant';
-import { IconRefresh, IconTrash } from '@tabler/icons-react';
-import { useEffect, useState } from 'react';
+import {
+	extractScheduledNotificationList,
+	formatScheduleListDateTime,
+	getScheduleItemDateTimeRaw,
+	getScheduleItemName,
+	getScheduleItemTitle,
+	parseScheduleItemDate,
+} from '@/utils/pushNotificationSchedule';
+import { IconBell, IconCalendarEvent, IconRefresh, IconTrash } from '@tabler/icons-react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import Swal from 'sweetalert2';
 
-const tableHeadSx = {
+const tableSx = {
 	'& .MuiTableCell-head': {
-		py: 1,
-		px: 1.5,
+		py: 1.25,
+		px: 2,
+		fontWeight: 700,
 		bgcolor: 'grey.50',
 		borderBottom: 1,
 		borderColor: 'divider',
 	},
+	'& .MuiTableCell-body': {
+		px: 2,
+		py: 1.5,
+		borderColor: 'divider',
+		verticalAlign: 'middle',
+	},
 };
 
-const ScheduleList = () => {
-	const [schedules, setSchedules] = useState<any[]>([]);
-	const [isLoader, setIsLoader] = useState(false);
+type ScheduleListProps = {
+	refreshToken?: number;
+};
+
+function LoadingSkeletonRows() {
+	return (
+		<>
+			{[0, 1, 2].map(i => (
+				<TableRow key={i}>
+					<TableCell>
+						<Stack direction="row" spacing={1.5} alignItems="center">
+							<Skeleton variant="circular" width={36} height={36} />
+							<Skeleton variant="text" width="70%" />
+						</Stack>
+					</TableCell>
+					<TableCell><Skeleton variant="rounded" width={140} height={28} /></TableCell>
+					<TableCell align="right"><Skeleton variant="circular" width={32} height={32} sx={{ ml: 'auto' }} /></TableCell>
+				</TableRow>
+			))}
+		</>
+	);
+}
+
+const ScheduleList = ({ refreshToken = 0 }: ScheduleListProps) => {
+	const [schedules, setSchedules] = useState<Record<string, unknown>[]>([]);
+	const [isLoading, setIsLoading] = useState(true);
+	const [loadError, setLoadError] = useState<string | null>(null);
 	const [nextTokens, setNextTokens] = useState<string[]>([]);
 	const [page, setPage] = useState(1);
 
-	async function getSchedules(pageToLoad: number = 1) {
+	const getSchedules = useCallback(async (pageToLoad: number = 1, tokens: string[] = nextTokens) => {
 		try {
-			setIsLoader(true);
+			setIsLoading(true);
+			setLoadError(null);
 			const tokenIndex = pageToLoad - 2;
 			const pageNextToken =
-				tokenIndex >= 0 && tokenIndex < nextTokens.length ? nextTokens[tokenIndex] : undefined;
-			const bodyPayload: any = {};
+				tokenIndex >= 0 && tokenIndex < tokens.length ? tokens[tokenIndex] : undefined;
+			const bodyPayload: Record<string, string> = {};
 			if (pageNextToken !== undefined) bodyPayload.nextToken = pageNextToken;
 
 			const response = await fetch(scheduleListUrl, {
@@ -55,13 +98,16 @@ const ScheduleList = () => {
 			});
 			if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
 			const data = await response.json();
+			const { items, nextToken: listNextToken } = extractScheduledNotificationList(data);
 
-			const formatted = [...(data?.data ?? [])].sort(
-				(a, b) => new Date(a.scheduleTime).getTime() - new Date(b.scheduleTime).getTime(),
-			);
+			const formatted = [...items].sort((a, b) => {
+				const ta = parseScheduleItemDate(a)?.getTime() ?? 0;
+				const tb = parseScheduleItemDate(b)?.getTime() ?? 0;
+				return ta - tb;
+			});
 			setSchedules(formatted);
 
-			const newNextToken = data?.nextToken;
+			const newNextToken = listNextToken ?? data?.nextToken;
 			if (newNextToken != null) {
 				setNextTokens(prev => {
 					const idx = pageToLoad - 1;
@@ -69,13 +115,20 @@ const ScheduleList = () => {
 					return [...prev, newNextToken];
 				});
 			}
-			return data;
 		} catch (err) {
 			console.error('API call failed:', err);
+			setLoadError('Could not load scheduled notifications. Please try again.');
+			setSchedules([]);
 		} finally {
-			setIsLoader(false);
+			setIsLoading(false);
 		}
-	}
+	}, [nextTokens]);
+
+	const refreshList = () => {
+		setPage(1);
+		setNextTokens([]);
+		getSchedules(1, []);
+	};
 
 	const handlePageChange = (pageNumber: number) => {
 		setPage(pageNumber);
@@ -95,128 +148,239 @@ const ScheduleList = () => {
 		if (!confirm.isConfirmed) return;
 
 		try {
-			const response = await fetch(`${deleteScheduleUrl}?scheduleName=${name}`);
+			const response = await fetch(`${deleteScheduleUrl}?scheduleName=${encodeURIComponent(name)}`);
 			if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
 			await response.json();
 			getSchedules(page);
-			Swal.fire({ icon: 'success', title: 'Deleted!', text: 'Schedule removed successfully.' });
+			Swal.fire({ icon: 'success', title: 'Deleted', text: 'Schedule removed successfully.' });
 		} catch (err) {
 			console.error(err);
 			Swal.fire({ icon: 'error', title: 'Failed', text: 'Something went wrong. Please try again.' });
 		}
 	};
 
-	const getLocaleDateTime = (dateTime: string) =>
-		dateTime
-			? new Date(new Date(dateTime).getTime() + 6 * 60 * 60 * 1000).toLocaleString('en-US', {
-					timeZone: 'Asia/Dhaka',
-					year: 'numeric',
-					month: 'short',
-					day: '2-digit',
-					hour: 'numeric',
-					minute: '2-digit',
-					hour12: true,
-			  })
-			: '—';
+	useEffect(() => {
+		getSchedules(1, []);
+		// eslint-disable-next-line react-hooks/exhaustive-deps -- initial load only
+	}, []);
 
-	useEffect(() => { getSchedules(1); }, []);
+	useEffect(() => {
+		if (!refreshToken) return;
+		refreshList();
+		// eslint-disable-next-line react-hooks/exhaustive-deps -- refresh when parent schedules
+	}, [refreshToken]);
 
-	const totalPages = nextTokens.length + 1;
+	const totalPages = Math.max(nextTokens.length + 1, 1);
+
+	const nextUpcoming = useMemo(() => {
+		const now = Date.now();
+		return schedules.find(s => {
+			const t = parseScheduleItemDate(s)?.getTime();
+			return t != null && t >= now;
+		});
+	}, [schedules]);
 
 	return (
-		<Stack spacing={0}>
-			{/* Header row */}
-			<Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 2 }}>
+		<Stack spacing={2}>
+			<Stack
+				direction={{ xs: 'column', sm: 'row' }}
+				alignItems={{ xs: 'flex-start', sm: 'center' }}
+				justifyContent="space-between"
+				spacing={1.5}
+			>
 				<Box>
 					<Typography variant="h6" fontWeight={600}>Scheduled notifications</Typography>
 					<Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
-						{schedules.length} upcoming schedule{schedules.length === 1 ? '' : 's'}
+						Upcoming push notifications queued to send automatically
 					</Typography>
 				</Box>
 				<Button
 					variant="outlined"
 					size="small"
-					startIcon={isLoader ? <CircularProgress size={14} sx={{ color: 'inherit' }} /> : <IconRefresh size={16} />}
-					disabled={isLoader}
-					onClick={() => { setPage(1); setNextTokens([]); getSchedules(1); }}
+					startIcon={
+						isLoading ? (
+							<CircularProgress size={14} sx={{ color: 'inherit' }} />
+						) : (
+							<IconRefresh size={16} />
+						)
+					}
+					disabled={isLoading}
+					onClick={refreshList}
 				>
 					Refresh
 				</Button>
 			</Stack>
 
-			<MainCard contentSX={{ p: 0 }}>
+			<Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5}>
+				<Box
+					sx={{
+						flex: 1,
+						p: 2,
+						borderRadius: 2,
+						border: 1,
+						borderColor: 'divider',
+						bgcolor: 'grey.50',
+					}}
+				>
+					<Typography variant="overline" color="text.secondary" fontWeight={700}>
+						Total queued
+					</Typography>
+					<Typography variant="h4" fontWeight={700} sx={{ mt: 0.5 }}>
+						{isLoading ? '—' : schedules.length}
+					</Typography>
+				</Box>
+				<Box
+					sx={{
+						flex: 2,
+						p: 2,
+						borderRadius: 2,
+						border: 1,
+						borderColor: 'divider',
+					}}
+				>
+					<Typography variant="overline" color="text.secondary" fontWeight={700}>
+						Next to send
+					</Typography>
+					<Typography variant="body1" fontWeight={600} sx={{ mt: 0.5 }} noWrap>
+						{isLoading
+							? '—'
+							: nextUpcoming
+								? formatScheduleListDateTime(getScheduleItemDateTimeRaw(nextUpcoming))
+								: 'None scheduled'}
+					</Typography>
+					{!isLoading && nextUpcoming && (
+						<Typography variant="caption" color="text.secondary" noWrap display="block">
+							{decodeWord(getScheduleItemTitle(nextUpcoming))}
+						</Typography>
+					)}
+				</Box>
+			</Stack>
+
+			{loadError && (
+				<Alert severity="error" onClose={() => setLoadError(null)}>
+					{loadError}
+				</Alert>
+			)}
+
+			<Box sx={{ borderRadius: 2, border: 1, borderColor: 'divider', overflow: 'hidden' }}>
 				<TableContainer>
-					<Table size="small" stickyHeader sx={tableHeadSx}>
+					<Table size="small" stickyHeader sx={tableSx}>
 						<TableHead>
 							<TableRow>
-								{['Title', 'Scheduled time', 'Actions'].map(label => (
-									<TableCell key={label} component="th" align={label === 'Actions' ? 'right' : 'left'}>
-										<Typography variant="overline" color="text.secondary" fontWeight={700}>{label}</Typography>
-									</TableCell>
-								))}
+								<TableCell>Notification</TableCell>
+								<TableCell sx={{ width: 200 }}>Send at (Dhaka)</TableCell>
+								<TableCell align="right" sx={{ width: 72 }}>Actions</TableCell>
 							</TableRow>
 						</TableHead>
 						<TableBody>
-							{schedules.length > 0 ? (
-								schedules.map((item: any, index: number) => (
-									<TableRow key={index} hover sx={{ '& td': { py: 1, px: 1.5 } }}>
-										<TableCell sx={{ maxWidth: 320 }}>
-											<Typography variant="body2" noWrap title={decodeWord(item.title)}>
-												{decodeWord(item.title)}
-											</Typography>
-										</TableCell>
-										<TableCell>
-											<Chip
-												label={getLocaleDateTime(item.scheduleTime)}
-												size="small"
-												variant="outlined"
-												sx={{ fontWeight: 600 }}
-											/>
-										</TableCell>
-										<TableCell align="right">
-											<Tooltip title="Delete schedule">
-												<IconButton
+							{isLoading ? (
+								<LoadingSkeletonRows />
+							) : schedules.length > 0 ? (
+								schedules.map((item, index) => {
+									const title = decodeWord(getScheduleItemTitle(item));
+									const scheduleName = getScheduleItemName(item);
+									const when = formatScheduleListDateTime(getScheduleItemDateTimeRaw(item));
+									const whenDate = parseScheduleItemDate(item);
+									const isPast = whenDate != null && whenDate.getTime() < Date.now();
+
+									return (
+										<TableRow key={scheduleName ?? index} hover>
+											<TableCell sx={{ maxWidth: 360 }}>
+												<Stack direction="row" spacing={1.5} alignItems="center" minWidth={0}>
+													<Avatar
+														variant="rounded"
+														sx={{
+															width: 36,
+															height: 36,
+															bgcolor: 'primary.50',
+															color: 'primary.main',
+														}}
+													>
+														<IconBell size={18} stroke={1.75} />
+													</Avatar>
+													<Box minWidth={0}>
+														<Typography variant="body2" fontWeight={600} noWrap title={title}>
+															{title}
+														</Typography>
+														{scheduleName && (
+															<Typography variant="caption" color="text.secondary" noWrap display="block">
+																ID: {scheduleName}
+															</Typography>
+														)}
+													</Box>
+												</Stack>
+											</TableCell>
+											<TableCell>
+												<Chip
+													icon={<IconCalendarEvent size={14} />}
+													label={when}
 													size="small"
-													color="error"
-													onClick={() => deleteSchedule(item?.Name)}
-												>
-													<IconTrash size={16} stroke={1.5} />
-												</IconButton>
-											</Tooltip>
-										</TableCell>
-									</TableRow>
-								))
+													color={isPast ? 'default' : 'primary'}
+													variant={isPast ? 'outlined' : 'filled'}
+													sx={{ fontWeight: 600, maxWidth: '100%' }}
+												/>
+											</TableCell>
+											<TableCell align="right">
+												<Tooltip title={scheduleName ? 'Delete schedule' : 'Missing schedule id'}>
+													<span>
+														<IconButton
+															size="small"
+															color="error"
+															disabled={!scheduleName}
+															onClick={() => scheduleName && deleteSchedule(scheduleName)}
+														>
+															<IconTrash size={16} stroke={1.5} />
+														</IconButton>
+													</span>
+												</Tooltip>
+											</TableCell>
+										</TableRow>
+									);
+								})
 							) : (
 								<TableRow>
 									<TableCell colSpan={3}>
-										<Typography textAlign="center" color="text.secondary" variant="body2" sx={{ py: 4 }}>
-											{isLoader ? 'Loading…' : 'No scheduled notifications'}
-										</Typography>
+										<Stack alignItems="center" spacing={1} sx={{ py: 6, px: 2 }}>
+											<Avatar sx={{ width: 48, height: 48, bgcolor: 'grey.100', color: 'text.secondary' }}>
+												<IconCalendarEvent size={24} stroke={1.5} />
+											</Avatar>
+											<Typography variant="subtitle2" fontWeight={600}>
+												No scheduled notifications
+											</Typography>
+											<Typography variant="body2" color="text.secondary" textAlign="center" maxWidth={360}>
+												Use Audiobook Details or Common tabs with &quot;Schedule for later&quot; to queue a notification here.
+											</Typography>
+										</Stack>
 									</TableCell>
 								</TableRow>
 							)}
 						</TableBody>
 					</Table>
 				</TableContainer>
-			</MainCard>
 
-			{/* Pagination */}
-			{totalPages > 1 && (
-				<Stack direction="row" spacing={1} sx={{ mt: 2, justifyContent: 'flex-end' }}>
-					{Array.from({ length: totalPages }, (_, i) => i + 1).map(pageNumber => (
-						<Button
-							key={pageNumber}
+				{!isLoading && schedules.length > 0 && totalPages > 1 && (
+					<Stack
+						direction={{ xs: 'column', sm: 'row' }}
+						alignItems={{ xs: 'stretch', sm: 'center' }}
+						justifyContent="space-between"
+						gap={1}
+						sx={{ px: 2, py: 1.5, borderTop: 1, borderColor: 'divider', bgcolor: 'grey.50' }}
+					>
+						<Typography variant="body2" color="text.secondary">
+							Page {page} of {totalPages}
+						</Typography>
+						<Pagination
+							page={page}
+							count={totalPages}
+							onChange={(_, p) => handlePageChange(p)}
 							size="small"
-							variant={page === pageNumber ? 'contained' : 'outlined'}
-							disabled={isLoader}
-							onClick={() => handlePageChange(pageNumber)}
-							sx={{ minWidth: 36 }}
-						>
-							{pageNumber}
-						</Button>
-					))}
-				</Stack>
-			)}
+							color="primary"
+							siblingCount={1}
+							sx={{ '& .MuiPagination-ul': { justifyContent: { xs: 'center', sm: 'flex-end' } } }}
+						/>
+					</Stack>
+				)}
+			</Box>
 		</Stack>
 	);
 };

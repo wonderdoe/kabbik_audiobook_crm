@@ -65,7 +65,7 @@ export function MainCard({ title, subtitle, secondary, children, contentSX, bord
 					{secondary}
 				</Box>
 			)}
-			<CardContent sx={{ p: { xs: 1.5, sm: 2.5 }, pt: { xs: 1.5, sm: 2.5 }, ...contentSX }}>
+			<CardContent sx={{ p: { xs: 1.5, sm: 2.5 }, pt: { xs: 1.5, sm: 2.5 }, flex: 1, ...contentSX }}>
 				{children}
 			</CardContent>
 		</Card>

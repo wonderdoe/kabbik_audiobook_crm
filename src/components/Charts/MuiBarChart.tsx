@@ -1,6 +1,8 @@
 'use client';
 
+import { useMemo } from 'react';
 import { useTheme } from '@mui/material/styles';
+import { isLikelyTimeSeriesKey, sortChartDataChronologically } from '@/utils/chartTimeOrder';
 import {
 	Bar,
 	BarChart,
@@ -12,6 +14,7 @@ import {
 	XAxis,
 	YAxis,
 } from 'recharts';
+import { chartBarAnimation } from '@/components/Charts/modernBarChartShared';
 
 type SeriesItem = { name: string; color?: string; label?: string };
 
@@ -47,10 +50,14 @@ export function MuiBarChart({
 	multiColor = false,
 }: MuiBarChartProps) {
 	const theme = useTheme();
+	const chartData = useMemo(
+		() => (isLikelyTimeSeriesKey(dataKey) ? sortChartDataChronologically(data, dataKey) : data),
+		[data, dataKey],
+	);
 
 	return (
 		<ResponsiveContainer width="100%" height={h}>
-			<BarChart data={data} barCategoryGap="30%">
+			<BarChart data={chartData} barCategoryGap="30%">
 				<CartesianGrid strokeDasharray="3 3" vertical={false} />
 				<XAxis dataKey={dataKey} tick={{ fontSize: 12 }} />
 				<YAxis tickFormatter={valueFormatter ? v => valueFormatter(Number(v)) : undefined} tick={{ fontSize: 12 }} />
@@ -68,9 +75,15 @@ export function MuiBarChart({
 							? theme.palette.primary.main
 							: (PALETTE[si % PALETTE.length]);
 					return (
-						<Bar key={s.name} dataKey={s.name} name={s.label ?? s.name} radius={[4, 4, 0, 0]}>
+						<Bar
+							key={s.name}
+							dataKey={s.name}
+							name={s.label ?? s.name}
+							radius={[4, 4, 0, 0]}
+							{...chartBarAnimation(si)}
+						>
 							{multiColor
-								? data.map((_, i) => (
+								? chartData.map((_, i) => (
 										<Cell key={i} fill={PALETTE[i % PALETTE.length]} />
 								  ))
 								: <Cell fill={baseColor} />}

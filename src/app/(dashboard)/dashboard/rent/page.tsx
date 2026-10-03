@@ -37,6 +37,7 @@ import { CustomDatePicker } from '@/components/Form/CustomDatePicker';
 import Loader from '@/components/Loader';
 import { getRentRevenueReport } from '@/services/services';
 import { formatPhoneNumber, getTotalPageNumber } from '@/utils/globalHelpers';
+import { formatCompactCurrency } from '@/utils/formatCompactNumber';
 
 const formSchema = z
 	.object({
@@ -51,15 +52,7 @@ const formSchema = z
 export type FormData = z.infer<typeof formSchema>;
 
 function formatTk(amount: unknown): string {
-	const n = Number(amount);
-	if (!Number.isFinite(n)) return '0 Tk';
-	return `${n.toLocaleString(undefined, { maximumFractionDigits: 2 })} Tk`;
-}
-
-function formatCount(value: unknown): string {
-	const n = Number(value);
-	if (!Number.isFinite(n)) return '0';
-	return n.toLocaleString(undefined, { maximumFractionDigits: 0 });
+	return formatCompactCurrency(amount, ' Tk');
 }
 
 export default function Rent() {
@@ -140,7 +133,7 @@ export default function Rent() {
 					<Grid item xs={12} sm={6} lg={4} sx={{ display: 'flex' }}>
 						<StatCard
 							title="Rented books in range"
-							value={formatCount(rentData?.totalCountInRange)}
+							value={Number(rentData?.totalCountInRange) || 0}
 							color="info"
 							icon={<IconBooks size={22} />}
 							loading={isLoading}

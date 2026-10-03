@@ -10,6 +10,7 @@ import {
 } from '@mui/material';
 import { motion } from 'framer-motion';
 import type { ReactNode } from 'react';
+import { StatCardValue } from '@/components/ui/StatCardValue';
 import { fadeInUp, transition } from '@/styles/motion';
 import { cardShadow } from '@/styles/cardShadow';
 
@@ -75,7 +76,7 @@ export function StatCard({ title, value, icon, accent = 'primary', index = 0 }: 
 								wordBreak: 'break-word',
 							}}
 						>
-							{value}
+							<StatCardValue value={value} />
 						</Typography>
 					</Box>
 					{icon ? (
