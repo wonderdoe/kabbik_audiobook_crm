@@ -43,6 +43,13 @@ export const navLinks: NavItem[] = [
 	},
 
 	{
+		permissions: 'assign_roles',
+		label: 'Maintenance',
+		icon: IconBolt,
+		link: '/dashboard/maintenance',
+	},
+
+	{
 		permissions:"",
 		label: 'Contents',
 		icon: IconMicrophone,

@@ -11,6 +11,7 @@ import { motion } from 'framer-motion';
 import type { ReactNode } from 'react';
 import { StatCardValue } from '@/components/ui/StatCardValue';
 import { cardShadow } from '@/styles/cardShadow';
+import { statCardIconBoxSize, statCardPadding, statCardValueFontSize } from '@/styles/statCard';
 
 type AnalyticCardProps = {
 	title: string;
@@ -62,9 +63,9 @@ export function AnalyticCard({ title, count, icon, color = 'primary', extra }: A
 				},
 			}}
 		>
-			<Box sx={{ pl: 2.5, pr: 2.5, pt: 2, pb: 2 }}>
-				<Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 1.5 }}>
-					<Stack spacing={0.75} sx={{ minWidth: 0, flex: 1 }}>
+			<Box sx={statCardPadding}>
+				<Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 1 }}>
+					<Stack spacing={0.5} sx={{ minWidth: 0, flex: 1 }}>
 						<Typography
 							variant="caption"
 							sx={{
@@ -83,15 +84,15 @@ export function AnalyticCard({ title, count, icon, color = 'primary', extra }: A
 							fontWeight={800}
 							lineHeight={1.15}
 							color="text.primary"
-							sx={{ fontSize: { xs: '1.125rem', sm: '1.35rem', md: '1.5rem' } }}
+							sx={{ fontSize: statCardValueFontSize }}
 						>
 							<StatCardValue value={count} />
 						</Typography>
 					</Stack>
 					<Box
 						sx={{
-							width: 46,
-							height: 46,
+							width: statCardIconBoxSize,
+							height: statCardIconBoxSize,
 							bgcolor: light,
 							color: main,
 							borderRadius: 1,

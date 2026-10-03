@@ -13,6 +13,7 @@ import type { ReactNode } from 'react';
 import { StatCardValue } from '@/components/ui/StatCardValue';
 import { fadeInUp, transition } from '@/styles/motion';
 import { cardShadow } from '@/styles/cardShadow';
+import { statCardIconBoxSize, statCardValueFontSize } from '@/styles/statCard';
 
 type StatCardProps = {
 	title: string;
@@ -49,8 +50,8 @@ export function StatCard({ title, value, icon, accent = 'primary', index = 0 }: 
 				overflow: 'hidden',
 			}}
 		>
-			<CardContent sx={{ p: 2.5, '&:last-child': { pb: 2.5 } }}>
-				<Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 2 }}>
+			<CardContent sx={{ px: 1.5, py: 1.25, '&:last-child': { pb: 1.25 } }}>
+				<Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 1 }}>
 					<Box sx={{ minWidth: 0, flex: 1 }}>
 						<Typography
 							variant="caption"
@@ -61,19 +62,19 @@ export function StatCard({ title, value, icon, accent = 'primary', index = 0 }: 
 								textTransform: 'uppercase',
 								letterSpacing: '0.06em',
 								lineHeight: 1.4,
-								mb: 1,
+								mb: 0.35,
 							}}
 						>
 							{title}
 						</Typography>
 						<Typography
-							variant="h5"
 							component="p"
 							sx={{
 								fontWeight: 700,
 								color: 'text.primary',
 								lineHeight: 1.2,
 								wordBreak: 'break-word',
+								fontSize: statCardValueFontSize,
 							}}
 						>
 							<StatCardValue value={value} />
@@ -82,8 +83,8 @@ export function StatCard({ title, value, icon, accent = 'primary', index = 0 }: 
 					{icon ? (
 						<Box
 							sx={{
-								width: 44,
-								height: 44,
+								width: statCardIconBoxSize,
+								height: statCardIconBoxSize,
 								borderRadius: 1,
 								display: 'flex',
 								alignItems: 'center',

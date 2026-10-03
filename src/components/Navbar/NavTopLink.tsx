@@ -1,6 +1,6 @@
 'use client';
 
-import { Box, IconButton, ListItemButton, ListItemIcon, ListItemText, Tooltip } from '@mui/material';
+import { Box, IconButton, ListItemButton, Tooltip } from '@mui/material';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import useMediaQuery from '@mui/material/useMediaQuery';
@@ -45,11 +45,19 @@ export function NavTopLink({ item, mini, toggle }: NavTopLinkProps) {
 	}
 
 	return (
-		<ListItemButton component={Link} href={item.link!} selected={selected} onClick={onNavClick}>
-			<ListItemIcon sx={{ minWidth: 36 }}>
-				<Icon size={18} stroke={1.75} className="nav-row-icon" />
-			</ListItemIcon>
-			<ListItemText primary={item.label} primaryTypographyProps={{ fontSize: 14, fontWeight: 500 }} />
+		<ListItemButton
+			component={Link}
+			href={item.link!}
+			selected={selected}
+			onClick={onNavClick}
+			sx={{ gap: 1, py: 0.35, px: 0.5 }}
+		>
+			<Box component="span" className="nav-row-icon" sx={{ display: 'flex', flexShrink: 0, color: 'inherit' }}>
+				<Icon size={18} stroke={1.75} />
+			</Box>
+			<Box component="span" sx={{ fontSize: 14, fontWeight: 500 }}>
+				{item.label}
+			</Box>
 		</ListItemButton>
 	);
 }
